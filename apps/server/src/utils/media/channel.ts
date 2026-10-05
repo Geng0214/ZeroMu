@@ -1,3 +1,4 @@
+import { channelUrl } from "./channelUrl";
 import { t } from "@/lib/i18n";
 import { z } from "zod";
 import { getMediaProvider, getMediaProviderApiKey, providerIdSchema, writeMediaProviderSource } from "@/utils/media/provider";
@@ -80,8 +81,8 @@ export async function fetchMediaChannelModels(input: { id: string; apiUrl: strin
   const checked = mediaChannelSchema.pick({ apiUrl: true }).safeParse(input);
   if (!checked.success) invalid(checked.error.issues[0]?.message ?? "API 地址无效");
   // ACT: 未保存的密钥也用于本次列表请求，保证面板里改完 Key 能立刻拉取模型。
-  const apiKey = (input.apiKey?.trim() || getMediaProviderApiKey(input.id)).replace(/^Bearer\s+/i, "");
-  const url = `${checked.data.apiUrl.replace(/\/+$/, "")}/v1/models`;
+  const apiKey = (input.apiKey === undefined ? getMediaProviderApiKey(input.id) : input.apiKey.trim()).replace(/^Bearer\s+/i, "");
+  const url = channelUrl(checked.data.apiUrl, "/v1/models");
   let response: Response;
   try {
     response = await fetch(url, {

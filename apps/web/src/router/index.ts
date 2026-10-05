@@ -1,16 +1,14 @@
 import { createRouter, createWebHashHistory } from "vue-router";
-import { useHelloStore } from "@/stores/hello";
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     {
       path: "/",
-      redirect: "/hello",
+      redirect: "/home",
     },
     {
       path: "/hello",
-      beforeEnter: async () => await useHelloStore().load() ? { path: "/home", replace: true } : true,
-      component: () => import("@/pages/hello/index.vue"),
+      redirect: "/home",
     },
     {
       path: "/home",

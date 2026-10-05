@@ -110,30 +110,7 @@
             </el-popover>
           </span>
         </el-tooltip>
-        <el-tooltip :showArrow="false" content="帮助" placement="top" :hideAfter="0" :enterable="false" :triggerKeys="[]" :disabled="helpVisible">
-          <span class="toolTrigger">
-            <el-popover v-model:visible="helpVisible" trigger="click" placement="top-end" :width="196">
-              <template #reference>
-                <el-button class="toolButton" text aria-label="帮助">
-                  <icon-help :size="17" />
-                </el-button>
-              </template>
-              <div class="helpMenu">
-                <el-button
-                  class="helpAction"
-                  tag="a"
-                  text
-                  :icon="IconBook"
-                  href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  @click="helpVisible = false">
-                  上游使用教程
-                </el-button>
-              </div>
-            </el-popover>
-          </span>
-        </el-tooltip>
+
       </div>
     </elCard>
   </panel>
@@ -143,7 +120,7 @@
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import { Panel, useVueFlow, type XYPosition } from "@vue-flow/core";
 import { MiniMap } from "@vue-flow/minimap";
-import { IconMap, IconMagnet, IconFocusCentered, IconHelp, IconBook } from "@tabler/icons-vue";
+import { IconMap, IconMagnet, IconFocusCentered } from "@tabler/icons-vue";
 import { ElMessage } from "element-plus";
 import { arrangeCanvas } from "../arrangeCanvas";
 
@@ -157,7 +134,6 @@ const showEdges = defineModel<boolean>("showEdges", { required: true });
 const assetsVisible = defineModel<boolean>("assetsVisible", { default: false });
 const showMap = ref(false);
 const zoomMenuVisible = ref(false);
-const helpVisible = ref(false);
 const flow = useVueFlow();
 const { viewport, zoomTo, zoomIn, zoomOut, fitView, getNodes, updateNode } = flow;
 const zoomPercent = computed(() => Math.round(viewport.value.zoom * 100));

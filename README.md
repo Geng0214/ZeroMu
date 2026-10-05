@@ -41,6 +41,7 @@ bun run dev:web
 - `apps/`：网页、后端和桌面应用。
 - `packages/`：共享模块、节点、工具与正式徽标。
 - `docs/`：开发资料与 [GitHub 上传步骤](./docs/githubSetup.md)。
+- [本次检查记录与后续功能建议](./docs/projectReview.md)。
 - [品牌说明](./docs/branding/brand.json) 与当前界面预览：
 
 ![零幕首页](./docs/branding/homePreview.jpg)

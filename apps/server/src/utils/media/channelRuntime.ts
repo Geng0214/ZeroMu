@@ -1,3 +1,4 @@
+import { channelUrl } from "./channelUrl";
 import { t } from "@/lib/i18n";
 
 type ChannelKind = "image" | "video" | "audio";
@@ -23,7 +24,7 @@ function channelBase(context: ChannelContext) {
 
 /** 渠道路径可含 {id} 占位符；未声明时按 OpenAI 约定把任务号追加到末尾。 */
 function bind(apiUrl: string, path: string, taskId = "") {
-  const base = /^https?:\/\//i.test(path) ? path : apiUrl + path;
+  const base = /^https?:\/\//i.test(path) ? path : channelUrl(apiUrl, path);
   if (!taskId) return base;
   if (base.includes("{id}")) return base.replace(/\{id\}/g, encodeURIComponent(taskId));
   return `${base.replace(/\/+$/, "")}/${encodeURIComponent(taskId)}`;
@@ -31,8 +32,7 @@ function bind(apiUrl: string, path: string, taskId = "") {
 
 function authHeaders(context: ChannelContext) {
   const apiKey = text(context.config.apiKey).replace(/^Bearer\s+/i, "");
-  if (!apiKey) invalid("请先在「设置 → 模型渠道」中为该渠道配置 API Key");
-  return { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" };
+  return { ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}), "Content-Type": "application/json" };
 }
 
 function toInputReference(value: unknown): string {
@@ -173,7 +173,7 @@ async function generateImage(context: ChannelContext, source: object): Promise<M
   if (context.config.returnBase64 === true) body.response_format = "b64_json";
   const images = referenceList(request.images);
   if (images.length) body.image = images.length === 1 ? images[0] : images;
-  const result = await readJson(context, `${channelBase(context)}/v1/images/generations`, { method: "POST", headers: authHeaders(context), body: JSON.stringify(body) });
+  const result = await readJson(context, channelUrl(channelBase(context), "/v1/images/generations"), { method: "POST", headers: authHeaders(context), body: JSON.stringify(body) });
   const assets = readAssets(result);
   if (!assets.length) invalid(context.tool.errorMessage(result) || "渠道未返回图片结果");
   return assets;
@@ -185,7 +185,7 @@ async function generateAudio(context: ChannelContext, source: object): Promise<M
   if (text(request.format)) body.response_format = request.format;
   if (typeof request.speed === "number") body.speed = request.speed;
   if (typeof request.sampleRate === "number") body.sample_rate = request.sampleRate;
-  return readMedia(context, `${channelBase(context)}/v1/audio/speech`, { method: "POST", headers: authHeaders(context), body: JSON.stringify(body) }, "audio");
+  return readMedia(context, channelUrl(channelBase(context), "/v1/audio/speech"), { method: "POST", headers: authHeaders(context), body: JSON.stringify(body) }, "audio");
 }
 
 async function generateVideo(context: ChannelContext, source: object): Promise<MediaAsset[]> {

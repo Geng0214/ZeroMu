@@ -50,7 +50,7 @@
           <h3>模型列表</h3>
           <el-text type="info" size="small">当前已保存 {{ savedModels.length }} 个模型</el-text>
         </div>
-        <el-button :icon="IconRefresh" :loading="!!pullingAll" :disabled="busy || !savedModels.length" @click="pullAllChannels">拉取全部渠道</el-button>
+        <el-button :icon="IconRefresh" :loading="!!pullingAll" :disabled="busy || !rows.some(canSave)" @click="pullAllChannels">拉取全部渠道</el-button>
       </header>
       <el-text v-if="!savedModels.length" class="emptyHint" type="info" size="small">还没有模型，先在上方添加渠道并选择模型。</el-text>
       <el-table v-else :data="savedModels" size="small" max-height="280">
@@ -151,6 +151,8 @@ const promptDraft = ref("");
 const promptDefault = ref("");
 const promptMaxLength = ref(0);
 let loadRequest = 0;
+const savedRows = new Map<string, string>();
+function rowSnapshot(row: MediaChannelRow) { const { revision, loadError, fileName, ...draft } = row; return JSON.stringify(draft); }
 
 const busy = computed(() => !!savingId.value || !!deletingId.value || !!pullingAll.value);
 const mediaGroups = computed(() => {
@@ -259,7 +261,13 @@ async function loadProviders() {
     const channelProviders = providers.value.filter(provider => provider.readme?.startsWith(channelMarker));
     const saved = new Set(channelProviders.map(provider => provider.id));
     // ACT: 保存后重载会带回同一渠道，只保留服务端还不存在的草稿行。
-    rows.value = [...channelProviders.map(rowFromProvider), ...rows.value.filter(row => !row.revision && !saved.has(row.id))];
+    rows.value = [...channelProviders.map(provider => {
+      const fresh = rowFromProvider(provider);
+      const draft = rows.value.find(row => row.id === provider.id);
+      const dirty = draft && rowSnapshot(draft) !== savedRows.get(provider.id);
+      savedRows.set(provider.id, rowSnapshot(fresh));
+      return dirty ? { ...draft, revision: fresh.revision, fileName: fresh.fileName } : fresh;
+    }), ...rows.value.filter(row => !row.revision && !saved.has(row.id))];
   } catch (error) {
     if (request === loadRequest) ElMessage.error(axios.isAxiosError(error) ? error.response?.data?.message || error.message : "读取模型渠道失败");
   } finally {
@@ -317,13 +325,14 @@ async function writeConfig(row: MediaChannelRow) {
   });
 }
 
-async function saveRow(row: MediaChannelRow, reload = true) {
-  if (busy.value || !canSave(row)) return false;
+async function saveRow(row: MediaChannelRow, reload = true, fromBatch = false) {
+  if (savingId.value || deletingId.value || (pullingAll.value && !fromBatch) || !canSave(row)) return false;
   savingId.value = row.id;
   try {
     const { data } = await axios.post<{ code: number; message: string }>("/api/mediaChannel/save", payloadOf(row), { timeout: 20000 });
     if (data.code !== 200) throw new Error(data.message || "保存渠道失败");
     await writeConfig(row);
+    savedRows.set(row.id, rowSnapshot(row));
     invalidateNodeModels("media");
     if (reload) await loadProviders();
     return true;
@@ -383,7 +392,7 @@ async function onPicked(models: MediaChannelModel[]) {
 async function pullAllChannels() {
   if (busy.value) return;
   pullingAll.value = "all";
-  const targets = rows.value.filter(row => isValidUrl(row.apiUrl.trim()));
+  const targets = rows.value.filter(canSave);
   let added = 0;
   const failed: string[] = [];
   for (const row of targets) {
@@ -399,9 +408,11 @@ async function pullAllChannels() {
         merged.push({ id: model.id, label: model.label ?? model.id });
       }
       if (merged.length === row.models.length) continue;
-      added += merged.length - row.models.length;
+      const newCount = merged.length - row.models.length;
+      const previousModels = row.models;
       row.models = merged;
-      await saveRow(row, false);
+      if (await saveRow(row, false, true)) added += newCount;
+      else { row.models = previousModels; failed.push(`${row.label || row.id}：保存失败，请重试`); }
     } catch (error) {
       failed.push(`${row.label || row.id}：${errorMessage(error, "获取失败")}`);
     }
@@ -418,8 +429,8 @@ function defaultValue(kind: DefaultKind) {
   return typeof ref.providerId === "string" && typeof ref.modelId === "string" ? JSON.stringify([ref.providerId, ref.modelId]) : "";
 }
 
-function setDefault(kind: DefaultKind, value: string) {
-  saveSettings(current => {
+async function setDefault(kind: DefaultKind, value: string) {
+  try { await saveSettings(current => {
     const defaults = { ...record(current.mediaChannelDefaults) };
     if (!value) delete defaults[kind];
     else {
@@ -429,6 +440,7 @@ function setDefault(kind: DefaultKind, value: string) {
     return { mediaChannelDefaults: defaults };
   });
   invalidateNodeModels(kind === "text" ? "language" : "media");
+  } catch (error) { ElMessage.error(errorMessage(error, "默认模型保存失败，请重试")); }
 }
 
 function clearDefault(channelId: string) {

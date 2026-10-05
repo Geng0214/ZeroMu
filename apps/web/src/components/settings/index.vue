@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, shallowRef } from "vue";
+import { defineAsyncComponent, shallowRef, watch } from "vue";
 import { hasDesktopUpdate } from "@/stores/desktopUpdate";
 import {
   IconPalette,
@@ -70,8 +70,12 @@ const settingsPanels = [
   { id: "developer", label: "开发者选项", icon: IconCode, component: defineAsyncComponent(() => import("./panels/developer/index.vue")) },
   { id: "about", label: "关于", icon: IconInfoCircle, component: defineAsyncComponent(() => import("./panels/about.vue")) },
 ];
+const props = defineProps<{ initialPanel?: string }>();
 const activePanel = shallowRef(settingsPanels[0]!);
 const visible = defineModel<boolean>({ default: false });
+watch(() => [visible.value, props.initialPanel] as const, ([isOpen, panel]) => {
+  if (isOpen && panel) activePanel.value = settingsPanels.find(item => item.id === panel) ?? settingsPanels[0]!;
+}, { immediate: true });
 </script>
 
 <style lang="scss" scoped>

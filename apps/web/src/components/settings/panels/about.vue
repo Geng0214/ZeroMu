@@ -51,6 +51,12 @@
     </el-card>
 
     <el-card class="infoCard repositoryCard" shadow="never">
+      <a class="repositoryLink" href="https://github.com/Geng0214/ZeroMu" target="_blank" rel="noopener noreferrer"><icon-brand-github class="repositoryIcon" :size="22" /><span class="repositoryTitle">零幕 · GitHub 项目</span><icon-external-link :size="16" /></a>
+    </el-card>
+    <el-card class="infoCard repositoryCard" shadow="never">
+      <a class="repositoryLink" href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf" target="_blank" rel="noopener noreferrer"><icon-world class="repositoryIcon" :size="22" /><span class="repositoryTitle">上游使用教程</span><icon-external-link :size="16" /></a>
+    </el-card>
+    <el-card class="infoCard repositoryCard" shadow="never">
       <a class="repositoryLink" :href="repositoryUrl" target="_blank" rel="noopener noreferrer" aria-label="GitHub 仓库：HBAI-Ltd/Toonflow-app">
         <icon-brand-github class="repositoryIcon" :size="22" aria-hidden="true" />
         <div class="repositoryInfo">
