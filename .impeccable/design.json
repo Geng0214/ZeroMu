@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-05T00:59:25.748Z",
+  "title": "Design System: 零幕首页",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "薄荷绿"
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "深炭灰"
+      }
+    },
+    "motion": [
+      {
+        "name": "carousel",
+        "value": "transform .45s ease-out, filter .45s ease-out",
+        "purpose": "手动轮播；prefers-reduced-motion: reduce 时禁用。"
+      },
+      {
+        "name": "sectionScroll",
+        "value": "smooth",
+        "purpose": "导航定位；减少动态效果偏好下使用 instant。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wrappedNavigation",
+        "value": "1150px"
+      },
+      {
+        "name": "singleColumn",
+        "value": "640px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "图标按钮",
+      "kind": "button",
+      "description": "顶部设置类操作的形状与状态。示例符号仅作展示。",
+      "html": "<button class=\"dsIcon\" aria-label=\"关于零幕\">i</button>",
+      "css": ".dsIcon{display:grid;place-items:center;width:34px;height:34px;background:transparent;border:0;border-radius:8px;color:#aaada6;font:inherit;cursor:pointer}.dsIcon:hover{background:#292b29;color:#f1f1ec}.dsIcon:focus-visible{outline:2px solid #b6dec9;outline-offset:5px}.dsIcon:disabled{cursor:not-allowed;opacity:.5}"
+    },
+    {
+      "name": "创作输入器",
+      "kind": "input",
+      "refersTo": "composer",
+      "description": "输入区域的静态样式摘录；目录与模型控件由应用组件提供。",
+      "html": "<div class=\"dsComposer\"><textarea aria-label=\"创作描述\" placeholder=\"描述创作目标，让零幕陪你完成第一幕…\"></textarea></div>",
+      "css": ".dsComposer{max-width:800px;padding:18px;border:1px solid #373a36;border-radius:16px;background:#202120}.dsComposer:focus-within{border-color:#b6dec9}.dsComposer textarea{width:100%;min-height:88px;padding:0;border:0;outline:none;resize:none;background:transparent;color:#f1f1ec;font:14px/1.8 sans-serif;caret-color:#b6dec9}.dsComposer textarea::placeholder{color:#aaada6}"
+    },
+    {
+      "name": "顶部导航",
+      "kind": "nav",
+      "description": "文字导航与选中底线。",
+      "html": "<nav class=\"dsNav\" aria-label=\"主导航示例\"><button class=\"dsSelected\">无限画布</button><button>我的项目</button></nav>",
+      "css": ".dsNav{display:flex;gap:6px;min-height:44px;background:#101111}.dsNav button{position:relative;padding:0 11px;border:0;background:transparent;color:#aaada6;font-size:13px;cursor:pointer}.dsNav button:hover,.dsNav .dsSelected{color:#f1f1ec}.dsNav .dsSelected::after{content:'';position:absolute;bottom:0;left:11px;right:11px;height:2px;background:#b6dec9}.dsNav button:focus-visible{outline:2px solid #b6dec9;outline-offset:5px}"
+    },
+    {
+      "name": "创作模式",
+      "kind": "button",
+      "description": "轻量文字模式切换，选中状态使用薄荷绿。",
+      "html": "<div class=\"dsModes\"><button aria-pressed=\"true\">自由创作</button><button aria-pressed=\"false\">生图创作</button></div>",
+      "css": ".dsModes{display:flex;gap:22px;background:#101111}.dsModes button{padding:4px 0;background:none;border:0;color:#aaada6;font-size:12px;cursor:pointer}.dsModes button[aria-pressed=true]{color:#b6dec9}.dsModes button:focus-visible{outline:2px solid #b6dec9;outline-offset:5px}"
+    },
+    {
+      "name": "项目卡片",
+      "kind": "card",
+      "refersTo": "projectCard",
+      "description": "项目名称和路径的静态样式示例，内容为示意。",
+      "html": "<article class=\"dsProject\"><button aria-label=\"打开项目 示例项目\"><strong>示例项目</strong><span>项目文件夹</span></button></article>",
+      "css": ".dsProject{padding:18px;border-radius:12px;background:#202120}.dsProject button{display:grid;gap:8px;max-width:100%;padding:0;border:0;background:none;text-align:left;color:#f1f1ec;cursor:pointer}.dsProject strong{font-size:14px}.dsProject span{font-size:11px;color:#aaada6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dsProject button:focus-visible{outline:2px solid #b6dec9;outline-offset:5px}.dsProject button:disabled{cursor:not-allowed;opacity:.5}"
+    }
+  ],
+  "narrative": {
+    "northStar": "深炭灰中的创作起点",
+    "overview": "本文件仅记录 apps/web/src/pages/home/index.vue 的参考图驱动首页替换，不代表整个工作区的设计系统。",
+    "keyCharacteristics": [
+      "电影画面提供创作入口，输入器承接实际任务。",
+      "薄荷绿标记操作与选中状态，灰阶承担页面层次。",
+      "小屏保留单张轮播，并让输入器操作换行。"
+    ],
+    "rules": [],
+    "dos": [
+      "Do 延续参考图确认的深炭灰、薄荷绿、突出中央轮播与居中输入器。",
+      "Do 保留小屏单卡、操作换行、明确焦点及减少动态效果支持。"
+    ],
+    "donts": [
+      "Don't 将生图、视频或音乐模式描述成已经实现的独立生成引擎。",
+      "Don't 将三张入口截图的审查结论扩大为完整页面和弹窗均已通过验证。"
+    ]
+  }
+}
