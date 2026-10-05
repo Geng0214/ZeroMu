@@ -102,7 +102,7 @@
     <el-card class="appearancePreview" shadow="never">
       <div class="previewIcon"><icon-sparkles :size="20" /></div>
       <div class="previewText">
-        <strong>Toonflow 每一个灵感，都值得被看见</strong>
+        <strong>零幕 · 从零开始，创造第一幕</strong>
         <p>这是当前颜色、字体与圆角的实际效果。</p>
       </div>
       <el-tag type="primary" effect="light">预览</el-tag>

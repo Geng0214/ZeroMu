@@ -73,7 +73,7 @@ jobs:
       - name: 下载各平台产物
         uses: actions/download-artifact@v8
         with:
-          pattern: toonflow-${{ needs.build.outputs.version }}-*
+          pattern: zeromu-${{ needs.build.outputs.version }}-*
           path: artifacts
           merge-multiple: true
       - name: 生成下载说明
@@ -90,7 +90,7 @@ jobs:
             if (names.length !== 1) throw new Error(`${label} 安装包数量应为 1，实际为 ${names.length}`);
             return names[0];
           };
-          const windows = findInstaller("Windows", name => name === `toonflow-${version}-Setup.exe`);
+          const windows = findInstaller("Windows", name => name === `zeromu-${version}-Setup.exe`);
           const macArm = findInstaller("macOS ARM64", name => name.endsWith(".dmg") && name.includes("arm64"));
           const macIntel = findInstaller("macOS x64", name => name.endsWith(".dmg") && name.includes("x64"));
           const baseUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/releases/download/v${version}`;
@@ -111,7 +111,7 @@ jobs:
             "## 🚀 安装说明",
             "",
             "- 💻 **Windows**：双击下载的安装包，按提示完成安装。",
-            "- 🍎 **Mac**：打开下载的安装包，将 `toonflow.app` 拖入“应用程序”，再从“应用程序”打开。",
+            "- 🍎 **Mac**：打开下载的安装包，将 `zeromu.app` 拖入“应用程序”，再从“应用程序”打开。",
             "",
             "M 系列 Mac 安装包已完成 Developer ID 签名与 Apple 公证。首次打开时，macOS 仍可能提示确认打开从互联网下载的应用。",
             "",

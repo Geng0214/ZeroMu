@@ -30,3 +30,12 @@ Thumbs.db
 *.p8
 *.keychain
 *.keychain-db
+
+# Local editor settings and credentials
+.idea/
+*.pem
+*.key
+.npmrc
+.netrc
+.git-credentials
+/localArchive/

@@ -93,6 +93,7 @@ declare module 'vue' {
     LanguageSelect: typeof import('./../components/languageSelect.vue')['default']
     MarkdownImage: typeof import('./../components/markdownImage.vue')['default']
     Mcp: typeof import('./../components/settings/panels/mcp/index.vue')['default']
+    MediaChannel: typeof import('./../components/settings/panels/mediaChannel/index.vue')['default']
     MediaModel: typeof import('./../components/settings/panels/mediaModel/index.vue')['default']
     MentionContent: typeof import('./../components/agent/mentionContent.vue')['default']
     MentionMenu: typeof import('./../components/agent/mentionMenu.vue')['default']

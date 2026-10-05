@@ -28,7 +28,7 @@
       </div>
       <div v-else class="welcomeContent">
         <h1 id="welcomeTitle">快速开始</h1>
-        <p class="description">选择登录TF-Router可直接自动配置，无需任何复杂操作，即可开始创作。</p>
+        <p class="description">从零开始，创造第一幕。添加自己的模型 API，或使用 TF-Router 自动配置。</p>
 
         <el-button class="loginButton" type="primary" @click="openLogin">
           <icon-login class="buttonIcon" />
@@ -45,14 +45,14 @@
       </div>
 
       <footer class="pageFooter">
-        <p>© {{ new Date().getFullYear() }} Toonflow · 保留所有权利。</p>
+        <p>零幕 ZEROMU · 基于 Toonflow 开源项目（MIT）</p>
       </footer>
     </section>
     <div class="artPanel" aria-hidden="true">
       <bg class="artBg" />
       <div class="artBrand">
-        <span class="artLogo" v-html="logoSvg" />
-        <span class="artName">Toonflow</span>
+        <img class="artLogo" :src="logoUrl" alt="" />
+        <span class="artName">零幕 · ZEROMU</span>
       </div>
     </div>
   </main>
@@ -71,7 +71,7 @@ import { customProviders, saveSettings, type CustomProviderModel } from "@/store
 import type { MediaProvider } from "@/components/settings/panels/mediaModel/types";
 import { useHelloStore } from "@/stores/hello";
 import anonymousData from "@/lib/anonymousData";
-import logoSvg from "@toonflow/assets/logo.svg?raw";
+import logoUrl from "@toonflow/assets/zeromuIcon.png";
 import bg from "./bg.vue";
 import languageSelect from "@/components/languageSelect.vue";
 
@@ -407,19 +407,13 @@ onBeforeUnmount(() => {
       color: #fff;
 
       .artLogo {
-        width: 44px;
-        height: 44px;
+        width: 56px;
+        height: 56px;
+        object-fit: contain;
+        border-radius: 12px;
+        background: #e9f6f1;
         line-height: 0;
 
-        :deep(svg) {
-          display: block;
-          width: 100%;
-          height: 100%;
-        }
-
-        :deep(path) {
-          fill: #fff;
-        }
       }
 
       .artName {

@@ -5,6 +5,7 @@ import { getBuiltinModels, getBuiltinProviders } from "@earendil-works/pi-ai/pro
 import type { Context, Model } from "@earendil-works/pi-ai";
 import { z } from "zod";
 import conf from "@/utils/conf";
+import { orderByDefaultModel } from "@/utils/modelDefaults";
 import { readReference } from "@/utils/media/generation";
 import modelContextLimits from "@/utils/ai/modelContextLimits";
 
@@ -58,7 +59,7 @@ export function getConfiguredModel(providerId: string, modelId: string) {
 export function listAiModels() {
   const providers = conf.get("settings", {}).customProviders;
   if (!Array.isArray(providers)) return [];
-  return providers.flatMap(item => {
+  return orderByDefaultModel(providers.flatMap(item => {
     const parsed = providerSchema.extend({ id: z.string().min(1), label: z.string() }).safeParse(item);
     if (!parsed.success) return [];
     const provider = parsed.data;
@@ -69,7 +70,7 @@ export function listAiModels() {
         contextWindow: limits.contextWindow, maxOutputTokens: limits.maxTokens,
       };
     });
-  });
+  }), () => "text", model => model);
 }
 
 const aiApis = {

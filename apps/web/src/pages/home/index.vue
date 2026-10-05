@@ -7,19 +7,19 @@
       </el-badge>
       <div class="githubAction">
         <span class="arrowHint starHint">
-          点个 Star 支持一下
+          基于开源项目构建
           <svg viewBox="0 0 84 44" fill="none" aria-hidden="true">
             <path d="M4 29C18 40 44 38 44 18C44 1 21 3 24 19C27 37 57 32 77 16M65 17L77 16L73 28" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </span>
-        <el-button round size="large" :icon="IconBrandGithub" tag="a" href="https://github.com/HBAI-Ltd/Toonflow-app" target="_blank" rel="noopener noreferrer">GitHub</el-button>
+        <el-button round size="large" :icon="IconBrandGithub" tag="a" href="https://github.com/HBAI-Ltd/Toonflow-app" target="_blank" rel="noopener noreferrer">上游项目</el-button>
       </div>
     </el-header>
     <el-main class="pageContent">
       <section class="creationPanel" aria-label="创建项目">
         <div class="brand">
-          <el-image class="brandLogo" :src="logoUrl" fit="contain" alt="Toonflow" />
-          <h1>Toonflow</h1>
+          <el-image class="brandLogo" :src="logoUrl" fit="contain" alt="零幕徽标" />
+          <h1>零幕 <small>ZEROMU</small></h1>
         </div>
         <div class="promptArea">
           <span class="arrowHint inspirationHint">
@@ -100,7 +100,7 @@ import modelPopover from "@/components/modelPopover.vue";
 import attachmentList from "@/components/agent/attachmentList.vue";
 import { createPastedTextFile, readTextAttachment } from "@/components/agent/textAttachments";
 import type { AgentAttachment } from "@/components/agent/types";
-import logoUrl from "@toonflow/assets/logo.svg";
+import logoUrl from "@toonflow/assets/zeromuIcon.png";
 import { useWorkspaceStore, type Project } from "@/stores/workspace";
 import { hasDesktopUpdate } from "@/stores/desktopUpdate";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
@@ -360,11 +360,13 @@ async function createProject(fromPrompt = true) {
         margin-bottom: 36px;
 
         .brandLogo {
-          width: 48px;
-          height: 48px;
+          width: 60px;
+          height: 60px;
+          border-radius: 14px;
+          background: #e9f6f1;
 
           .dark & {
-            filter: invert(1);
+            filter: none;
           }
         }
 
@@ -373,6 +375,14 @@ async function createProject(fromPrompt = true) {
           font-size: clamp(30px, 4vw, 38px);
           font-weight: 600;
           letter-spacing: -1px;
+
+          small {
+            display: block;
+            margin-top: 4px;
+            font-size: 12px;
+            letter-spacing: 3px;
+            color: var(--el-text-color-secondary);
+          }
         }
       }
 

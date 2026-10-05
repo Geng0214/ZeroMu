@@ -9,6 +9,7 @@ import { parse, parseExpression } from "@babel/parser";
 import { z } from "zod";
 import conf from "@/utils/conf";
 import { convertAudio } from "@/utils/media/audioProcessor";
+import { runMediaChannel } from "@/utils/media/channelRuntime";
 import { createWorkspaceFfmpeg } from "@/utils/ffmpeg";
 import { lockWorkspaceFiles, writeWorkspaceFile } from "@/utils/workspace/files";
 
@@ -17,7 +18,7 @@ type ObjectExpression = Extract<Expression, { type: "ObjectExpression" }>;
 
 const providerTranspiler = new Bun.Transpiler({ loader: "ts", target: "bun", define: { require: "undefined" } });
 
-const providerIdSchema = z.string().max(96).regex(/^[a-z][a-zA-Z0-9]*$/)
+export const providerIdSchema = z.string().max(96).regex(/^[a-z][a-zA-Z0-9]*$/)
   .refine(value => !/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(value), "供应商 ID 不能是系统保留文件名");
 export const mediaProviderFileSchema = z.string().refine(value => value.endsWith(".ts") && providerIdSchema.safeParse(value.slice(0, -3)).success, "供应商文件名无效");
 export const mediaModelsSchema = z.array(z.object({
@@ -249,6 +250,16 @@ export async function addMediaProvider(source: string) {
   return result;
 }
 
+export async function writeMediaProviderSource(source: string) {
+  const { id } = parseProvider(source);
+  const result = metadata(`${id}.ts`, source);
+  const path = join((await directory(true))!, `${id}.ts`);
+  const release = lockWorkspaceFiles([path]);
+  try { await writeWorkspaceFile(path, source); }
+  finally { release(); }
+  return result;
+}
+
 export async function saveMediaProvider(fileName: string, models: z.infer<typeof mediaModelsSchema>, revision: string, expectedApiKey?: string) {
   if (!mediaProviderFileSchema.safeParse(fileName).success) invalid("供应商文件名无效");
   const checked = mediaModelsSchema.safeParse(models, validationOptions());
@@ -355,6 +366,7 @@ export async function loadMediaProviderSource(source: string, config: Record<str
       errorMessage: (value: unknown) => mediaErrorMessage(value, providerConfig),
       image: Bun.Image,
       audio: { convert: (input: Uint8Array, options: AudioConvertOptions) => convertAudio(input, options, signal) },
+      mediaChannel: (kind, channelContext, request) => runMediaChannel(kind, channelContext, request),
       ffmpeg: async () => {
         if (!cwd) throw new Error("当前操作没有工作目录，无法使用 FFmpeg");
         return createWorkspaceFfmpeg(cwd, signal);

@@ -87,6 +87,15 @@ interface ProviderTools {
     convert(input: Uint8Array, options: AudioConvertOptions): Promise<{ data: Uint8Array; mimeType: string }>;
   };
   /**
+   * OpenAI 兼容媒体渠道调用；只由「设置 → 模型渠道」生成的供应商文件使用。
+   * 地址、密钥与路径覆盖均取自宿主注入的渠道配置，供应商源码不自行拼接请求。
+   */
+  mediaChannel(
+    kind: "image" | "video" | "audio",
+    context: ProviderContext,
+    request: ImageRequest | VideoRequest | AudioRequest,
+  ): Promise<MediaAsset[]>;
+  /**
    * 获取绑定当前工作区的原生 @renmu/fluent-ffmpeg 工厂，沿用链式调用、事件、流和 ffprobe 回调。
    * 仅显式文件路径经过工作区边界检查；原始参数、滤镜及清单中的间接 I/O 不是沙箱。
    * 宿主始终注入此入口，调用时检查 FFmpeg/FFprobe；没有工作目录的调试上下文不能使用。
