@@ -7,5 +7,5 @@ const router = Router();
 export default router.get("/", (req, res) => {
   u.mcpControl.assertAppRequest(req);
   res.set("Cache-Control", "no-store");
-  res.json(success(u.conf.get("settings", {})));
+  res.json(success(u.publicSettings()));
 });

@@ -166,6 +166,8 @@ tarReady:
     RMDir /r "$INSTDIR\app\Resources\app\skills"
   IfFileExists "$INSTDIR\app\Resources\app\providers\*.*" 0 +2
     RMDir /r "$INSTDIR\app\Resources\app\providers"
+  ; 保存窗口改由应用内工作线程承载，移除旧版独立程序。
+  Delete "$INSTDIR\app\Resources\app\saveFileDialog.exe"
   IfErrors installFailed
   ; ACT: 仅打包一份 tar，释放应用后保留原文件作为增量更新基线。
   nsExec::ExecToStack '"$WINDIR\Sysnative\tar.exe" -xf "$INSTDIR\self-extraction\${appHash}.tar" -C "$INSTDIR\app" --strip-components=1'
@@ -184,7 +186,7 @@ tarReady:
   StrCpy $installStep "初始化 SDK 安装记录"
   File "/oname=$PLUGINSDIR\initializeInstall.js" "${initializeInstallScript}"
   IfErrors installFailed
-  nsExec::ExecToStack '"$INSTDIR\app\bin\bun.exe" "$PLUGINSDIR\initializeInstall.js" "$INSTDIR" "$DESKTOP" "$SMPROGRAMS"'
+  nsExec::ExecToStack '"$INSTDIR\app\bin\bun.exe" "$PLUGINSDIR\initializeInstall.js" "$INSTDIR" "$DESKTOP" "$SMPROGRAMS" "${appName}"'
   Pop $0
   Pop $1
   ${If} $0 != 0
@@ -204,16 +206,19 @@ tarReady:
   WriteRegStr HKCU "${uninstallKey}" "UninstallString" '$\"$INSTDIR\UninstallNSIS.exe$\"'
   WriteRegStr HKCU "${uninstallKey}" "QuietUninstallString" '$\"$INSTDIR\UninstallNSIS.exe$\" /S'
   IfErrors installFailed
-  StrCpy $installStep "注册 toonflow:// 协议"
-  WriteRegStr HKCU "Software\Classes\toonflow" "" "URL:零幕 ZEROMU Protocol"
-  WriteRegStr HKCU "Software\Classes\toonflow" "URL Protocol" ""
-  WriteRegStr HKCU "Software\Classes\toonflow\DefaultIcon" "" '$\"$INSTDIR\app\Resources\app.ico$\",0'
-  WriteRegStr HKCU "Software\Classes\toonflow\shell\open\command" "" '$\"$INSTDIR\app\Resources\app\protocolLauncher.exe$\" $\"%1$\"'
+  StrCpy $installStep "注册 zeromu:// 协议"
+  WriteRegStr HKCU "Software\Classes\zeromu" "" "URL:零幕 ZEROMU Protocol"
+  WriteRegStr HKCU "Software\Classes\zeromu" "URL Protocol" ""
+  WriteRegStr HKCU "Software\Classes\zeromu\DefaultIcon" "" '$\"$INSTDIR\app\Resources\app.ico$\",0'
+  WriteRegStr HKCU "Software\Classes\zeromu\shell\open\command" "" '$\"$INSTDIR\app\Resources\app\protocolLauncher.exe$\" $\"%1$\"'
   IfErrors installFailed
   CreateShortCut "$DESKTOP\${appName}.lnk" "$INSTDIR\app\bin\launcher.exe" "" "$INSTDIR\app\Resources\app.ico"
+  IfErrors shortcutsFailed
+  CreateShortCut "$SMPROGRAMS\${appName}.lnk" "$INSTDIR\app\bin\launcher.exe" "" "$INSTDIR\app\Resources\app.ico"
   IfErrors 0 installDone
+shortcutsFailed:
   ; ACT: 快捷方式不影响程序使用，失败时保留成功安装结果并告知手动启动路径。
-  MessageBox MB_OK|MB_ICONEXCLAMATION "零幕 ZEROMU 已安装，但无法创建桌面快捷方式。可以从以下位置启动：$\r$\n$INSTDIR\app\bin\launcher.exe" /SD IDOK
+  MessageBox MB_OK|MB_ICONEXCLAMATION "零幕 ZEROMU 已安装，但部分快捷方式未能创建。可以从以下位置启动：$\r$\n$INSTDIR\app\bin\launcher.exe" /SD IDOK
   Goto installDone
 
 installFailed:
@@ -272,9 +277,9 @@ Section "Uninstall"
     IfErrors uninstallMetadataFailed
   ${EndIf}
   ClearErrors
-  ReadRegStr $0 HKCU "Software\Classes\toonflow\shell\open\command" ""
+  ReadRegStr $0 HKCU "Software\Classes\zeromu\shell\open\command" ""
   ${If} $0 == '$\"$INSTDIR\app\Resources\app\protocolLauncher.exe$\" $\"%1$\"'
-    DeleteRegKey HKCU "Software\Classes\toonflow"
+    DeleteRegKey HKCU "Software\Classes\zeromu"
     IfErrors uninstallMetadataFailed
   ${EndIf}
   ClearErrors

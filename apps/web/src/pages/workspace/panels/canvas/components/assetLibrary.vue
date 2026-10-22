@@ -6,9 +6,9 @@
       <el-button class="toolbarButton" text :icon="IconX" title="关闭素材库" aria-label="关闭素材库" @click="visible = false" />
     </div>
     <el-scrollbar class="libraryScroll" maxHeight="min(440px, calc(100dvh - 198px))">
-      <el-tree ref="assetTree" class="assetTree" :data="displayEntries" nodeKey="path" :props="{ label: 'name' }" :currentNodeKey="folder === '.' ? undefined : folder" :filterNodeMethod="filterEntry" defaultExpandAll highlightCurrent emptyText="" @nodeClick="selectFolder">
+      <el-tree ref="assetTree" class="assetTree" :data="displayEntries" nodeKey="path" :props="{ label: 'name' }" :currentNodeKey="folder === '.' ? undefined : folder" :filterNodeMethod="filterEntry" defaultExpandAll highlightCurrent emptyText="暂无素材" @nodeClick="selectFolder">
         <template #default="{ data }">
-          <div class="assetEntry" :title="data.name" :draggable="data.type === 'file'" @dragstart.stop="startAssetDrag($event, data)" @dblclick.stop="openPreview(data)" @contextmenu="openItemMenu($event, data)">
+          <div class="assetEntry" :title="data.metadata?.title || data.name" :draggable="data.type === 'file'" @dragstart.stop="startAssetDrag($event, data)" @dblclick.stop="openPreview(data)" @contextmenu="openItemMenu($event, data)">
             <icon-folder-filled v-if="data.type === 'directory'" class="folderIcon" :size="30" />
             <el-image v-else-if="mediaKind(data) === 'image'" class="assetThumbnail" :src="assetUrl(data.path)" fit="cover" loading="lazy" draggable="false" @click.stop="openPreview(data)">
               <template #error><icon-photo :size="22" /></template>
@@ -19,7 +19,8 @@
               <icon-file v-else :size="24" />
             </span>
             <el-input v-if="data.draft" ref="folderInput" v-model="newFolderName" class="folderNameInput" size="small" aria-label="文件夹名称" :disabled="folderSaving" @click.stop @keydown.stop @keydown.enter.prevent="saveFolder" @keydown.esc.prevent="cancelFolder" @blur="saveFolder" />
-            <span v-else class="assetName">{{ data.name }}</span>
+            <span v-else class="assetName">{{ data.metadata?.title || data.name }}</span>
+            <el-button v-if="data.type === 'file'" class="importButton" text :aria-label="'带入项目 ' + data.name" @click.stop="libraryPath = data.path; libraryVisible = true">带入项目</el-button>
             <el-button v-if="mediaKind(data)" class="moreButton" text :icon="IconEye" :aria-label="'预览 ' + data.name" title="预览（也可双击素材）" @click.stop="openPreview(data)" />
             <el-button v-if="!data.draft" class="moreButton" text :icon="IconDots" :aria-label="'更多 ' + data.name" title="更多" @click.stop="openItemMenu($event, data)" />
           </div>
@@ -36,6 +37,7 @@
     </div>
   </el-card>
 
+  <libraryImportDialog v-model="libraryVisible" :sourcePath="libraryPath" :initialDirectory="directory" />
   <assetMenu v-if="visible" ref="assetMenuRef" :entries="entries" @changed="refreshAssets" />
 
   <el-image-viewer v-if="previewAsset?.kind === 'image'" :urlList="[previewAsset.url]" teleported @close="previewAsset = undefined" />
@@ -66,7 +68,7 @@
         <el-scrollbar class="saveFolderScroll" maxHeight="220px">
           <el-tree class="saveFolderTree" :data="folders" nodeKey="path" :props="{ label: 'name' }" :currentNodeKey="saveDirectory" :expandOnClickNode="false" defaultExpandAll highlightCurrent @nodeClick="(entry: AssetEntry) => { if (!saving && saveFolderName === undefined) saveDirectory = entry.path; }">
             <template #default="{ data }">
-              <span class="saveFolderEntry"><icon-folder-filled :size="20" /><span>{{ data.name }}</span></span>
+              <span class="saveFolderEntry"><icon-folder-filled :size="20" /><span>{{ data.metadata?.title || data.name }}</span></span>
             </template>
           </el-tree>
         </el-scrollbar>
@@ -87,6 +89,8 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import axios from "axios";
+import libraryImportDialog from "@/components/libraryImportDialog.vue";
+const libraryVisible = ref(false); const libraryPath = ref("");
 import { ElMessage, ElTree, type InputInstance, type TreeNodeData } from "element-plus";
 import { IconDots, IconEye, IconFile, IconFolderFilled, IconFolderPlus, IconMusic, IconPhoto, IconSearch, IconVideo, IconX } from "@tabler/icons-vue";
 import type { NodeOutput } from "@toonflow/nodes-scaffold/values";
@@ -94,7 +98,7 @@ import { startAssetDrag } from "../canvasDrop";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import assetMenu from "./assetMenu.vue";
 
-type AssetEntry = { name: string; path: string; type: "file" | "directory"; children?: AssetEntry[]; draft?: boolean };
+type AssetEntry = { name: string; path: string; type: "file" | "directory"; children?: AssetEntry[]; draft?: boolean; metadata?: { title?: string; tags?: string[]; category?: string; description?: string } };
 type AssetOutput = { label: string; output: NodeOutput };
 
 const props = defineProps<{ directory?: string }>();
@@ -136,7 +140,7 @@ function openPreview(entry: AssetEntry) {
   const kind = mediaKind(entry);
   if (!kind) return;
   previewError.value = "";
-  previewAsset.value = { name: entry.name, url: assetUrl(entry.path), kind };
+  previewAsset.value = { name: entry.metadata?.title || entry.name, url: assetUrl(entry.path), kind };
 }
 
 function openItemMenu(event: MouseEvent, entry: AssetEntry) {
@@ -162,7 +166,7 @@ const displayEntries = computed(() => {
 });
 
 function filterEntry(query: string, entry: TreeNodeData) {
-  return !!entry.draft || entry.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase());
+  return !!entry.draft || [entry.name, entry.metadata?.title, entry.metadata?.category, entry.metadata?.description, ...(entry.metadata?.tags ?? [])].filter(Boolean).join(" ").toLocaleLowerCase().includes(query.trim().toLocaleLowerCase());
 }
 
 watch(searchQuery, query => assetTree.value?.filter(query));
@@ -312,7 +316,8 @@ async function saveAsset() {
   }
 }
 
-defineExpose({ openSave });
+const interactionActive = computed(() => !!previewAsset.value || saveVisible.value || !!assetMenuRef.value?.visible);
+defineExpose({ openSave, interactionActive });
 </script>
 
 <style lang="scss" scoped>
@@ -412,6 +417,8 @@ defineExpose({ openSave });
         color: var(--el-text-color-secondary);
         background: var(--el-fill-color-light);
       }
+
+      .importButton { flex-shrink: 0; padding: 4px; margin: 0; font-size: 12px; }
 
       .moreButton {
         flex-shrink: 0;

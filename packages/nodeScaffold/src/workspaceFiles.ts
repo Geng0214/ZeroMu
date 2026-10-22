@@ -1,11 +1,16 @@
-import { inject, ref, toValue, watch, type MaybeRefOrGetter } from "vue";
+import { computed, inject, ref, toValue, watch, type MaybeRefOrGetter } from "vue";
 import type { NodeMediaValue } from "./values";
 import { useNodePreviewReady } from "./useNodePreviewReady";
 
+export type NodeMediaPreview = { originalUrl: string; thumbnailUrl: string; width: number; height: number; bytes: number; duration: number; mimeType: string; message: string };
+
 export interface WorkspaceFiles {
+  getDirectory?(): string;
   list(path?: string): Promise<{ directory: string; entries: { name: string; path: string; type: "file" | "directory" }[] }>;
   read(path: string): Promise<ArrayBuffer>;
-  acquireUrl?(path: string, mimeType: string): { url: Promise<string>; release(): void };
+  acquireUrl?(path: string, mimeType: string): { url: Promise<string>; readonly size?: number; release(): void };
+  previewUrl?(path: string, mimeType?: string): Promise<string>;
+  mediaPreview?(path: string, mimeType?: string): Promise<NodeMediaPreview>;
   readText(path: string): Promise<string>;
   readJson<T = unknown>(path: string): Promise<T>;
   write(path: string, content: string | Blob | ArrayBuffer, exclusive?: boolean): Promise<void>;
@@ -56,7 +61,7 @@ export function useNodeFiles() {
     });
   }
 
-  function useFileUrl(file: MaybeRefOrGetter<NodeMediaValue | undefined>, onError: (error: unknown) => void) {
+  function useFileUrl(file: MaybeRefOrGetter<NodeMediaValue | undefined>, onError: (error: unknown) => void, onLoaded?: (size?: number) => void) {
     const fileUrl = ref("");
     const previewReady = useNodePreviewReady();
     watch([() => toValue(file), previewReady], async ([value, ready], _previous, onCleanup) => {
@@ -69,17 +74,27 @@ export function useNodeFiles() {
         if (url) URL.revokeObjectURL(url);
       });
       fileUrl.value = "";
+      onLoaded?.();
       if (!value || !ready) return;
       try {
         const files = getWorkspaceFiles();
+        if (files.previewUrl && /^(video|audio)\//.test(value.mimeType)) {
+          const preview = await files.previewUrl(value.url, value.mimeType);
+          if (!cancelled) fileUrl.value = preview;
+          return;
+        }
         shared = files.acquireUrl?.(value.url, value.mimeType);
         if (shared) {
           const sharedUrl = await shared.url;
-          if (!cancelled) fileUrl.value = sharedUrl;
+          if (!cancelled) {
+            onLoaded?.(shared.size);
+            fileUrl.value = sharedUrl;
+          }
           return;
         }
         const content = await files.read(value.url);
         if (cancelled) return;
+        onLoaded?.(content.byteLength);
         fileUrl.value = url = URL.createObjectURL(new Blob([content], { type: value.mimeType }));
       } catch (error) {
         if (!cancelled) onError(error);
@@ -88,5 +103,23 @@ export function useNodeFiles() {
     return fileUrl;
   }
 
-  return { getWorkspaceFiles, uploadFile, removeNodeFiles, useFileUrl };
+  function useMediaPreview(file: MaybeRefOrGetter<NodeMediaValue | undefined>) {
+    const info = ref<NodeMediaPreview>();
+    const ready = useNodePreviewReady();
+    const legacyFile = computed(() => { const value = toValue(file); return value && !getWorkspaceFiles().mediaPreview ? value : undefined; });
+    const legacyUrl = useFileUrl(legacyFile, () => {});
+    watch([() => toValue(file), ready], async ([value, visible], _previous, onCleanup) => {
+      let cancelled = false; onCleanup(() => { cancelled = true; }); info.value = undefined;
+      if (!value || !visible) return;
+      const files = getWorkspaceFiles(); if (!files.mediaPreview) return;
+      try { const preview = await files.mediaPreview(value.url, value.mimeType); if (!cancelled) info.value = preview; }
+      catch {
+        const originalUrl = await files.previewUrl?.(value.url, value.mimeType).catch(() => "") || "";
+        if (!cancelled) info.value = { originalUrl, thumbnailUrl: "", width: 0, height: 0, bytes: 0, duration: 0, mimeType: value.mimeType, message: "缩略图暂不可用，请检查原件或重新打开预览" };
+      }
+    }, { immediate: true });
+    return computed(() => info.value || (legacyUrl.value ? { originalUrl: legacyUrl.value, thumbnailUrl: toValue(file)?.mimeType.startsWith("image/") ? legacyUrl.value : "", width: 0, height: 0, bytes: 0, duration: 0, mimeType: toValue(file)?.mimeType || "", message: "" } : undefined));
+  }
+
+  return { getWorkspaceFiles, uploadFile, removeNodeFiles, useFileUrl, useMediaPreview };
 }

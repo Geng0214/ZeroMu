@@ -17,7 +17,11 @@ const outputFile = join(artifactDir, `zeromu-${desktopConfig.app.version}-Setup.
 const installerDir = resolve("apps/desktop/installer");
 const appIcon = resolve("packages/assets/logo.ico");
 const makensis = process.env.NSIS_PATH ?? "C:/Program Files (x86)/NSIS/makensis.exe";
-const csc = join(process.env.WINDIR!, "Microsoft.NET/Framework64/v4.0.30319/csc.exe");
+const windowsRoot = process.env.SystemRoot ?? process.env.windir ?? process.env.WINDIR;
+if (!windowsRoot) throw new Error("无法定位 Windows 系统目录，请检查 SystemRoot 环境变量。");
+const csc = join(windowsRoot, "Microsoft.NET/Framework64/v4.0.30319/csc.exe");
+if (!existsSync(makensis)) throw new Error("未找到 NSIS。请安装 NSIS 3，或通过 NSIS_PATH 指定 makensis.exe 的完整路径。");
+if (!existsSync(csc)) throw new Error("未找到 .NET Framework 4.x 编译器，无法构建 Windows 安装检查程序。");
 const webViewDir = join(nsisDir, "webview2");
 const bootstrapper = join(webViewDir, "MicrosoftEdgeWebview2Setup.exe");
 const loader = join(webViewDir, "WebView2Loader.dll");
@@ -39,6 +43,7 @@ const electrobun = dependencies.objects.find(
   (item: { type: string; platform: string }) => item.type === "electrobun" && item.platform === "windows-x64"
 );
 const hutchHome = process.env.HUTCH_HOME ?? join(homedir(), ".hutch");
+if (!electrobun?.relativeRoot) throw new Error("缺少 Windows Electrobun 运行时，请先执行 bun run prepare:desktop 并重新构建。");
 copyFileSync(join(hutchHome, electrobun.relativeRoot, "WebView2Loader.dll"), loader);
 
 await $`${csc} /nologo /target:exe /platform:x64 /optimize+ /out:${join(webViewDir, "checkWebView2.exe")} ${join(installerDir, "checkWebView2.cs")}`;

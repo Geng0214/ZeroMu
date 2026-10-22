@@ -1,6 +1,8 @@
 import { $ } from "bun";
 import { existsSync, mkdirSync } from "@toonflow/file";
 import { resolve } from "node:path";
+import copyImageRuntime from "../../server/scripts/copyImageRuntime";
+import buildToolRuntime from "../../server/scripts/buildToolRuntime";
 
 const projectDir = resolve(import.meta.dir, "../../..");
 const mode = process.argv[2];
@@ -9,6 +11,9 @@ if (process.argv.length !== 3 || !["build", "dev", "typecheck", "package"].inclu
 }
 const isMac = process.platform === "darwin";
 const isIntelMac = isMac && process.arch === "x64";
+if (!isIntelMac && !existsSync(resolve(projectDir, ".hutch/devkit/api/sdks/main/index.ts"))) {
+  throw new Error("缺少 Electrobun 桌面 SDK。请先运行 bun run prepare:desktop；同步成功后再构建或检查类型。同步需要能访问官方 GitHub Release。");
+}
 // ACT: typecheck 只读取当前源码和已有 SDK 文件，不安装依赖或生成文件。
 if (mode === "typecheck") {
   await $`${process.execPath} run tsc --project ${isIntelMac ? "compat/macIntel/tsconfig.json" : "apps/desktop/tsconfig.json"}`.cwd(projectDir);
@@ -27,18 +32,21 @@ if (isMac) {
   }
 }
 if (!isMac) {
-  const startupBuild = await Bun.build({
-    entrypoints: [resolve(projectDir, "packages/startup/src/windowsSplashWorker.ts")],
-    outdir: resolve(projectDir, "build/desktop/startup"),
+  const windowsWorkersBuild = await Bun.build({
+    entrypoints: [resolve(projectDir, "packages/startup/src/windowsSplashWorker.ts"), resolve(projectDir, "apps/desktop/src/saveFileDialogWorker.ts")],
+    outdir: resolve(projectDir, "build/desktop/workers"),
+    naming: { entry: "[name].[ext]" },
     target: "bun",
     minify: true,
   });
-  if (!startupBuild.success) throw new AggregateError(startupBuild.logs, "启动动画线程构建失败。");
+  if (!windowsWorkersBuild.success) throw new AggregateError(windowsWorkersBuild.logs, "Windows 原生线程构建失败。");
   const protocolDir = resolve(projectDir, "build/desktop/protocol");
-  const csc = resolve(process.env.WINDIR!, "Microsoft.NET/Framework64/v4.0.30319/csc.exe");
+  const windowsRoot = process.env.SystemRoot ?? process.env.windir ?? process.env.WINDIR;
+  if (!windowsRoot) throw new Error("无法定位 Windows 系统目录，请检查 SystemRoot 环境变量。");
+  const csc = resolve(windowsRoot, "Microsoft.NET/Framework64/v4.0.30319/csc.exe");
+  if (!existsSync(csc)) throw new Error("缺少 Windows .NET Framework 4.x 编译器，无法构建启动器与更新助手。");
   mkdirSync(protocolDir, { recursive: true });
   await $`${csc} /nologo /target:winexe /platform:x64 /optimize+ /reference:System.Windows.Forms.dll /reference:System.Web.Extensions.dll /out:${resolve(protocolDir, "protocolLauncher.exe")} ${resolve(projectDir, "apps/desktop/native/protocolLauncher.cs")}`;
-  await $`${csc} /nologo /target:winexe /platform:x64 /optimize+ /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /out:${resolve(protocolDir, "saveFileDialog.exe")} ${resolve(projectDir, "apps/desktop/native/saveFileDialog.cs")}`;
   await $`${csc} /nologo /target:winexe /platform:x64 /optimize+ /reference:System.Web.Extensions.dll /reference:System.Windows.Forms.dll /reference:Microsoft.CSharp.dll /out:${resolve(protocolDir, "updateHelper.exe")} ${resolve(projectDir, "apps/desktop/native/updateHelper.cs")}`;
 }
 // ACT: 团队暂不打包；恢复时也在 package.json 的 dev:plugins 中加回 --filter './packages/teams/*'。
@@ -51,6 +59,8 @@ for (const script of mode === "dev" ? ["dev:plugins"] : [
 }
 await $`${process.execPath} run --filter @toonflow/web build`.cwd(projectDir);
 await $`${process.execPath} run --filter @toonflow/mcp build`.cwd(projectDir);
+await buildToolRuntime();
+await copyImageRuntime(resolve(projectDir, "build/server"));
 if (isIntelMac) {
   // ACT: 共用插件和 Web 构建；Intel Mac 仅将 SDK 适配交给独立的 1.18.1。
   await $`${process.execPath} ${resolve(projectDir, "compat/macIntel/build.ts")} ${mode === "package" ? "build" : mode}`.cwd(projectDir);

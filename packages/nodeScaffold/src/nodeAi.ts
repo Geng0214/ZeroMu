@@ -2,8 +2,10 @@ import { onScopeDispose } from "vue";
 import { runAgentLoop, type AgentTool, type AgentToolResult } from "@earendil-works/pi-agent-core";
 import { createAssistantMessageEventStream, type AssistantMessage, type Context, type Message, type Model } from "@earendil-works/pi-ai";
 import { EventSourceParserStream } from "eventsource-parser/stream";
-import type { MediaGenerationRequest, MediaModel } from "@toonflow/tools-scaffold/runtime";
+import type { MediaGenerationRequest, MediaModel, MediaTaskRecord, MediaTaskSource } from "@toonflow/tools-scaffold/runtime";
 import type { NodeOutput } from "./values";
+import { modelCache } from "./modelCache";
+export { invalidateNodeModels } from "./modelCache";
 
 export type NodeAiModel = {
   providerId: string;
@@ -26,10 +28,14 @@ export type NodeImageRequest = {
   images?: { path: string; mimeType: string }[];
   ratio?: string;
   size?: string;
+  n?: number;
+  quality?: string;
 };
-export type NodeImageResult = { path: string; mimeType: string; mediaType: "image" };
+export type NodeImageResult = { warning?: string; path: string; mimeType: string; mediaType: "image" };
 export type NodeVideoRequest = Omit<MediaGenerationRequest, "size"> & { directory: string; outputDirectory: string };
 export type NodeVideoResult = { path: string; mimeType: string; mediaType: "video" };
+export type NodeAudioRequest = Pick<MediaGenerationRequest, "providerId" | "modelId" | "prompt" | "voice" | "speed" | "format"> & { directory: string; outputDirectory: string };
+export type NodeAudioResult = { path: string; mimeType: string; mediaType: "audio" };
 export type NodeAiRequest = {
   providerId: string;
   modelId: string;
@@ -58,7 +64,7 @@ export type NodeAiTool = {
 export function groupNodeModels<T extends Pick<NodeAiModel, "providerId" | "providerLabel">>(models: readonly T[]) {
   return [...Map.groupBy(models, item => item.providerId)].map(([id, items]) => ({
     id, label: items[0]!.providerLabel, models: items,
-  })).sort((left, right) => Number(right.id === "tfRouter") - Number(left.id === "tfRouter"));
+  }));
 }
 
 async function readResult<T>(response: Response): Promise<T> {
@@ -67,20 +73,11 @@ async function readResult<T>(response: Response): Promise<T> {
   return result.data;
 }
 
-// ACT: 独立 UMD 各有模块作用域，共用宿主缓存；模型设置保存后失效，不按节点重复请求。
-const modelCacheKey = Symbol.for("toonflow.nodeModels");
-const modelCacheHost = globalThis as typeof globalThis & { [modelCacheKey]?: Map<string, Promise<unknown[]>> };
-const modelCache = modelCacheHost[modelCacheKey] ??= new Map<string, Promise<unknown[]>>();
-
-export function invalidateNodeModels(type: "language" | "media") {
-  modelCache.delete(type === "language" ? "/api/ai/models" : "/api/ai/media/models");
-}
-
 async function readModels<T>(url: string, signal: AbortSignal): Promise<T[]> {
   signal.throwIfAborted();
   let pending = modelCache.get(url);
   if (!pending) {
-    const request = fetch(url, { cache: "no-store" }).then(readResult<unknown[]>).catch(error => {
+    const request = fetch(url, { cache: "no-store", signal: AbortSignal.timeout(15000) }).then(readResult<unknown[]>).catch(error => {
       if (modelCache.get(url) === request) modelCache.delete(url);
       throw error;
     });
@@ -149,7 +146,7 @@ async function requestModel(input: NodeAiRequest, context: Context, model: Model
   return stream;
 }
 
-export function useNodeAi() {
+export function useNodeAi(source?: () => MediaTaskSource, onTask?: (taskId: string) => void) {
   const controller = new AbortController();
   onScopeDispose(() => controller.abort());
   const requestSignal = (signal?: AbortSignal) => signal ? AbortSignal.any([controller.signal, signal]) : controller.signal;
@@ -162,13 +159,31 @@ export function useNodeAi() {
     return readModels<NodeMediaModel>("/api/ai/media/models", requestSignal(signal));
   }
 
-  async function generateMedia<T extends "image" | "video">(mediaType: T, input: NodeImageRequest | NodeVideoRequest, signal?: AbortSignal) {
-    return readResult<{ path: string; mimeType: string; mediaType: T }[]>(await fetch("/api/ai/media/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-toonflow-workspace": "1" },
-      body: JSON.stringify({ ...input, mediaType }),
-      signal: requestSignal(signal),
+  async function generateMedia<T extends "image" | "video" | "audio">(mediaType: T, input: NodeImageRequest | NodeVideoRequest | NodeAudioRequest, signal?: AbortSignal) {
+    const callSignal = requestSignal(signal);
+    callSignal.throwIfAborted();
+    const { directory, ...request } = input;
+    const id = crypto.randomUUID();
+    onTask?.(id);
+    let task = await readResult<MediaTaskRecord>(await fetch("/api/ai/media/tasks/start", {
+      method: "POST", headers: { "Content-Type": "application/json", "x-toonflow-workspace": "1" },
+      body: JSON.stringify({ id, directory, mediaType, request, source: source?.() ?? { kind: "node" } }), signal: callSignal,
     }));
+    while (["queued", "submitting", "running", "downloading"].includes(task.status)) {
+      await new Promise<void>((resolve, reject) => {
+        const abort = () => { clearTimeout(timer); reject(callSignal.reason); };
+        const timer = setTimeout(() => { callSignal.removeEventListener("abort", abort); resolve(); }, 1500);
+        callSignal.addEventListener("abort", abort, { once: true });
+        if (callSignal.aborted) abort();
+      });
+      callSignal.throwIfAborted();
+      const query = new URLSearchParams({ id, directory });
+      task = await readResult<MediaTaskRecord>(await fetch(`/api/ai/media/tasks/get?${query}`, {
+        headers: { "x-toonflow-workspace": "1" }, signal: callSignal, cache: "no-store",
+      }));
+    }
+    if (!task.results.length) throw new Error(`任务 ${id}：${task.error || "生成未完成"}；请在任务中心查看，勿重复提交。`);
+    return task.results.map(item => ({ ...item, ...(task.error ? { warning: task.error } : {}) })) as { taskId?: string; path: string; mimeType: string; mediaType: T; warning?: string }[];
   }
 
   function generateImage(input: NodeImageRequest, signal?: AbortSignal) {
@@ -177,6 +192,10 @@ export function useNodeAi() {
 
   function generateVideo(input: NodeVideoRequest, signal?: AbortSignal) {
     return generateMedia("video", input, signal);
+  }
+
+  function generateAudio(input: NodeAudioRequest, signal?: AbortSignal) {
+    return generateMedia("audio", input, signal);
   }
 
   async function generate(input: NodeAiRequest): Promise<NodeAiResult> {
@@ -229,5 +248,5 @@ export function useNodeAi() {
     return { text, ...(reasoning ? { reasoning } : {}) };
   }
 
-  return { getModels, getMediaModels, generateImage, generateVideo, generate };
+  return { getModels, getMediaModels, generateImage, generateVideo, generateAudio, generate };
 }

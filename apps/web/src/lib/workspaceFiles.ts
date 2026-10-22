@@ -2,11 +2,12 @@ import axios from "axios";
 import { toValue, type MaybeRefOrGetter } from "vue";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { registerApiLanguage } from "@/lib/i18n";
+import type { NodeMediaPreview } from "@toonflow/nodes-scaffold/workspaceFiles";
 
 type WorkspaceEntry = { name: string; path: string; type: "file" | "directory" };
 const client = axios.create({ baseURL: "/api/workspaces/files", headers: { "x-toonflow-workspace": "1" } });
 registerApiLanguage(client);
-const fileUrls = new Map<string, { directory: string; path: string; url: Promise<string>; users: number }>();
+const fileUrls = new Map<string, { directory: string; path: string; url: Promise<string>; users: number; size?: number }>();
 
 function cachePath(path: string) {
   return path.replaceAll("\\", "/").split("/").filter(part => part && part !== ".").join("/").toLowerCase();
@@ -30,8 +31,8 @@ export default function useWorkspaceFiles(directory?: MaybeRefOrGetter<string | 
     return path;
   }
 
-  async function list(path = "") {
-    const { data } = await client.get<{ data: { directory: string; empty: boolean; entries: WorkspaceEntry[] } }>("/list", { params: { directory: getDirectory(), path } });
+  async function list(path = "", signal?: AbortSignal) {
+    const { data } = await client.get<{ data: { directory: string; empty: boolean; entries: WorkspaceEntry[] } }>("/list", { params: { directory: getDirectory(), path }, signal, timeout: 15000 });
     return data.data;
   }
 
@@ -40,13 +41,26 @@ export default function useWorkspaceFiles(directory?: MaybeRefOrGetter<string | 
     return data;
   }
 
+  async function previewUrl(path: string, mimeType?: string) {
+    const { data } = await client.post<{ data: { url: string } }>("/previewToken", { directory: getDirectory(), path, mimeType });
+    return data.data.url;
+  }
+
+  async function mediaPreview(path: string, mimeType?: string) {
+    const { data } = await client.post<{ data: NodeMediaPreview }>("/mediaPreview", { directory: getDirectory(), path, mimeType });
+    return data.data;
+  }
+
   function acquireUrl(path: string, mimeType?: string) {
     const directory = getDirectory();
     const key = JSON.stringify([directory, path, mimeType]);
     let entry = fileUrls.get(key);
     if (!entry) {
       const url = client.get<Blob>("/read", { params: { directory, path }, responseType: "blob" })
-        .then(({ data }) => URL.createObjectURL(mimeType ? new Blob([data], { type: mimeType }) : data));
+        .then(({ data }) => {
+          current.size = data.size;
+          return URL.createObjectURL(mimeType ? new Blob([data], { type: mimeType }) : data);
+        });
       entry = { directory, path, url, users: 0 };
       fileUrls.set(key, entry);
       const current = entry;
@@ -57,6 +71,7 @@ export default function useWorkspaceFiles(directory?: MaybeRefOrGetter<string | 
     let released = false;
     return {
       url: current.url,
+      get size() { return current.size; },
       release() {
         if (released) return;
         released = true;
@@ -68,11 +83,11 @@ export default function useWorkspaceFiles(directory?: MaybeRefOrGetter<string | 
     };
   }
 
-  async function readText(path: string, maxBytes?: number) {
+  async function readText(path: string, maxBytes?: number, signal?: AbortSignal) {
     if (maxBytes !== undefined && (!Number.isSafeInteger(maxBytes) || maxBytes < 1)) throw new Error("读取字节数必须为正整数");
     try {
       const { data } = await client.get<string>("/read", {
-        params: { directory: getDirectory(), path }, responseType: "text", transformResponse: [],
+        params: { directory: getDirectory(), path }, responseType: "text", transformResponse: [], signal, timeout: 15000,
         headers: maxBytes === undefined ? undefined : { Range: `bytes=0-${maxBytes - 1}` },
       });
       return data;
@@ -82,8 +97,13 @@ export default function useWorkspaceFiles(directory?: MaybeRefOrGetter<string | 
     }
   }
 
-  async function readJson<T = unknown>(path: string): Promise<T> {
-    return JSON.parse(await readText(path));
+  async function readJson<T = unknown>(path: string, signal?: AbortSignal): Promise<T> {
+    return JSON.parse(await readText(path, undefined, signal));
+  }
+
+  async function readJsonInfo<T = unknown>(path: string, signal?: AbortSignal) {
+    const response = await client.get<string>("/read", { params: { directory: getDirectory(), path }, responseType: "text", transformResponse: [], signal, timeout: 15000 });
+    return { data: JSON.parse(response.data) as T, modifiedAt: response.headers["last-modified"] as string | undefined };
   }
 
   async function write(path: string, content: string | Blob | ArrayBuffer, exclusive = false, signal?: AbortSignal) {
@@ -114,5 +134,5 @@ export default function useWorkspaceFiles(directory?: MaybeRefOrGetter<string | 
   }
 
   // ACT: 当前目录逐次读取；跨 await 或防抖的操作传入目录字符串，固定本次目标。
-  return { list, read, acquireUrl, readText, readJson, write, writeJson, rename, remove, mkdir };
+  return { getDirectory, list, read, acquireUrl, previewUrl, mediaPreview, readText, readJson, readJsonInfo, write, writeJson, rename, remove, mkdir };
 }

@@ -5,7 +5,7 @@ export type { Locale, MessageDescriptor } from "./index";
 
 export const locale = shallowRef<core.Locale>(core.getLocale());
 core.subscribeLocale(value => { locale.value = value; });
-export function setLocale(value: core.Locale) { core.setLocale(value); }
+export function setLocale(value: core.Locale) { return core.setLocale(value); }
 export function translate(message: string | core.MessageDescriptor, values?: Record<string, unknown>) {
   return core.translate(message, values, locale.value);
 }

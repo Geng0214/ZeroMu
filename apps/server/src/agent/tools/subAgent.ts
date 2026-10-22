@@ -47,11 +47,13 @@ export async function createSubAgentTool({ cwd, tools, canvas, runTask, ...model
         try {
           const remote = task.team && getRemoteTeam(task.team);
           if ((task.taskId || task.contextId) && !remote) throw new Error("只有远端 A2A 团队支持 taskId/contextId");
-          const output = remote
-            ? await runRemoteTeam({ ...task, name: task.team!, signal, onProgress })
-            : task.team
-              ? await (await createTeamRunner({ ...modelOptions, cwd, tools: inheritedTools, canvas, name: task.team })).run(task.task, signal, onProgress)
-              : await runTask(task.name, task.task, signal, onProgress);
+          let output;
+          if (remote) output = await runRemoteTeam({ ...task, name: task.team!, signal, onProgress });
+          else if (task.team) {
+            const runner = await createTeamRunner({ ...modelOptions, cwd, tools: inheritedTools, canvas, name: task.team });
+            try { output = await runner.run(task.task, signal, onProgress); }
+            finally { await runner.dispose(); }
+          } else output = await runTask(task.name, task.task, signal, onProgress);
           results[index] = { ...output.result, name: task.name };
           addUsage(usage, output.usage);
         } catch (error) {

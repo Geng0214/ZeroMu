@@ -1,23 +1,16 @@
-import { t, translateMessage, validationOptions } from "@/lib/i18n";
+import { translateMessage, validationOptions } from "@/lib/i18n";
 import { createHash } from "node:crypto";
 import { lstat, readFile, readdir } from "@toonflow/file";
 import { dirname, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import * as zod from "zod";
-import { toolMetadataSchema, toolNameSchema, type ToolMetadata, type ToolPlugin } from "@toonflow/tools-scaffold/runtime";
+import { toolMetadataSchema, toolNameSchema, type ToolMetadata } from "@toonflow/tools-scaffold/runtime";
 import conf from "@/utils/conf";
+import { validateToolInProcess } from "./toolProcess";
+import { createIsolatedTool } from "./isolatedTool";
 
 export { toolNameSchema } from "@toonflow/tools-scaffold/runtime";
 
 const { z } = zod;
-
-// ACT: 工具复用宿主 Zod 4；虚拟模块不依赖安装目录中的 node_modules。
-Bun.plugin({
-  name: "toolHost",
-  setup(build) {
-    build.module("toonflow:tool-zod", () => ({ exports: zod, loader: "object" }));
-  },
-});
 
 export const toolsDirectory = resolve(dirname(conf.path), "tools");
 
@@ -87,19 +80,21 @@ export async function listTools() {
 }
 
 export async function loadTool(name: string, directory = toolsDirectory) {
-  const { path, metadata } = await readTool(name, directory);
-  // ACT: 工具是可信的服务端代码，不是沙箱；安装成功后由安装器清除模块缓存。
-  const { default: plugin } = await import(pathToFileURL(path).href) as { default: ToolPlugin };
-  if (typeof plugin?.createTools !== "function" || typeof plugin.validateConfig !== "function") {
-    throw Object.assign(new Error(t`${metadata.displayName} 未导出有效的工具插件`), { status: 400 });
-  }
+  const { source, metadata } = await readTool(name, directory);
+  const plugin = await createIsolatedTool(source);
   return { plugin, metadata };
 }
 
-export function validateToolConfig(plugin: ToolPlugin, config: Record<string, unknown>) {
+export async function validateInstalledToolConfig(name: string, config?: Record<string, unknown>, directory = toolsDirectory) {
+  const { source, metadata } = await readTool(name, directory);
+  return validateToolInProcess(source, config ?? getToolConfig(metadata));
+}
+
+export async function validateToolConfig(plugin: Pick<Awaited<ReturnType<typeof createIsolatedTool>>, "validateConfig">, config: Record<string, unknown>) {
   try {
-    return plugin.validateConfig(config);
+    return await plugin.validateConfig(config);
   } catch (err) {
-    throw Object.assign(err instanceof Error ? err : new Error("工具配置无效"), { status: 400 });
+    const error = err instanceof Error ? err : new Error("工具配置无效");
+    throw Object.assign(error, { status: "status" in error ? error.status : 400 });
   }
 }

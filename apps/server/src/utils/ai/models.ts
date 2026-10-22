@@ -1,5 +1,7 @@
 import { t } from "@/lib/i18n";
 import { z } from "zod";
+import { assertApiUrl } from "@/utils/conf/credentialSettings";
+import conf from "@/utils/conf";
 
 const modelSchema = z.object({
   id: z.string().optional(), name: z.string().optional(),
@@ -9,6 +11,7 @@ const modelSchema = z.object({
 });
 
 export async function fetchProviderModels({ apiUrl, protocol, apiKey }: { apiUrl: string; protocol: string; apiKey: string }) {
+  assertApiUrl(apiUrl);
   const url = new URL(apiUrl);
   if (url.pathname === "/") url.pathname = "/v1";
   url.pathname = `${url.pathname.replace(/\/+$/, "")}/models`;
@@ -43,4 +46,16 @@ export async function fetchProviderModels({ apiUrl, protocol, apiKey }: { apiUrl
     url.searchParams.set("after_id", cursor);
   }
   return [...models.values()];
+}
+
+export function providerModelCredentials(input: { id?: string; apiUrl: string; protocol: string; apiKey?: string }) {
+  assertApiUrl(input.apiUrl);
+  if (input.apiKey !== undefined) return { ...input, apiKey: input.apiKey };
+  const providers = conf.get("settings", {}).customProviders;
+  const provider = Array.isArray(providers) ? providers.find(item => item?.id === input.id) : undefined;
+  if (!provider || new URL(provider.apiUrl).href.replace(/\/+$/, "") !== new URL(input.apiUrl).href.replace(/\/+$/, "") || provider.protocol !== input.protocol) {
+    throw Object.assign(new Error("API 地址或协议已改变，请重新输入密钥"), { status: 400 });
+  }
+  if (typeof provider.apiKey !== "string") throw Object.assign(new Error("密钥无法解密，请重新输入"), { status: 400 });
+  return { ...input, apiKey: provider.apiKey };
 }

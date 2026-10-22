@@ -18,6 +18,9 @@ export type NodeConnectionFeedback = {
 };
 
 export type NodeData = {
+  productionTransferId?: string;
+  productionSelection?: { projectId: string; candidateId: string; versionId: string; fileIndex: number; file: { path: string; mimeType: string } };
+  generationTaskId?: string;
   label?: string;
   handles?: NodeHandle[];
   outputs?: NodeOutputs;

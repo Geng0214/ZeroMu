@@ -1,5 +1,6 @@
 <template>
-  <component v-if="renderer" :is="renderer" :tool="tool" :directory="directory" @copy="emit('copy', $event)" />
+  <generationConfirmation v-if="generationQuestion" :tool="tool" :directory="directory" />
+  <isolatedToolView v-if="renderer" :key="`${directory}:${tool.id}:${renderer.url}`" :view="renderer" :tool="tool" :directory="directory" @copy="emit('copy', $event)" />
   <el-text v-if="rendererError" type="danger">工具界面加载失败，请停止后重试：{{ rendererError }}</el-text>
   <chat-reasoning v-model:collapsed="collapsed" class="messageReasoning toolCall" expandIconPlacement="left">
     <template #header>
@@ -25,25 +26,28 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onErrorCaptured, ref, shallowRef, watch, type Component } from "vue";
-import { loadToolComponent } from "@toonflow/tools-scaffold/client";
+import { computed, defineAsyncComponent, onErrorCaptured, ref, shallowRef, watch } from "vue";
+import { loadToolView, type ToolView } from "@toonflow/tools-scaffold/client";
 import { IconCopy, IconTool } from "@tabler/icons-vue";
 import chatReasoning from "@tdesign-vue-next/chat/es/chat-reasoning";
 import type { AgentToolCall } from "@toonflow/server/agent/types";
+import generationConfirmation from "./generationConfirmation.vue";
 import messageMarkdown from "@/components/messageMarkdown.vue";
+const isolatedToolView = defineAsyncComponent(() => import("./isolatedToolView.vue"));
 
 const { tool, directory } = defineProps<{ tool: AgentToolCall; directory?: string }>();
 const emit = defineEmits<{ copy: [content: string] }>();
-const renderer = shallowRef<Component>();
+const generationQuestion = computed(() => !!tool.question && tool.name !== "askUser" && tool.question.options?.includes("确认生成"));
+const renderer = shallowRef<ToolView>();
 const rendererError = ref("");
 watch(() => [tool.name, tool.question?.callId] as const, async ([name], _previous, onCleanup) => {
   let active = true;
   onCleanup(() => { active = false; });
   renderer.value = undefined;
   rendererError.value = "";
-  if (name === "subAgent") return;
+  if (name === "subAgent" || generationQuestion.value) return;
   try {
-    const component = await loadToolComponent(name);
+    const component = await loadToolView(name);
     if (active) {
       renderer.value = component;
       if (!component && tool.status === "running" && tool.question?.callId) rendererError.value = "该工具未提供可用的交互组件";

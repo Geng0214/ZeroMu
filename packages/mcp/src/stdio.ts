@@ -5,9 +5,10 @@ import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/cli
 import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { z } from "zod";
-import { detectLocale, msg, translate } from "@toonflow/i18n";
+import { detectLocale, msg, translate, loadLocale } from "@toonflow/i18n";
 
 const locale = detectLocale([Intl.DateTimeFormat().resolvedOptions().locale]);
+await loadLocale(locale);
 function t(strings: TemplateStringsArray, ...values: unknown[]) { return translate(msg(strings, ...values), undefined, locale); }
 
 async function main() {

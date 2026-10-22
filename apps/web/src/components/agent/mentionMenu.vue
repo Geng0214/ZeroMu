@@ -406,7 +406,7 @@ defineExpose({ handleKeydown, openMenu, closeMenu });
         min-width: 0;
         padding: 6px 2px;
         border: 0;
-        border-radius: 5px;
+        border-radius: calc(var(--ui-radius, 8px) * 0.625);
         background: transparent;
         color: var(--el-text-color-secondary);
         font: inherit;
@@ -447,7 +447,7 @@ defineExpose({ handleKeydown, openMenu, closeMenu });
           box-sizing: border-box;
           padding: 8px 7px;
           border: 0;
-          border-radius: 5px;
+          border-radius: calc(var(--ui-radius, 8px) * 0.625);
           background: transparent;
           color: var(--el-text-color-primary);
           text-align: left;
@@ -478,7 +478,7 @@ defineExpose({ handleKeydown, openMenu, closeMenu });
             width: 14px;
             height: 14px;
             border: 1px solid var(--el-border-color);
-            border-radius: 3px;
+            border-radius: calc(var(--ui-radius, 8px) * 0.375);
 
             &.selected { background: var(--el-color-primary); border-color: var(--el-color-primary); color: white; }
           }

@@ -10,7 +10,7 @@
         </div>
         <el-button  :icon="IconRefresh" :loading="loading" :disabled="saving || submitting" @click="refreshStatus">重新检测</el-button>
       </div>
-      <p class="introduction">Agent和部分节点插件、工具插件、供应商在处理音视频时可能需要 FFmpeg，按需安装即可。</p>
+      <p class="introduction">用于音视频转码、剪辑与合成，按需安装即可。</p>
       <el-alert v-if="statusError" :title="statusError" type="error" :closable="false" showIcon />
       <div class="downloadHeader">
         <span>下载线路</span>

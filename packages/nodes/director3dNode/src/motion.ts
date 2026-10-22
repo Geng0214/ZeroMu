@@ -5,6 +5,8 @@ import { cameraViewSchema, type CameraView } from "./scene";
 export const anchorSchema = cameraViewSchema.extend({
   id: z.string().min(1).default(() => crypto.randomUUID()),
   time: z.number().min(0).max(300).optional(),
+  name: z.string().trim().min(1).max(80).optional(),
+  aspect: z.enum(["16:9", "9:16", "4:3", "1:1"]).optional(),
 }).strip();
 export type CameraAnchor = z.infer<typeof anchorSchema>;
 export const cameraFramesSchema = z.array(z.strictObject({

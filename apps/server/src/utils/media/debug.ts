@@ -9,12 +9,14 @@ export const providerDebugSchema = {
 
 export async function inspectProviderSource(source: string) {
   const provider = await loadMediaProviderSource(source);
-  return {
-    id: provider.id,
-    label: provider.label,
-    rules: provider.rules ?? [],
-    models: provider.models.filter(model => ["image", "video", "audio"].includes(model.type)),
-  };
+  try {
+    return {
+      id: provider.id,
+      label: provider.label,
+      rules: provider.rules ?? [],
+      models: provider.models.filter(model => ["image", "video", "audio"].includes(model.type)),
+    };
+  } finally { await provider.dispose(); }
 }
 
 export async function runProviderSource(
@@ -58,20 +60,23 @@ export async function runProviderSource(
     try {
       const response = await fetch(request);
       let body = "";
-      if (/json|text\/plain/i.test(response.headers.get("content-type") ?? "") && response.body) {
-        const reader = response.clone().body!.getReader();
-        const decoder = new TextDecoder();
-        try {
-          let size = 0;
-          while (size < 16000) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            size += value.byteLength;
-            body += decoder.decode(value.subarray(0, Math.max(0, 16000 - (size - value.byteLength))), { stream: true });
-          }
-          body += decoder.decode();
-          if (size >= 16000) body += t`\n…响应已截断`;
-        } finally { void reader.cancel().catch(() => {}); }
+      if (/json|text\/plain/i.test(response.headers.get("content-type") ?? "")) {
+        // 先克隆再访问预览流，避免当前 Bun 的原响应流缓存提前进入空读状态。
+        const reader = response.clone().body?.getReader();
+        if (reader) {
+          const decoder = new TextDecoder();
+          try {
+            let size = 0;
+            while (size < 16000) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              size += value.byteLength;
+              body += decoder.decode(value.subarray(0, Math.max(0, 16000 - (size - value.byteLength))), { stream: true });
+            }
+            body += decoder.decode();
+            if (size >= 16000) body += t`\n…响应已截断`;
+          } finally { void reader.cancel().catch(() => {}); }
+        }
       }
       report({ state: response.ok ? "success" : "error", status: response.status, duration: Math.round(performance.now() - start), response: bodyText(body) });
       return response;
@@ -81,8 +86,9 @@ export async function runProviderSource(
     }
   }, { preconnect: fetch.preconnect }) as typeof fetch;
 
+  let provider: Awaited<ReturnType<typeof loadMediaProviderSource>> | undefined;
   try {
-    const provider = await loadMediaProviderSource(source, config, signal, fetchRequest);
+    provider = await loadMediaProviderSource(source, config, signal, fetchRequest);
     for (const [key, value] of Object.entries(provider.config)) if (secretFields.test(key) && typeof value === "string" && value && !secrets.includes(value)) secrets.push(value);
     const model = provider.models.find(model => model.id === request.model);
     if (!model) throw new Error("模型已变更，请重新选择模型");
@@ -112,5 +118,5 @@ export async function runProviderSource(
     send({ type: "result", assets: result, response: redact(result), duration: Math.round(performance.now() - startedAt) });
   } catch (error) {
     send({ type: "error", message: redact(translateError(error)), duration: Math.round(performance.now() - startedAt) });
-  }
+  } finally { await provider?.dispose(); }
 }

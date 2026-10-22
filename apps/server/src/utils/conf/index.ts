@@ -1,23 +1,41 @@
 import conf from "conf";
-import { mkdirSync, realpathSync } from "@toonflow/file";
+import { mkdirSync, realpathSync, readFileSync, existsSync } from "@toonflow/file";
 import { resolve } from "node:path";
-import tfRouter from "@toonflow/providers/language/tfRouter";
 import type { RemoteTeam } from "@/utils/teams";
 import type { A2aSettings } from "@/agent/a2a/settings";
 import type { desktopUpdateAttempt } from "@/types/desktop";
+import { createCredentialStorage } from "./credentialStorage";
+import { publicCredentialSettings, restoreCredentialSettings } from "./credentialSettings";
 
-const autoInstallProviders = [tfRouter];
 const dataDirectory = process.env.TOONFLOW_DATA_DIR ?? resolve(import.meta.dirname, "../../../../../data");
 mkdirSync(dataDirectory, { recursive: true });
 const configDirectory = realpathSync(dataDirectory);
 process.env.TOONFLOW_DATA_DIR = configDirectory;
+const configPath = resolve(configDirectory, "settings.json");
+const initialText = existsSync(configPath) ? readFileSync(configPath, "utf8") : "{}";
+const credentialStorage = await createCredentialStorage(JSON.parse(initialText));
 
-const config = new conf<{ settings: Record<string, unknown>; toolConfigs: Record<string, Record<string, unknown>>; nodeConfigs: Record<string, Record<string, unknown>>; remoteConnections: Record<string, RemoteTeam>; a2a: A2aSettings; desktopUpdateAttempt: desktopUpdateAttempt }>({
+type configuration = { credentialStorageKeyId: string; settings: Record<string, unknown>; toolConfigs: Record<string, Record<string, unknown>>; nodeConfigs: Record<string, Record<string, unknown>>; remoteConnections: Record<string, RemoteTeam>; a2a: A2aSettings; desktopUpdateAttempt: desktopUpdateAttempt };
+const config = new conf<configuration>({
   cwd: configDirectory,
   configName: "settings",
   configFileMode: 0o600,
   watch: true,
+  serialize: credentialStorage.serialize,
+  deserialize: value => credentialStorage.deserialize(value) as configuration,
 });
+
+// Conf 原子写入同一个配置快照，迁移不生成明文备份，也不分两次提交密钥和设置。
+if (credentialStorage.keyId) config.set("credentialStorageKeyId", credentialStorage.keyId);
+if (credentialStorage.serialize(config.store) !== initialText) config.store = config.store;
+
+export function publicSettings(value = config.get("settings", {})) {
+  return publicCredentialSettings(value, credentialStorage.revision) as Record<string, unknown>;
+}
+
+export function restoreSettingsCredentials(next: Record<string, unknown>, current: Record<string, unknown>, base: Record<string, unknown>) {
+  return restoreCredentialSettings(next, current, base, credentialStorage.revision) as Record<string, unknown>;
+}
 
 export function removeLegacySettings(settings: Record<string, unknown>) {
   let changed = false;
@@ -36,8 +54,7 @@ if (removeLegacySettings(settings)) config.set("settings", settings);
 
 // ACT: 仅初始化尚未配置的文本供应商；已有列表（包括用户清空的列表）保持原样。
 if (!config.has("settings.customProviders")) {
-  config.set("settings.customProviders", autoInstallProviders.map(({ id, label, version, apiUrl, protocol, models }) =>
-    ({ id, label, version, apiUrl, protocol, models, apiKey: "" })));
+  config.set("settings.customProviders", []);
 }
 
 export default config;

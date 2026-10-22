@@ -2,12 +2,13 @@
   <div class="mcpPanel">
     <section class="settingSection" aria-labelledby="mcpEnabledTitle">
       <div class="settingHeader">
-        <h3 id="mcpEnabledTitle">开启 MCP</h3>
+        <h3 id="mcpEnabledTitle">外部工具控制</h3>
         <el-switch :modelValue="mcpSettings.enabled" :loading="saving" aria-label="开启 MCP" @change="(value) => setEnabled(value === true)" />
       </div>
-      <p class="description">允许外部 Coding 工具和 Agent 操作 零幕。开启后，将客户端配置添加到对应工具中。</p>
+      <p class="description">通过 MCP 允许外部 AI 工具操作零幕。开启后，将连接配置添加到可信工具中。</p>
     </section>
-
+    <details class="settingsDisclosure" :open="mcpSettings.enabled">
+      <summary>连接配置</summary>
     <section class="settingSection" aria-labelledby="mcpConnectionTitle">
       <div class="settingHeader">
         <h3 id="mcpConnectionTitle">连接状态</h3>
@@ -26,7 +27,7 @@
           </li>
         </ul>
       </template>
-      <p class="description">画布与节点操作需要 零幕 界面保持打开。</p>
+      <p class="description">操作画布与节点时，请保持零幕界面打开。</p>
     </section>
 
     <section class="settingSection" aria-labelledby="mcpEndpointTitle">
@@ -47,10 +48,10 @@
       </div>
       <p class="description">HTTP 配置包含访问凭证，请仅提供给可信的客户端。</p>
     </section>
-
+    </details>
     <section class="settingSection" aria-labelledby="mcpSkillTitle">
       <h3 id="mcpSkillTitle">零幕 Skill</h3>
-      <p class="description">教外部 Agent 组合使用 零幕 工具。将 SKILL.md 安装到对应 Coding 工具的技能目录。</p>
+      <p class="description">将技能文件安装到外部 AI 工具中，帮助它使用零幕的创作功能。</p>
       <div class="actions">
         <el-button :icon="IconFileText" :loading="skillAction === 'view'" :disabled="!!skillAction" @click="handleSkill('view')">查看 Skill</el-button>
         <el-button :icon="IconCopy" :loading="skillAction === 'copy'" :disabled="!!skillAction" @click="handleSkill('copy')">复制</el-button>
@@ -218,6 +219,7 @@ onMounted(refreshStatus);
 
 <style lang="scss" scoped>
 .mcpPanel {
+  .settingsDisclosure > .settingSection + .settingSection { margin-top: 24px; }
   display: flex;
   flex-direction: column;
   gap: 24px;

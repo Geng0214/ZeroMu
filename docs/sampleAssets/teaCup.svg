@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="productTitle productDescription">
+  <title id="productTitle">雨栖便携茶杯原创概念正视图</title>
+  <desc id="productDescription">奶白杯身、深绿色杯盖、铜色窄环和一枚无文字雨滴标记。此图仅定义虚构产品外形，不表示实物或性能。</desc>
+  <rect width="512" height="512" fill="#eee9dc"/>
+  <ellipse cx="256" cy="430" rx="103" ry="13" fill="#d1c9b8"/>
+  <path d="M164 142h184l-12 247q-1 25-26 25H202q-25 0-26-25z" fill="#faf6eb" stroke="#b8b0a0" stroke-width="3"/>
+  <path d="M170 161h20l10 229q1 12 14 14h-12q-15 0-16-17z" fill="#e3dccd"/>
+  <rect x="155" y="118" width="202" height="44" rx="13" fill="#294a3d"/>
+  <rect x="174" y="104" width="164" height="24" rx="10" fill="#355d4c"/>
+  <path d="M177 300h158l-2 12H178z" fill="#b47b55"/>
+  <path d="M256 206c-9 13-23 27-23 42a23 23 0 0 0 46 0c0-15-14-29-23-42z" fill="#355d4c"/>
+  <path d="M247 247q0 10 9 12" fill="none" stroke="#faf6eb" stroke-width="4" stroke-linecap="round"/>
+</svg>

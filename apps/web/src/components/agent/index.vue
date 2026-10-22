@@ -10,8 +10,8 @@
       :loading="loading || historyLoading"
       @open-sub-agent="selectConversation"
       @back="backToParent"
-      @new-chat="newConversation"
       @history="loadHistory(!initialized)"
+      @new-chat="showConversation(null)"
       @select="selectConversation"
       @rename="renameConversation"
       @remove="removeConversation"
@@ -142,31 +142,6 @@ function setSessionFile(item: OpenConversation, file: string) {
   if (item.parentFile) return;
   if (!history.value.some(entry => entry.file === file)) {
     history.value.unshift({ file, name: item.name, modified: new Date().toISOString(), messageCount: 0 });
-  }
-}
-
-async function newConversation() {
-  if (loading.value || historyLoading.value) return;
-  const directory = workspaceStore.project?.directory;
-  if (!directory) return ElMessage.warning("请先打开项目");
-  const currentRequest = ++requestId;
-  loading.value = true;
-  try {
-    const { data } = await axios.post<{ code: number; data: AgentConversation; message?: string }>("/api/agent/create", {
-      directory,
-    }, { headers: { "x-toonflow-workspace": "1" } });
-    if (data.code !== 200) throw new Error(data.message || "新建对话失败");
-    if (currentRequest !== requestId) return;
-    const session = data.data;
-    history.value.unshift({ file: session.file, name: session.name, modified: new Date().toISOString(), messageCount: 0 });
-    showConversation(session);
-    initialized.value = true;
-  } catch (error) {
-    if (currentRequest === requestId) ElMessage.error(axios.isAxiosError(error)
-      ? error.response?.data?.message || "新建对话失败"
-      : error instanceof Error ? error.message : "新建对话失败");
-  } finally {
-    if (currentRequest === requestId) loading.value = false;
   }
 }
 
@@ -310,9 +285,20 @@ onBeforeUnmount(() => { requestId++; });
   min-width: 0;
   min-height: 0;
   box-sizing: border-box;
-  padding-bottom: 8px;
+  container-type: inline-size;
+  container-name: agentPanelLayout;
+  --agentSurface: var(--el-bg-color);
+  --agentBubble: var(--el-fill-color-light);
+  --agentUserBubble: var(--el-fill-color-dark);
+  --agentBorder: var(--el-border-color-light);
+  --agentText: var(--el-text-color-primary);
+  --agentMuted: var(--el-text-color-regular);
+  background: var(--agentSurface);
+  color: var(--agentText);
+  padding-bottom: 0;
   overflow: hidden;
   font-size: 13px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
+
 </style>

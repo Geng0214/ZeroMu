@@ -1,4 +1,5 @@
 const rules = [
+  { type: "input", field: "baseUrl" as const, title: "API 地址", value: "", props: { placeholder: "留空使用所选地区的默认地址" } },
   {
     type: "input",
     field: "apiKey" as const,
@@ -203,7 +204,7 @@ export default {
   async generateImage(request: ImageRequest): Promise<MediaAsset[]> {
     const apiKey = this.config.apiKey?.trim();
     if (!apiKey) throw new Error("请填写 API Key");
-    const baseUrl = getBaseUrl(this.config.isOverseas);
+    const baseUrl = (this.config.baseUrl?.trim().replace(/\/+$/, "") || getBaseUrl(this.config.isOverseas));
     const lowerName = request.model.toLowerCase();
     // ACT: 单次生成最多等待 10 分钟。
     const signal = AbortSignal.any([AbortSignal.timeout(10 * 60_000), ...(this.signal ? [this.signal] : [])]);
@@ -218,107 +219,124 @@ export default {
       else if (size === "2K") size = "1.5K";
     }
 
-    const response = await this.tool.fetch(`${baseUrl}/images/generations`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: request.model,
-        prompt: request.prompt,
-        resolution: size,
-        size: request.ratio,
-        n: 1,
-        ...(imageUrls.length ? { image_urls: imageUrls } : {}),
-      }),
-      signal,
-    });
-    if (!response.ok) throw new Error(`请求失败：HTTP ${response.status}`);
-    const data = object(await response.json());
-    const taskId = Array.isArray(data.data) ? object(data.data[0]).task_id : undefined;
-    if (!taskId) throw new Error("未返回任务ID");
-
-    const url = await pollTaskResult(this, baseUrl, apiKey, String(taskId), signal, (taskData) => {
-      const result = object(taskData.result ?? {});
-      const image = Array.isArray(result.images) ? object(result.images[0]) : undefined;
-      const url = image && Array.isArray(image.url) ? image.url[0] : undefined;
-      if (typeof url !== "string" || !url) throw new Error("未返回生成结果");
-      return url;
-    });
-    return [{ mediaType: "image", type: "url", url }];
+    const assets: MediaAsset[] = [];
+    for (let index = 0; index < (request.n ?? 1); index++) {
+      try {
+        signal.throwIfAborted();
+        const submit = async () => {
+          const response = await this.tool.fetch(`${baseUrl}/images/generations`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: request.model, prompt: request.prompt, resolution: size, size: request.ratio, n: 1,
+              ...(imageUrls.length ? { image_urls: imageUrls } : {}),
+            }),
+            signal,
+          });
+          if (!response.ok) throw new Error(`请求失败：HTTP ${response.status}`);
+          const data = object(await response.json());
+          const taskId = Array.isArray(data.data) ? object(data.data[0]).task_id : undefined;
+          if (!taskId) throw new Error("未返回任务ID");
+          return String(taskId);
+        };
+        const taskId = this.tool.task ? await this.tool.task.run(`imageSubmission${index}`, submit) : await submit();
+        const url = await pollTaskResult(this, baseUrl, apiKey, String(taskId), signal, (taskData) => {
+          const result = object(taskData.result ?? {});
+          const image = Array.isArray(result.images) ? object(result.images[0]) : undefined;
+          const url = image && Array.isArray(image.url) ? image.url[0] : undefined;
+          if (typeof url !== "string" || !url) throw new Error("未返回生成结果");
+          return url;
+        });
+        const asset: MediaAsset = { mediaType: "image", type: "url", url };
+        assets.push(asset);
+        await this.tool.onAsset?.(asset);
+      } catch (error) {
+        if (!assets.length) throw error;
+        // ACT: 已成功的结果先交付宿主；后续失败不丢弃它们，也不重提已付费任务。
+        break;
+      }
+    }
+    return assets;
   },
   async generateVideo(request: VideoRequest): Promise<MediaAsset[]> {
     const apiKey = this.config.apiKey?.trim();
     if (!apiKey) throw new Error("请填写 API Key");
-    const baseUrl = getBaseUrl(this.config.isOverseas);
+    const baseUrl = (this.config.baseUrl?.trim().replace(/\/+$/, "") || getBaseUrl(this.config.isOverseas));
     const lowerName = request.model.toLowerCase();
     // ACT: 单次生成最多等待 30 分钟。
     const signal = AbortSignal.any([AbortSignal.timeout(30 * 60_000), ...(this.signal ? [this.signal] : [])]);
 
-    const imageUrls: string[] = [];
-    for (const image of request.images ?? []) imageUrls.push(await uploadImage(this, apiKey, baseUrl, image, signal));
-    const videoUrls = (request.videos ?? []).map(mediaUrl);
-    const audioUrls = (request.audios ?? []).map(mediaUrl);
-    const frames = [
-      ...(request.firstFrame ? [{ url: await uploadImage(this, apiKey, baseUrl, request.firstFrame, signal), role: "first_frame" }] : []),
-      ...(request.lastFrame ? [{ url: await uploadImage(this, apiKey, baseUrl, request.lastFrame, signal), role: "last_frame" }] : []),
-    ];
-    const mode =
-      request.mode ?? (frames.length ? "startFrameOptional" : videoUrls.length || audioUrls.length ? [] : imageUrls.length ? "singleImage" : "text");
-    const isFrames = mode === "startEndRequired" || mode === "endFrameOptional" || mode === "startFrameOptional";
-    const frameImages = frames.length ? frames : imageUrls.map((url, index) => ({ url, role: index === 0 ? "first_frame" : "last_frame" }));
+    const submit = async () => {
+      const imageUrls: string[] = [];
+      for (const image of request.images ?? []) imageUrls.push(await uploadImage(this, apiKey, baseUrl, image, signal));
+      const videoUrls = (request.videos ?? []).map(mediaUrl);
+      const audioUrls = (request.audios ?? []).map(mediaUrl);
+      const frames = [
+        ...(request.firstFrame ? [{ url: await uploadImage(this, apiKey, baseUrl, request.firstFrame, signal), role: "first_frame" }] : []),
+        ...(request.lastFrame ? [{ url: await uploadImage(this, apiKey, baseUrl, request.lastFrame, signal), role: "last_frame" }] : []),
+      ];
+      const mode =
+        request.mode ?? (frames.length ? "startFrameOptional" : videoUrls.length || audioUrls.length ? [] : imageUrls.length ? "singleImage" : "text");
+      const isFrames = mode === "startEndRequired" || mode === "endFrameOptional" || mode === "startFrameOptional";
+      const frameImages = frames.length ? frames : imageUrls.map((url, index) => ({ url, role: index === 0 ? "first_frame" : "last_frame" }));
 
-    const body: Record<string, unknown> = {
-      model: request.model,
-      prompt: request.prompt,
-      duration: request.duration,
-      resolution: request.resolution,
-      size: request.ratio,
-    };
+      const body: Record<string, unknown> = {
+        model: request.model,
+        prompt: request.prompt,
+        duration: request.duration,
+        resolution: request.resolution,
+        size: request.ratio,
+      };
 
-    if (lowerName.includes("wan")) {
-      if (isFrames && frameImages.length >= 2) {
-        body.image_with_roles = frameImages.map(({ url, role }) => ({ role, url }));
-      } else if (Array.isArray(mode)) {
-        body.generation_type = "reference";
-        if (imageUrls.length) body.image_urls = imageUrls;
-        if (videoUrls.length) body.video_urls = videoUrls;
-        if (audioUrls.length) body.audio_urls = audioUrls;
-      }
-    } else if (lowerName.includes("doubao") || lowerName.includes("seedance")) {
-      if (typeof request.generateAudio === "boolean") body.generate_audio = request.generateAudio;
-      if (Array.isArray(mode)) {
-        if (imageUrls.length) {
-          const reviewedUrls = await reviewSeedanceAssets(this, apiKey, baseUrl, imageUrls, signal);
-          body.image_with_roles = reviewedUrls.map((url) => ({ role: "reference_image", url }));
+      if (lowerName.includes("wan")) {
+        if (isFrames && frameImages.length >= 2) {
+          body.image_with_roles = frameImages.map(({ url, role }) => ({ role, url }));
+        } else if (Array.isArray(mode)) {
+          body.generation_type = "reference";
+          if (imageUrls.length) body.image_urls = imageUrls;
+          if (videoUrls.length) body.video_urls = videoUrls;
+          if (audioUrls.length) body.audio_urls = audioUrls;
         }
-        if (videoUrls.length) body.video_urls = videoUrls;
-        if (audioUrls.length) body.audio_urls = audioUrls;
-      } else if (isFrames) {
-        body.image_with_roles = frameImages.map(({ url, role }) => ({ role, url }));
-      } else if (mode === "singleImage") {
-        body.image_with_roles = imageUrls.map((url) => ({ role: "reference_image", url }));
+      } else if (lowerName.includes("doubao") || lowerName.includes("seedance")) {
+        if (typeof request.generateAudio === "boolean") body.generate_audio = request.generateAudio;
+        if (Array.isArray(mode)) {
+          if (imageUrls.length) {
+            const reviewedUrls = await reviewSeedanceAssets(this, apiKey, baseUrl, imageUrls, signal);
+            body.image_with_roles = reviewedUrls.map((url) => ({ role: "reference_image", url }));
+          }
+          if (videoUrls.length) body.video_urls = videoUrls;
+          if (audioUrls.length) body.audio_urls = audioUrls;
+        } else if (isFrames) {
+          body.image_with_roles = frameImages.map(({ url, role }) => ({ role, url }));
+        } else if (mode === "singleImage") {
+          body.image_with_roles = imageUrls.map((url) => ({ role: "reference_image", url }));
+        }
+      } else if (lowerName.includes("minimax")) {
+        if (Array.isArray(mode)) {
+          if (imageUrls.length) body.image_with_roles = imageUrls.map((url) => ({ role: "reference_image", url }));
+          if (videoUrls.length) body.video_urls = videoUrls;
+          if (audioUrls.length) body.audio_urls = audioUrls;
+        } else if (isFrames) {
+          body.image_with_roles = frameImages.map(({ url, role }) => ({ role, url }));
+        } else if (mode === "singleImage") {
+          body.image_with_roles = imageUrls.map((url) => ({ role: "reference_image", url }));
+        }
       }
-    } else if (lowerName.includes("minimax")) {
-      if (Array.isArray(mode)) {
-        if (imageUrls.length) body.image_with_roles = imageUrls.map((url) => ({ role: "reference_image", url }));
-        if (videoUrls.length) body.video_urls = videoUrls;
-        if (audioUrls.length) body.audio_urls = audioUrls;
-      } else if (isFrames) {
-        body.image_with_roles = frameImages.map(({ url, role }) => ({ role, url }));
-      } else if (mode === "singleImage") {
-        body.image_with_roles = imageUrls.map((url) => ({ role: "reference_image", url }));
-      }
-    }
 
-    const response = await this.tool.fetch(`${baseUrl}/videos/generations`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      signal,
-    });
-    if (!response.ok) throw new Error(`请求失败：HTTP ${response.status}`);
-    const data = object(await response.json());
-    const taskId = Array.isArray(data.data) ? object(data.data[0]).task_id : undefined;
-    if (!taskId) throw new Error("未返回任务ID");
+      const response = await this.tool.fetch(`${baseUrl}/videos/generations`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal,
+      });
+      if (!response.ok) throw new Error(`请求失败：HTTP ${response.status}`);
+      const data = object(await response.json());
+      const taskId = Array.isArray(data.data) ? object(data.data[0]).task_id : undefined;
+      if (!taskId) throw new Error("未返回任务ID");
+
+      return String(taskId);
+    };
+    const taskId = this.tool.task ? await this.tool.task.run("videoSubmission", submit) : await submit();
 
     const url = await pollTaskResult(this, baseUrl, apiKey, String(taskId), signal, (taskData) => {
       const result = object(taskData.result ?? {});
@@ -332,7 +350,7 @@ export default {
   async updateVendor(): Promise<string> {
     const apiKey = this.config.apiKey?.trim();
     if (!apiKey) throw new Error("请填写 API Key");
-    const baseUrl = getBaseUrl(this.config.isOverseas);
+    const baseUrl = (this.config.baseUrl?.trim().replace(/\/+$/, "") || getBaseUrl(this.config.isOverseas));
     const response = await this.tool.fetch(`${baseUrl}/vendor/downloadVendor`, {
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       signal: this.signal,

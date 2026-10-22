@@ -22,7 +22,7 @@
       {{ bindMode === "listen" ? "点击键帽录制，Esc 退出；右侧 × 取消绑定。" : "使用按键代号，如 Ctrl+KeyG / Alt+KeyG；回车或移开焦点保存，留空取消绑定。" }}
     </p>
     <el-form class="shortcutList">
-      <el-form-item v-for="field in canvasShortcutFields" :key="`${field.id}:${resetKey}`" class="shortcutItem" :error="issues[field.id]">
+      <el-form-item v-for="field in editableFields" :key="`${field.id}:${resetKey}`" class="shortcutItem" :error="issues[field.id]">
         <div class="shortcutRow">
           <div class="shortcutInfo">
             <span class="shortcutName">{{ field.label }}</span>
@@ -38,8 +38,8 @@
         </div>
       </el-form-item>
       <div class="gestureRow"><span>触摸板缩放</span><span class="gestureValue"><icon-hand-two-fingers :size="16" />双指捏合</span></div>
-      <div class="gestureRow"><span>触摸板平移</span><span class="gestureValue"><icon-hand-two-fingers :size="16" />双指滑动</span></div>
-      <div class="gestureRow"><span>鼠标平移</span><span class="gestureValue"><icon-mouse :size="16" />滚轮 / 中键拖动</span></div>
+      <div class="gestureRow"><span>鼠标缩放</span><span class="gestureValue"><icon-mouse :size="16" />直接滚动滚轮</span></div>
+      <div class="gestureRow"><span>鼠标平移</span><span class="gestureValue"><icon-mouse :size="16" />中键拖动 / 抓手工具</span></div>
     </el-form>
   </section>
 </template>
@@ -52,6 +52,7 @@ import { canvasShortcutFields, defaultCanvasShortcuts, getShortcutBindings, isSh
 import keyInput from "./keyInput.vue";
 
 const bindMode = ref<"listen" | "input">("listen");
+const editableFields = canvasShortcutFields.filter(field => field.id !== 'zoom');
 const resetKey = ref(0);
 const issues = ref<Partial<Record<CanvasShortcutAction, string>>>({});
 

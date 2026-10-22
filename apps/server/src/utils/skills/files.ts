@@ -1,8 +1,9 @@
 import { loadSkillsFromDir, parseFrontmatter } from "@earendil-works/pi-coding-agent";
 import { lstat, readdir, readFile, realpath, rm } from "@toonflow/file";
 import { basename, dirname, relative, resolve, sep } from "node:path";
+import { createHash } from "node:crypto";
 import conf from "@/utils/conf";
-import { isWithin, writeWorkspaceFile } from "@/utils/workspace/files";
+import { isWithin, lockWorkspaceFiles, writeWorkspaceFile } from "@/utils/workspace/files";
 
 export const maxBytes = 20 * 1024 * 1024;
 // 记录附属文件的手动排序；不改动真实文件名，避免影响 SKILL.md 内部的相对链接。
@@ -35,6 +36,47 @@ async function verifyChain(actualRoot: string, start: string, target: string, fi
     }
     if (isFinal && finalKind === "file" && info.size > maxBytes) throw Object.assign(new Error("技能文件不能超过 20 MB"), { status: 413 });
   }
+}
+
+export async function migrateBundledSkills(sourceDirectory: string) {
+  const { root, actualRoot } = await verifyRoot();
+  const sourceRoot = await realpath(sourceDirectory);
+  const release = lockWorkspaceFiles([root]);
+  const updated: string[] = []; const preserved: string[] = [];
+  try {
+    // ACT: 本次迁移仅涵盖 2.0.1 发行包的三项改动；后续新增内置资料须扩展清单，用户修改不覆盖。
+    const migrations = [
+      { path: "workflow/references/generalVideo.md", previous: undefined },
+      { path: "workflow/references/canvasExecution.md", previous: "65371b27b9471310a54ea52c7a5866a2506f1a9ea8189f6cdc213613c4690419" },
+      { path: "workflow/SKILL.md", previous: "d0da178a330ed546c8ca01660d3de6dc809b29e3026740d797d772711e43b421" },
+    ];
+    for (const migration of migrations) {
+      const target = resolve(root, migration.path);
+      const source = resolve(sourceDirectory, migration.path);
+      const sourceInfo = await lstat(source).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return null; throw cause; });
+      if (!sourceInfo?.isFile() || sourceInfo.isSymbolicLink() || sourceInfo.size > maxBytes) continue;
+      await verifyChain(sourceRoot, sourceDirectory, source);
+      try { await verifyChain(actualRoot, root, dirname(target), "directory"); }
+      catch (cause) { if ((cause as { status?: number }).status === 404) continue; throw cause; }
+      const info = await lstat(target).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return null; throw cause; });
+      if (info) {
+        await verifyChain(actualRoot, root, target);
+        const current = await readFile(target, "utf8");
+        const digest = createHash("sha256").update(current.replace(/\r\n/g, "\n")).digest("hex");
+        if (!migration.previous || digest !== migration.previous) { preserved.push(migration.path); continue; }
+        const content = await readFile(source);
+        if (content.toString("utf8") === current) { preserved.push(migration.path); continue; }
+        if (await readFile(target, "utf8") !== current) { preserved.push(migration.path); continue; }
+        await writeWorkspaceFile(target, content);
+      } else {
+        if (migration.previous) continue;
+        try { await writeWorkspaceFile(target, await readFile(source), true); }
+        catch (cause) { if ((cause as NodeJS.ErrnoException).code !== "EEXIST") throw cause; await verifyChain(actualRoot, root, target); preserved.push(migration.path); continue; }
+      }
+      updated.push(migration.path);
+    }
+    return { updated, preserved };
+  } finally { release(); }
 }
 
 // ACT: 安装/导出与编辑器共用段名规则，各自保留路径规范化方式。

@@ -1,38 +1,39 @@
 <template>
-  <nodeSkeleton
+  <nodeSkeleton class="textNode"
     v-bind="nodeProps"
     v-model:bottomVisible="node.selected"
     :topVisible="node.selected"
     topWidth="max-content"
     :downloadUrl="downloadUrl"
     :downloadName="`${nodeProps.label || '文本'}.txt`"
-    :bottomWidth="660"
+    :bottomWidth="720"
     @fullscreen="fullscreen = true; editing = true">
     <div class="textContent" :class="{ empty: !outputs.text.value.trim() }">
       <div v-if="outputs.text.value.trim()" class="textPreview nopan nowheel" aria-label="文本内容">{{ outputs.text.value }}</div>
       <el-button class="editButton nodrag nopan" :icon="IconEdit" :disabled="generating || !textReady" text @dblclick.stop @click.stop="editing = true">编辑</el-button>
     </div>
     <template #bottom>
-      <el-card class="promptCard" shadow="never" :bodyStyle="{ padding: '14px 16px 12px' }">
-        <div class="promptHeader" v-if="refList.length">
+      <nodeComposer title="文本创作" :referenceCount="refList.length">
+        <template #references>
           <referenceItem
             v-model="refList"
             @preview="setReferencePreview"
             @remove="removeReference" />
-        </div>
-        <promptInput v-model="promptModel" v-model:text="prompt" :references="referenceMentions" />
-        <div class="promptFooter">
+        </template>
+        <template #hint><p v-if="referenceHint">{{ referenceHint }}</p></template>
+        <template #default="{ expanded }">
+          <promptInput v-model="promptModel" v-model:text="prompt" :references="referenceMentions" :minHeight="160" placeholder="描述想写的内容，输入 @ 引用参考" :expandedLayout="expanded" />
+        </template>
+        <template #footer>
           <el-select v-model="model" class="modelSelect" filterable :loading="modelsLoading" :disabled="generating" placeholder="选择模型" aria-label="生成模型" noDataText="请先在设置中添加模型" placement="top-start" @visible-change="visible => visible && loadModels()">
             <template #prefix><icon-sparkles :size="17" /></template>
             <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
               <el-option v-for="item in provider.models" :key="item.modelId" :label="item.label" :value="JSON.stringify([item.providerId, item.modelId])" />
             </el-option-group>
           </el-select>
-          <div class="promptActions">
-            <el-button class="sendButton" :icon="IconArrowUp" :loading="generating" :disabled="!prompt.trim() || !selectedModel || generating || !textReady" title="生成" aria-label="生成" @click="generateText" />
-          </div>
-        </div>
-      </el-card>
+          <el-button class="sendButton" :icon="IconArrowUp" :loading="generating" :disabled="!prompt.trim() || !selectedModel || generating || !textReady || !!referenceHint" title="生成文本" aria-label="生成文本" @click="generateText" />
+        </template>
+      </nodeComposer>
     </template>
   </nodeSkeleton>
   <el-dialog v-model="editing" title="编辑文本" width="min(860px, calc(100vw - 32px))" :fullscreen="fullscreen" alignCenter appendToBody @closed="fullscreen = false">
@@ -41,10 +42,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
-import { ElButton, ElCard, ElInput, ElSelect, ElDialog, ElOption, ElOptionGroup, ElMessage } from "element-plus";
-import { IconEdit, IconFileText, IconSparkles, IconArrowUp } from "@tabler/icons-vue";
-import { groupNodeModels, nodeSkeleton, nodeTools, useNode, useNodeReferences, z, type NodeAiModel, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
+import { textNodeIcon } from "@toonflow/nodes-scaffold/nodeIcons";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { ElButton, ElInput, ElSelect, ElDialog, ElOption, ElOptionGroup, ElMessage, ElMessageBox } from "element-plus";
+import { IconEdit, IconSparkles, IconArrowUp } from "@tabler/icons-vue";
+import { groupNodeModels, nodeSkeleton, nodeComposer, nodeTools, useNode, useNodeReferences, z, type NodeAiModel, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import referenceItem from "@toonflow/nodes-scaffold/referenceItem";
 import promptInput from "@toonflow/nodes-scaffold/promptInput";
 
@@ -52,9 +54,9 @@ type PromptModel = NonNullable<InstanceType<typeof promptInput>["$props"]["model
 
 defineOptions({
   inheritAttrs: false,
-  icon: IconFileText,
+  icon: textNodeIcon,
   handles: [
-    { id: "in", type: "target", dataType: ["VIDEO", "IMAGE", "STRING"], label: "视频、图片、文本输入" },
+    { id: "in", type: "target", dataType: ["STRING", "IMAGE", "VIDEO", "AUDIO"], label: "参考输入" },
     { id: "text", type: "source", dataType: "STRING", label: "文本输出" },
   ] satisfies NodeHandle[],
 });
@@ -63,6 +65,8 @@ const { node, nodeProps, outputs, ai, files, nodeEvent } = useNode({
   outputs: { text: { dataType: "STRING", value: "" } },
 });
 const { refList, referenceMentions, setReferencePreview, removeReference } = useNodeReferences();
+const referenceHint = computed(() => refList.value.some(item => item.dataType === "AUDIO")
+  ? "音频已连接；当前文本生成接口暂不支持音频参考，请先转写为文本或移除此引用。" : "");
 const editing = ref(false);
 const fullscreen = ref(false);
 const downloadUrl = ref("");
@@ -82,14 +86,33 @@ const generating = ref(false);
 const selectedModel = computed(() => models.value.find(item => JSON.stringify([item.providerId, item.modelId]) === model.value));
 const modelGroups = computed(() => groupNodeModels(models.value));
 const textReady = ref(false);
+const initialOutputs = node.data.outputs ?? {};
+// ACT: 加载期间沿用原内联内容，文件加载成功后才从画布快照排除正文。
+Object.defineProperty(outputs.value, "toJSON", { value: () => textReady.value ? {} : initialOutputs });
 const textPath = `assets/${node.id}/content.md`;
 let textFiles: ReturnType<typeof files.getWorkspaceFiles>;
 let textLoading: Promise<void> | undefined;
 let textSaving = Promise.resolve();
+let textDraftKey = "";
+let textDirty = false;
+let textRevision = 0;
+const protectText = (event: BeforeUnloadEvent) => { if (textDirty) { event.preventDefault(); event.returnValue = ""; } };
+window.addEventListener("beforeunload", protectText);
+onBeforeUnmount(() => window.removeEventListener("beforeunload", protectText));
 function saveText(value: string) {
-  textSaving = textSaving.catch(() => {}).then(() => textFiles.write(textPath, value));
+  const revision = ++textRevision;
+  textDirty = true;
+  try { localStorage.setItem(textDraftKey, value); } catch { /* 写入失败仍继续磁盘保存，关闭页面前保持保护。 */ }
+  textSaving = textSaving.catch(() => {}).then(async () => {
+    await textFiles.write(textPath, value);
+    if (revision === textRevision) {
+      textDirty = false;
+      try { if (localStorage.getItem(textDraftKey) === value) localStorage.removeItem(textDraftKey); } catch { /* 不影响已完成的磁盘保存。 */ }
+    }
+  });
   return textSaving;
 }
+nodeEvent.on("canUnload", () => !generating.value && !editing.value && textReady.value);
 nodeEvent.on("save", async (reason) => {
   await textLoading;
   if (!textReady.value) throw new Error("文本尚未加载，无法保存");
@@ -108,23 +131,37 @@ onMounted(() => { textLoading = loadText(); });
 async function loadText() {
   try {
     if (!node.id || /[\\/]/.test(node.id) || node.id === "." || node.id === "..") throw new Error("节点 ID 不能作为文件夹名称");
-    if (data.value.textPath !== undefined && data.value.textPath !== textPath) throw new Error("文本文件路径无效");
+    const sourcePath = data.value.textPath;
+    if (sourcePath !== undefined && (typeof sourcePath !== "string" || sourcePath !== textPath && !/^assets\/production\/[a-f0-9-]{36}\/reference\d+\.md$/i.test(sourcePath))) throw new Error("文本文件路径无效");
     textFiles = files.getWorkspaceFiles();
-    const value = data.value.textSnapshot !== undefined ? data.value.textSnapshot : data.value.textPath ? await textFiles.readText(textPath) : outputs.value.text.value;
+    const directory = textFiles.getDirectory?.() ?? (await textFiles.list()).directory;
+    textDraftKey = `toonflow.textDraft:${JSON.stringify([directory, textPath])}`;
+    let value = data.value.textSnapshot !== undefined ? data.value.textSnapshot : sourcePath ? await textFiles.readText(sourcePath) : outputs.value.text.value;
     if (typeof value !== "string") throw new Error("文本内容无效");
-    if (!data.value.textPath) {
-      for (const directory of ["assets", `assets/${node.id}`]) {
+    let backup: string | null = null;
+    try { backup = localStorage.getItem(textDraftKey); } catch { /* 浏览器禁用存储时仍可读取磁盘文件。 */ }
+    if (backup !== null && backup !== value) {
+      const restore = await ElMessageBox.confirm("发现此文本节点未保存的内容，是否恢复？", "恢复文本", { confirmButtonText: "恢复内容", cancelButtonText: "使用磁盘版本", showClose: false, closeOnClickModal: false, closeOnPressEscape: false }).then(() => true, () => false);
+      if (restore) { value = backup; await saveText(value); }
+      else localStorage.removeItem(textDraftKey);
+    }
+    if (sourcePath !== textPath) {
+      // 固定参考所在的 assets 已存在，不对共享父目录重复加写锁。
+      for (const directory of sourcePath ? [`assets/${node.id}`] : ["assets", `assets/${node.id}`]) {
         await textFiles.mkdir(directory).catch((error: { response?: { data?: { data?: { code?: string } } } }) => {
           if (error.response?.data?.data?.code !== "EEXIST") throw error;
         });
       }
-      await textFiles.write(textPath, value);
+      // 旧模板的固定参考只读取；独立编辑副本始终落在本节点目录，已有不同副本不覆盖。
+      try { await textFiles.write(textPath, value, true); }
+      catch (error) {
+        if ((error as { response?: { data?: { data?: { code?: string } } } }).response?.data?.data?.code !== "EEXIST") throw error;
+        if (await textFiles.readText(textPath) !== value) throw new Error("此节点已有不同文本副本，原文件均已保留，请先备份后处理");
+      }
     }
     outputs.value.text.value = value;
     data.value.textPath = textPath;
     delete data.value.textSnapshot;
-    // ACT: 成功落盘后才排除内联正文；迁移失败时画布仍保留原内容。
-    Object.defineProperty(outputs.value, "toJSON", { value: () => ({}) });
     textReady.value = true;
   } catch (error) {
     ElMessage.error(error instanceof Error ? error.message : "文本加载失败");
@@ -165,6 +202,7 @@ async function generateText() {
   generating.value = true;
   let text = "";
   try {
+    if (referenceHint.value) throw new Error(referenceHint.value);
     if (refList.value.some(item => item.value === undefined)) throw new Error("引用节点暂无内容，请先补充引用内容");
     const references = refList.value
       .filter(item => item.value !== undefined && (item.dataType === "STRING" || item.dataType === "IMAGE" || item.dataType === "VIDEO"))
@@ -205,6 +243,10 @@ nodeTools.register({
 </script>
 
 <style lang="scss" scoped>
+.textNode {
+  --node-handle-opacity: 1;
+}
+
 .textEditor {
   &.fullscreen :deep(.el-textarea__inner) {
     height: calc(100dvh - 112px);
@@ -248,63 +290,4 @@ nodeTools.register({
   }
 }
 
-.promptCard {
-  .promptHeader {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .promptFooter {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-
-    .modelSelect {
-      width: 190px;
-      min-width: 0;
-
-      &:deep(.el-select__wrapper) {
-        gap: 6px;
-        padding: 0;
-        box-shadow: none;
-        background: transparent;
-      }
-    }
-
-    .promptActions {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      .toolButton {
-        width: 28px;
-        height: 28px;
-        padding: 0;
-      }
-
-      .generationCount {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        color: var(--el-text-color-secondary);
-        font-size: 12px;
-      }
-
-      .sendButton {
-        width: 32px;
-        height: 32px;
-        margin: 0;
-        padding: 0;
-        --el-button-bg-color: var(--el-text-color-primary);
-        --el-button-border-color: transparent;
-        --el-button-text-color: var(--el-bg-color);
-        --el-button-hover-bg-color: var(--el-text-color-regular);
-        --el-button-hover-border-color: transparent;
-        --el-button-hover-text-color: var(--el-bg-color);
-      }
-    }
-  }
-}
 </style>

@@ -1,32 +1,17 @@
 <template>
   <div class="ui">
-    <p class="intro">让创作空间更合你的习惯，修改会自动保存。</p>
-
+    <section class="settingSection" aria-labelledby="appearanceTitle">
+      <div class="settingRow">
+        <h3 id="appearanceTitle">外观模式</h3>
+        <el-radio-group :modelValue="uiSettings.theme" :disabled="themeSaving" aria-label="外观模式" @change="changeTheme">
+          <el-radio-button value="light">浅色</el-radio-button>
+          <el-radio-button value="dark">深色</el-radio-button>
+        </el-radio-group>
+      </div>
+    </section>
     <section class="settingSection" aria-labelledby="languageTitle">
       <h3 id="languageTitle"><icon-language :size="18" />语言</h3>
-      <p class="description">界面语言立即生效，默认跟随电脑语言。</p>
       <languageSelect class="languageCards" />
-    </section>
-
-    <section class="settingSection" aria-labelledby="themeTitle">
-      <h3 id="themeTitle">
-        <icon-sun-moon :size="18" />
-        外观模式
-      </h3>
-      <el-radio-group
-        class="themeOptions"
-        :modelValue="uiSettings.theme"
-        aria-label="外观模式"
-        @click="captureThemeClickPoint"
-        @change="(value) => changeTheme(String(value))">
-        <el-radio v-for="item in themes" :key="item.value" :value="item.value" border>
-          <span class="themeLabel">
-            <component :is="item.icon" :size="22" />
-            <strong>{{ item.label }}</strong>
-            <small>{{ item.description }}</small>
-          </span>
-        </el-radio>
-      </el-radio-group>
     </section>
 
     <section class="settingSection" aria-labelledby="colorTitle">
@@ -35,9 +20,8 @@
           <icon-palette :size="18" />
           主题颜色
         </h3>
-        <span class="settingValue">{{ uiSettings.primaryColor.toUpperCase() }}</span>
+        <span class="settingValue">{{ primaryColor.toUpperCase() }}</span>
       </div>
-      <p class="description">用于按钮、选中状态与创作背景。</p>
       <div class="colorOptions">
         <el-button
           v-for="color in colors"
@@ -55,6 +39,7 @@
           :modelValue="uiSettings.primaryColor"
           colorFormat="hex"
           aria-label="自定义主题颜色"
+          @activeChange="(value) => primaryColor = value || uiSettings.primaryColor"
           @change="changeColor" />
         <span class="description">自定义</span>
       </div>
@@ -68,14 +53,13 @@
         </h3>
         <span class="settingValue">{{ fontScale }}%</span>
       </div>
-      <p class="description">统一调整界面、聊天和节点中的文字大小。</p>
       <el-slider
         v-model="fontScale"
         class="settingSlider"
         :min="85"
-        :max="125"
+        :max="150"
         :step="5"
-        :marks="{ 85: '较小', 100: '默认', 125: '较大' }"
+        :marks="{ 85: '较小', 100: '默认', 125: '较大', 150: '最大' }"
         aria-label="字体大小"
         @change="(value) => typeof value === 'number' && updateUiSettings({ fontScale: value })" />
     </section>
@@ -99,7 +83,7 @@
         @change="(value) => typeof value === 'number' && updateUiSettings({ radius: value })" />
     </section>
 
-    <el-card class="appearancePreview" shadow="never">
+    <el-card class="appearancePreview" :style="previewStyle" shadow="never">
       <div class="previewIcon"><icon-sparkles :size="20" /></div>
       <div class="previewText">
         <strong>零幕 · 从零开始，创造第一幕</strong>
@@ -109,38 +93,60 @@
     </el-card>
 
     <div class="settingsFooter">
-      <el-button :icon="IconRestore" @click="updateUiSettings({ ...defaultUiSettings, language: uiSettings.language, startupAnimation: uiSettings.startupAnimation })">恢复界面默认设置</el-button>
+      <el-button :icon="IconRestore" @click="updateUiSettings({ primaryColor: defaultUiSettings.primaryColor, fontScale: defaultUiSettings.fontScale, radius: defaultUiSettings.radius })">重置颜色、字号与圆角</el-button>
     </div>
+    <section class="settingSection startupSection" aria-labelledby="startupTitle">
+      <div class="settingRow">
+        <div>
+          <h3 id="startupTitle">启动动画</h3>
+          <p class="description">启动时播放品牌动画，下次启动生效。</p>
+        </div>
+        <el-switch :modelValue="uiSettings.startupAnimation" aria-label="启动动画" @change="(value) => updateUiSettings({ startupAnimation: value === true })" />
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { nextTick, ref, watchEffect } from "vue";
+import { computed, ref, watch } from "vue";
+import { ElMessage } from "element-plus";
 import {
-  IconSun,
-  IconMoon,
-  IconDeviceDesktop,
-  IconSunMoon,
   IconPalette,
   IconSparkles,
   IconCheck,
   IconRestore,
 } from "@tabler/icons-vue";
-import { defaultUiSettings, uiSettings, updateUiSettings } from "@/stores/settings";
+import { defaultUiSettings, saveSettings, uiSettings, updateUiSettings } from "@/stores/settings";
 import languageSelect from "@/components/languageSelect.vue";
 
 const fontScale = ref(uiSettings.value.fontScale);
 const radius = ref(uiSettings.value.radius);
-watchEffect(() => {
-  fontScale.value = uiSettings.value.fontScale;
-  radius.value = uiSettings.value.radius;
+const primaryColor = ref(uiSettings.value.primaryColor);
+const themeSaving = ref(false);
+async function changeTheme(value: string | number | boolean | undefined) {
+  if (value !== "light" && value !== "dark") return;
+  themeSaving.value = true;
+  try { await saveSettings(() => ({ homeTheme: value })); }
+  catch { ElMessage.error("外观保存失败，请重试"); }
+  finally { themeSaving.value = false; }
+}
+watch(() => uiSettings.value.fontScale, value => { fontScale.value = value; });
+watch(() => uiSettings.value.radius, value => { radius.value = value; });
+watch(() => uiSettings.value.primaryColor, value => { primaryColor.value = value; });
+
+// 拖动期间仅更新预览，松手后沿用 change 保存；像素值避免全局字号提交后重复缩放。
+const previewStyle = computed(() => {
+  const background = uiSettings.value.theme === "dark" ? "#141414" : "#fff";
+  return {
+    "--previewColor": primaryColor.value,
+    "--previewTint": `color-mix(in srgb, ${primaryColor.value} 10%, ${background})`,
+    "--previewBorder": `color-mix(in srgb, ${primaryColor.value} 20%, ${background})`,
+    "--previewTitleSize": `${15 * fontScale.value / 100}px`,
+    "--previewBodySize": `${12 * fontScale.value / 100}px`,
+    "--previewRadius": `${radius.value}px`,
+  };
 });
 
-const themes = [
-  { value: "light", label: "浅色", description: "明亮清晰", icon: IconSun },
-  { value: "dark", label: "深色", description: "沉浸创作", icon: IconMoon },
-  { value: "system", label: "跟随系统", description: "自动切换", icon: IconDeviceDesktop },
-];
 const colors = [
   { value: "#409eff", label: "天空蓝" },
   { value: "#6366f1", label: "鸢尾紫" },
@@ -153,26 +159,6 @@ function changeColor(value: string | null) {
   if (value) updateUiSettings({ primaryColor: value });
 }
 
-// ACT: 圆心固定用视口中心，实际点击坐标由 captureThemeClickPoint 在 change 前写入。
-let themeClickPoint = { x: innerWidth / 2, y: innerHeight / 2 };
-function captureThemeClickPoint(event: MouseEvent) {
-  themeClickPoint = { x: event.clientX, y: event.clientY };
-}
-function changeTheme(value: string) {
-  const { x, y } = themeClickPoint;
-  const root = document.documentElement;
-  root.style.setProperty("--themeX", `${x}px`);
-  root.style.setProperty("--themeY", `${y}px`);
-  root.style.setProperty("--themeR", `${Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))}px`);
-  if (!document.startViewTransition) {
-    updateUiSettings({ theme: value });
-    return;
-  }
-  document.startViewTransition(async () => {
-    updateUiSettings({ theme: value });
-    await nextTick();
-  });
-}
 </script>
 
 <style lang="scss" scoped>
@@ -182,7 +168,6 @@ function changeTheme(value: string) {
   gap: 24px;
   padding: 0 4px 8px;
 
-  .intro,
   .description {
     margin: 0;
     color: var(--el-text-color-secondary);
@@ -192,6 +177,17 @@ function changeTheme(value: string) {
 
   .settingSection {
     min-width: 0;
+
+    .settingRow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      h3 { margin-bottom: 0; }
+      .description { margin-top: 6px; }
+      > .el-switch, > .el-radio-group { flex-shrink: 0; }
+    }
 
     h3 {
       display: flex;
@@ -220,48 +216,6 @@ function changeTheme(value: string) {
     }
 
     .languageCards { margin-top: 14px; }
-
-    .themeOptions {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      width: 100%;
-
-      :deep(.el-radio) {
-        height: auto;
-        margin: 0;
-        padding: 14px 10px;
-        align-items: flex-start;
-        background: var(--el-fill-color-extra-light);
-
-        &.is-checked {
-          background: var(--el-color-primary-light-9);
-        }
-        .el-radio__input {
-          margin-top: 4px;
-        }
-        .el-radio__label {
-          min-width: 0;
-          padding-left: 8px;
-        }
-      }
-
-      .themeLabel {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        white-space: normal;
-
-        strong {
-          font-size: 13px;
-          font-weight: 500;
-        }
-        small {
-          color: var(--el-text-color-secondary);
-          font-size: 12px;
-        }
-      }
-    }
 
     .colorOptions {
       display: flex;
@@ -302,6 +256,8 @@ function changeTheme(value: string) {
 
   .appearancePreview {
     background: var(--el-fill-color-extra-light);
+    border-radius: calc(var(--previewRadius) * 1.5);
+    transition: none;
 
     :deep(.el-card__body) {
       display: flex;
@@ -315,24 +271,31 @@ function changeTheme(value: string) {
       flex-shrink: 0;
       width: 40px;
       height: 40px;
-      border-radius: var(--el-border-radius-base);
-      background: var(--el-color-primary-light-9);
-      color: var(--el-color-primary);
+      border-radius: var(--previewRadius);
+      background: var(--previewTint);
+      color: var(--previewColor);
     }
     .previewText {
       flex: 1;
       min-width: 0;
       strong {
-        font-size: 15px;
+        font-size: var(--previewTitleSize);
         font-weight: 500;
         color: var(--el-text-color-primary);
       }
       p {
         margin: 6px 0 0;
         color: var(--el-text-color-secondary);
-        font-size: 12px;
+        font-size: var(--previewBodySize);
         line-height: 1.6;
       }
+    }
+    :deep(.el-tag) {
+      color: var(--previewColor);
+      background: var(--previewTint);
+      border-color: var(--previewBorder);
+      border-radius: calc(var(--previewRadius) * 0.5);
+      font-size: var(--previewBodySize);
     }
   }
 
@@ -340,21 +303,17 @@ function changeTheme(value: string) {
     display: flex;
     justify-content: flex-end;
   }
+  .startupSection { padding-top: 20px; border-top: 1px solid var(--el-border-color-lighter); }
 
   @media (max-width: 700px) {
-    .settingSection .themeOptions {
-      grid-template-columns: 1fr;
-      .themeLabel {
-        flex-direction: row;
-        align-items: center;
-        flex-wrap: wrap;
-      }
-    }
     .appearancePreview {
       :deep(.el-card__body) {
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: 40px minmax(0, 1fr);
+        align-items: start;
         padding: 12px;
       }
+      :deep(.el-tag) { grid-column: 2; justify-self: start; }
     }
   }
 }

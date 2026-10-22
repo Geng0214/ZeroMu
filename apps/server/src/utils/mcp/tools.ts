@@ -118,10 +118,12 @@ export async function getMcpTools(): Promise<McpTool[]> {
   }
   const canvasStub: CanvasContext = { id: "mcp", tools: [], async call() { throw new Error("尚未绑定画布"); } };
   // ACT: 插件损坏时仍保留应用管理工具，允许读取错误并修复插件。
-  const definitions = await createAgentTools(dirname(conf.path), canvasStub).catch(error => {
+  const loaded = await createAgentTools(dirname(conf.path), canvasStub).catch(error => {
     pluginError = error instanceof Error ? error.message : String(error);
-    return [];
+    return undefined;
   });
+  const definitions = loaded?.map(({ name, description, promptGuidelines, parameters }) => ({ name, description, promptGuidelines, parameters })) ?? [];
+  await loaded?.dispose();
   for (const definition of definitions) {
     if (tools.some(tool => tool.name === definition.name)) throw new Error(t`MCP 工具名称重复：${definition.name}`);
     tools.push(wrapTool(definition.name, [definition.description, ...(definition.promptGuidelines ?? [])].join("\n"), definition.parameters, async (args, target, signal) => {
@@ -131,13 +133,16 @@ export async function getMcpTools(): Promise<McpTool[]> {
         id: connection.state.canvasId ?? "mcp", tools: connection.state.tools,
         call: (request, callSignal) => callControl(connection.id, request.name, request.args, callSignal ?? signal, directory),
       } : undefined;
-      const current = (await createAgentTools(directory!, canvas)).find(tool => tool.name === definition.name);
-      if (!current) throw new Error("工具已禁用，或所需 Toonflow 页面未连接，请重新读取工具列表");
-      // ACT: 现有插件依赖 createTools 注入的宿主能力；MCP 没有 Pi 对话，访问会话能力时明确报错。
-      const context = new Proxy({ cwd: directory, mode: "rpc", hasUI: false, model: undefined, signal }, {
-        get(value, key) { if (Reflect.has(value, key)) return Reflect.get(value, key); throw new Error(t`MCP 不提供内置 Agent 会话能力：${String(key)}`); },
-      }) as unknown as ExtensionContext;
-      return current.execute(crypto.randomUUID(), args, signal, undefined, context);
+      const currentTools = await createAgentTools(directory!, canvas, undefined, signal);
+      try {
+        const current = currentTools.find(tool => tool.name === definition.name);
+        if (!current) throw new Error("工具已禁用，或所需 Toonflow 页面未连接，请重新读取工具列表");
+        // ACT: 现有插件依赖 createTools 注入的宿主能力；MCP 没有 Pi 对话，访问会话能力时明确报错。
+        const context = new Proxy({ cwd: directory, mode: "rpc", hasUI: false, model: undefined, signal }, {
+          get(value, key) { if (Reflect.has(value, key)) return Reflect.get(value, key); throw new Error(t`MCP 不提供内置 Agent 会话能力：${String(key)}`); },
+        }) as unknown as ExtensionContext;
+        return await current.execute(crypto.randomUUID(), args, signal, undefined, context);
+      } finally { await currentTools.dispose(); }
     }));
   }
   const fileSchema = z.strictObject({

@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import axios from "axios";
 import type { AgentAttachment } from "@/components/agent/types";
+import { useTaskCenterStore } from "./taskCenter";
 
 export type Project = {
   directory: string;
@@ -12,6 +13,7 @@ export type Project = {
 export const useWorkspaceStore = defineStore("workspace", () => {
   const project = ref<Project | null>(null);
   const projectList = ref<Project[]>([]);
+  const lastCanvas = ref<{ directory: string; canvasId: string }>();
   const pendingAgentMessage = ref<{ directory: string; prompt: string; attachments?: AgentAttachment[]; model: string; reasoningEffort: string } | null>(null);
 
   async function openProject(path: string, previousDirectory = path, signal?: AbortSignal) {
@@ -29,6 +31,8 @@ export const useWorkspaceStore = defineStore("workspace", () => {
       project.value,
       ...projectList.value.filter(item => item.directory !== previousDirectory && item.directory !== checkedDirectory),
     ];
+    // 显式打开项目才同步工作站；恢复画布状态时保留工作站上次选择的草稿目录。
+    useTaskCenterStore().studioDirectory = checkedDirectory;
   }
 
   function renameProject(path: string, name: string) {
@@ -43,10 +47,10 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     if (project.value?.directory === path) project.value = null;
   }
 
-  return { project, projectList, pendingAgentMessage, openProject, renameProject, removeProject };
+  return { project, projectList, lastCanvas, pendingAgentMessage, openProject, renameProject, removeProject };
 }, {
   persist: {
     key: "toonflow.projectList",
-    pick: ["project", "projectList"],
+    pick: ["project", "projectList", "lastCanvas"],
   },
 });

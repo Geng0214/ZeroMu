@@ -13,6 +13,7 @@ export default router.post("/", validateFields({ directory: z.string().min(1).ma
   u.workspaceFile.protectWorkspaceRoot(source.directory, source.path);
   u.workspaceFile.protectWorkspaceRoot(target.directory, target.path);
   target.path = resolve(dirname(target.path), basename(resolve(source.directory, req.body.target)));
+  await u.production.assertProductionWrite(source.directory, [source.path, target.path], true);
   const release = u.workspaceFile.lockWorkspaceFiles([source.path, target.path]);
   try { await u.workspaceFile.renameWorkspaceFile(source.path, target.path); }
   finally { release(); }

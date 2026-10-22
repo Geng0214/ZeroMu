@@ -11,7 +11,7 @@
         <el-button :icon="IconFolderPlus" :disabled="loading || editing || !listing || !!browseError" @click="manageEntry('mkdir')">新建文件夹</el-button>
       </div>
       <el-alert v-if="browseError" :title="browseError" type="error" :closable="false" />
-      <el-table v-loading="loading" :data="listing?.entries ?? []" height="300" emptyText="当前目录为空">
+      <el-table v-loading="loading" :data="listing?.entries ?? []" height="min(300px, 40dvh)" emptyText="当前目录为空">
         <el-table-column label="名称" minWidth="160">
           <template #default="{ row }">
             <el-button v-if="row.type === 'directory'" class="entryName" link :icon="IconFolder" :title="row.name" :disabled="loading || editing" @click="loadDirectory([listing?.path, row.path].filter(Boolean).join('/'))">{{ row.name }}</el-button>
@@ -80,7 +80,11 @@ async function chooseDirectory(): Promise<string | null> {
       return await new Promise<string | null>(resolve => { finishSelection = resolve; });
     }
   } catch (error) {
-    ElMessage.error(axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message || "无法打开文件夹选择器，请重试" : "无法打开文件夹选择器，请重试");
+    ElMessage.error(axios.isAxiosError<{ message?: string }>(error)
+      ? !error.response || error.response.status === 502 || error.response.status === 503
+        ? "本地服务未连接，请重新启动零幕后再选择文件夹"
+        : error.response.data?.message || "无法打开文件夹选择器，请重试"
+      : "无法打开文件夹选择器，请重试");
     return null;
   }
   finally { selecting.value = false; finishSelection = undefined; }
@@ -164,6 +168,7 @@ function confirmDirectory() {
 
   .directoryHeader {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 12px;
 

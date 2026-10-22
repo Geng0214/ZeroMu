@@ -13,9 +13,22 @@ type FfmpegInternals = ffmpeg.FfmpegCommand & {
 
 const require = createRequire(import.meta.url);
 const native = ffmpeg.prototype as FfmpegInternals;
+const runtimes = new WeakMap<typeof ffmpeg, {
+  directory: string;
+  ffmpegPath?: string;
+  ffprobePath?: string;
+  validateOutput?: (path: string) => void;
+}>();
+
+/** 在进程间重新建立同一原生工厂；不把流或 fluent 对象转换为远程 JSON 命令。 */
+export function describeFfmpeg(factory: typeof ffmpeg) {
+  const runtime = runtimes.get(factory);
+  if (!runtime?.ffmpegPath || !runtime.ffprobePath) throw new Error("FFmpeg 工厂尚未配置可用程序");
+  return { ...runtime };
+}
 
 /** 原生 fluent 工厂；文件路径相对工作区解析，不修改库的全局原型。 */
-export function createFfmpeg(directory: string): typeof ffmpeg {
+export function createFfmpeg(directory: string, options: { validateOutput?: (path: string) => void; onCommand?: (command: ffmpeg.FfmpegCommand) => void } = {}): typeof ffmpeg {
   const root = realpathSync(directory);
   if (!statSync(root).isDirectory()) throw new Error("FFmpeg 工作区必须是目录");
 
@@ -54,11 +67,18 @@ export function createFfmpeg(directory: string): typeof ffmpeg {
     }
   }
 
-  function fileArgument<T>(value: T): T {
-    if (typeof value === "string") return resolvePath(value) as T;
+  function fileArgument<T>(value: T, writing = false): T {
+    if (typeof value === "string") {
+      const path = resolvePath(value);
+      if (writing) options.validateOutput?.(path);
+      return path as T;
+    }
     if (value && typeof value === "object" && "path" in value) {
       const path = value.path;
-      if (typeof path === "string" || Buffer.isBuffer(path)) resolvePath(resolve(String(path)));
+      if (typeof path === "string" || Buffer.isBuffer(path)) {
+        const target = resolvePath(resolve(String(path)));
+        if (writing) options.validateOutput?.(target);
+      }
     }
     return value;
   }
@@ -66,7 +86,7 @@ export function createFfmpeg(directory: string): typeof ffmpeg {
   function checkFiles(command: FfmpegInternals) {
     command.options.cwd = resolvePath(command.options.cwd ?? root, true);
     for (const input of command._inputs) fileArgument(input.source);
-    for (const output of command._outputs) fileArgument(output.target);
+    for (const output of command._outputs) fileArgument(output.target, true);
   }
 
   // ACT: 只保护显式文件入口；原始参数、滤镜、清单内的间接 I/O 仍是可信代码，不是进程沙箱。
@@ -75,7 +95,7 @@ export function createFfmpeg(directory: string): typeof ffmpeg {
     return native.input.call(this, fileArgument(source));
   };
   proto.output = proto.addOutput = function(target, options) {
-    return native.output.call(this, fileArgument(target), options);
+    return native.output.call(this, fileArgument(target, true), options);
   };
   proto.clone = function() {
     // ACT: fluent 2.3.3 已设置输出时 clone.output() 会抛错；用空输出保留原生“不复制输出”的语义。
@@ -85,7 +105,9 @@ export function createFfmpeg(directory: string): typeof ffmpeg {
       source._outputs = empty._outputs;
       source._currentOutput = empty._currentOutput;
     }
-    return Object.setPrototypeOf(native.clone.call(source), proto);
+    const command = Object.setPrototypeOf(native.clone.call(source), proto);
+    options.onCommand?.(command);
+    return command;
   };
   proto._getArguments = function() {
     checkFiles(this);
@@ -104,7 +126,8 @@ export function createFfmpeg(directory: string): typeof ffmpeg {
   proto.screenshots = proto.screenshot = proto.takeScreenshots = proto.thumbnail = proto.thumbnails = function(config, folder) {
     const settings = typeof config === "number" ? { count: config } : { ...config };
     settings.folder = resolvePath(settings.folder ?? folder ?? root, true);
-    resolvePath(join(settings.folder, settings.filename || "tn.png"));
+    const target = resolvePath(join(settings.folder, settings.filename || "tn.png"));
+    options.validateOutput?.(target);
     return native.screenshots.call(this, settings);
   };
   proto.concat = proto.concatenate = proto.mergeToFile = function(target, options?: string | { end?: boolean }) {
@@ -119,14 +142,20 @@ export function createFfmpeg(directory: string): typeof ffmpeg {
     return native.preset.call(this, preset);
   };
 
-  const factory = function(input?: string | Readable | ffmpeg.FfmpegCommandOptions, options?: ffmpeg.FfmpegCommandOptions) {
+  const factory = function(input?: string | Readable | ffmpeg.FfmpegCommandOptions, inputOptions?: ffmpeg.FfmpegCommandOptions) {
     const settings = typeof input === "object" && input && !("readable" in input)
-      ? { ...input } : { ...options, source: input as string | Readable | undefined };
+      ? { ...input } : { ...inputOptions, source: input as string | Readable | undefined };
     settings.cwd = resolvePath(settings.cwd ?? root, true);
-    return Reflect.construct(ffmpeg, [settings], factory);
+    const command = Reflect.construct(ffmpeg, [settings], factory);
+    options.onCommand?.(command);
+    return command;
   } as typeof ffmpeg;
   Object.setPrototypeOf(factory, ffmpeg);
   factory.prototype = proto;
+  const runtime = { directory: root, validateOutput: options.validateOutput, ffmpegPath: undefined as string | undefined, ffprobePath: undefined as string | undefined };
+  runtimes.set(factory, runtime);
+  factory.setFfmpegPath = path => { runtime.ffmpegPath = path; return ffmpeg.setFfmpegPath(path); };
+  factory.setFfprobePath = path => { runtime.ffprobePath = path; return ffmpeg.setFfprobePath(path); };
   factory.ffprobe = function(file: string, ...args: unknown[]) {
     const command = factory(file);
     Reflect.apply(command.ffprobe, command, args);

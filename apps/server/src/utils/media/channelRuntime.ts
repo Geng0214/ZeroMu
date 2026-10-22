@@ -1,11 +1,18 @@
+import { mediaProviders, type Provider } from "@toonflow/providers";
 import { channelUrl } from "./channelUrl";
 import { t } from "@/lib/i18n";
+import conf from "@/utils/conf";
+import { createParser } from "eventsource-parser";
+import { getAgnesModelCapabilities, isSiliconFlow } from "@toonflow/providers/channelModels";
+import { getMediaCapabilityError } from "@toonflow/providers/mediaCapabilities";
+import type { MediaGenerationRequest } from "@toonflow/tools-scaffold/runtime";
+import { mediaUsageValues } from "@toonflow/providers/mediaCosts";
 
 type ChannelKind = "image" | "video" | "audio";
 type ChannelContext = ProviderContext;
 
-function invalid(message: string): never {
-  throw Object.assign(new Error(message), { status: 400 });
+function invalid(message: string, submissionRejected = false): never {
+  throw Object.assign(new Error(message), { status: 400, ...(submissionRejected ? { submissionRejected: true } : {}) });
 }
 
 function record(value: unknown): Record<string, unknown> {
@@ -47,6 +54,7 @@ function referenceList(value: unknown) {
 }
 
 function sleep(seconds: number, signal?: AbortSignal) {
+  signal?.throwIfAborted();
   return new Promise<void>((resolve, reject) => {
     function abort() {
       clearTimeout(timer);
@@ -64,11 +72,14 @@ function hostOf(url: string) {
 async function send(context: ChannelContext, url: string, init: RequestInit) {
   context.signal?.throwIfAborted();
   let response: Response;
-  try { response = await context.tool.fetch(url, { ...init, signal: context.signal }); }
-  catch (error) { return invalid(t`无法连接渠道 ${hostOf(url)}：${context.tool.errorMessage(error) || String(error)}`); }
+  const timeout = AbortSignal.timeout(120000);
+  try { response = await context.tool.fetch(url, { ...init, signal: context.signal ? AbortSignal.any([context.signal, timeout]) : timeout }); }
+  catch (error) { context.signal?.throwIfAborted(); return invalid(t`无法连接渠道 ${hostOf(url)}：${context.tool.errorMessage(error) || String(error)}`); }
   if (!response.ok) {
     const body = await response.text().catch(() => "");
-    return invalid(t`渠道请求失败（HTTP ${response.status}）：${context.tool.errorMessage(body) || body.slice(0, 300)}`);
+    throw Object.assign(new Error(t`渠道请求失败（HTTP ${response.status}）：${context.tool.errorMessage(body) || body.slice(0, 300)}`), {
+      status: 400, submissionRejected: [400, 401, 403, 404, 405, 422, 429].includes(response.status),
+    });
   }
   return response;
 }
@@ -105,7 +116,7 @@ function pickUrl(value: unknown, depth = 0): string {
     const found = pickUrl(source[key], depth + 1);
     if (found) return found;
   }
-  for (const key of ["data", "result", "task", "videos", "items", "output", "outputs"]) {
+  for (const key of ["data", "result", "results", "task", "videos", "items", "output", "outputs"]) {
     const found = pickUrl(source[key], depth + 1);
     if (found) return found;
   }
@@ -140,7 +151,7 @@ function pickStatus(value: unknown): string {
 }
 
 const failedStatus = ["failed", "failure", "error", "rejected", "canceled", "cancelled", "timeout"];
-const succeededStatus = ["succeeded", "success", "completed", "complete", "finished", "done"];
+const succeededStatus = ["succeed", "succeeded", "success", "completed", "complete", "finished", "done"];
 
 function readAssets(value: unknown): MediaAsset[] {
   const source = record(value);
@@ -162,35 +173,123 @@ function readAssets(value: unknown): MediaAsset[] {
   return assets;
 }
 
-async function generateImage(context: ChannelContext, source: object): Promise<MediaAsset[]> {
+async function generateImage(context: ChannelContext, source: object, imageTransport?: MediaGenerationRequest["imageTransport"]): Promise<MediaAsset[]> {
   const request = record(source);
-  const body: Record<string, unknown> = { model: request.model, prompt: request.prompt, n: request.n ?? 1 };
+  const preferences = imageTransport ?? record(conf.get("settings", {}).mediaCreationPreferences);
+  const agnes = getAgnesModelCapabilities(channelBase(context), text(request.model));
+  if (agnes?.imageSizes) {
+    const error = getMediaCapabilityError(agnes, "image", source as ImageRequest);
+    if (error) invalid(error, true);
+    if (preferences.streamImages === true || preferences.codexCli === true) invalid("Agnes 图片接口未声明流式图片或 Codex 兼容模式，请关闭这些选项后生成", true);
+  }
+  const silicon = isSiliconFlow(channelBase(context));
+  const stream = !silicon && preferences.streamImages === true;
+  const codex = !silicon && preferences.codexCli === true;
+  const count = Number(request.n ?? 1);
+  const body: Record<string, unknown> = { model: request.model, prompt: codex ? `Use the following text as the complete prompt. Do not rewrite it:\n${request.prompt}` : request.prompt };
+  if (!codex && !stream) body.n = count;
+  if (stream) body.stream = true;
   const size = text(request.size);
   const ratio = text(request.ratio);
   // ACT: 严格 OpenAI 网关会拒绝未知参数，因此只在没有像素尺寸时下发宽高比。
   if (size) body.size = size;
   else if (ratio) body.aspect_ratio = ratio;
-  if (context.config.returnBase64 === true) body.response_format = "b64_json";
+  if (text(request.quality) && !codex) body.quality = text(request.quality);
+  if ((preferences.returnBase64 ?? context.config.returnBase64) === true) body.response_format = "b64_json";
   const images = referenceList(request.images);
   if (images.length) body.image = images.length === 1 ? images[0] : images;
-  const result = await readJson(context, channelUrl(channelBase(context), "/v1/images/generations"), { method: "POST", headers: authHeaders(context), body: JSON.stringify(body) });
-  const assets = readAssets(result);
-  if (!assets.length) invalid(context.tool.errorMessage(result) || "渠道未返回图片结果");
+  if (agnes?.imageSizes) {
+    delete body.n; delete body.quality; delete body.aspect_ratio; delete body.image; delete body.response_format;
+    body.size = size || "1K";
+    if (ratio) body.ratio = ratio;
+    const base64 = (preferences.returnBase64 ?? context.config.returnBase64) === true;
+    if (images.length) body.extra_body = { image: images, response_format: base64 ? "b64_json" : "url" };
+    else if (base64) body.return_base64 = true;
+    else body.extra_body = { response_format: "url" };
+  }
+  if (silicon) {
+    delete body.n; delete body.size; delete body.aspect_ratio; delete body.quality; delete body.response_format;
+    if (/image-edit/i.test(String(request.model))) {
+      if (!images.length) invalid("该图片编辑模型需要参考图片");
+    } else if (size) body.image_size = size;
+    const referenceLimit = /qwen-image-edit-2509/i.test(String(request.model)) ? 3 : 1;
+    if (images.length > referenceLimit) invalid(`该模型最多支持 ${referenceLimit} 张参考图片`);
+    images.forEach((image, index) => { body[index ? `image${index + 1}` : "image"] = image; });
+  }
+  const assets: MediaAsset[] = [];
+  // ACT: 流式与兼容网关逐张请求，避免这些接口不支持 n；保留取消信号。
+  for (let index = 0; index < (silicon || stream || codex ? count : 1); index++) {
+    try {
+    const response = await send(context, channelUrl(channelBase(context), "/v1/images/generations"), { method: "POST", headers: authHeaders(context), body: JSON.stringify(body) });
+    if (response.headers.get("content-type")?.includes("text/event-stream")) assets.push(...await readImageStream(response, context, `imageStream:${index}`));
+    else {
+      const result = await response.json();
+      const images = readAssets(result);
+      if (!images.length) invalid(context.tool.errorMessage(result) || "渠道未返回图片结果");
+      assets.push(...images);
+    }
+    } catch (cause) { if (!assets.length) throw cause; break; }
+  }
+  if (!assets.length) invalid("渠道未返回图片结果");
   return assets;
+}
+
+async function readImageStream(response: Response, context: ChannelContext, usageKey: string): Promise<MediaAsset[]> {
+  const reader = response.body?.getReader();
+  if (!reader) invalid("渠道没有返回可读取的图片流");
+  const decoder = new TextDecoder();
+  const images = new Map<string, MediaAsset>();
+  let completed = false;
+  let usage: Record<string, number> | undefined;
+  const parser = createParser({ maxBufferSize: 140 * 1024 * 1024, onEvent(event) {
+    if (event.data === "[DONE]") { completed = true; return; }
+    let value: Record<string, unknown>;
+    try { value = record(JSON.parse(event.data)); } catch { invalid("图片流事件格式无效"); }
+    usage = mediaUsageValues(value) ?? usage;
+    const type = text(value.type, event.event || text(value.object));
+    if (value.error || /(?:error|failed)$/.test(type)) invalid(context.tool.errorMessage(value) || "图片流返回错误");
+    if (type.includes("partial") || value.partial_image_b64) return;
+    const batch = Array.isArray(value.data) ? readAssets(value) : readAssets([value]);
+    batch.forEach((asset, index) => images.set(String(value.image_index ?? index), asset));
+  } });
+  try {
+    while (!completed) {
+      context.signal?.throwIfAborted();
+      const { value, done } = await reader.read();
+      if (done) break;
+      parser.feed(decoder.decode(value, { stream: true }));
+    }
+    parser.feed(decoder.decode());
+    parser.reset({ consume: true });
+  } finally { await reader.cancel(); if (usage) await context.tool.reportUsage?.({ key: usageKey, values: usage }); }
+  if (!images.size) invalid("图片流未返回最终图片，请重试；中间预览不会作为生成结果保存");
+  return [...images.values()];
 }
 
 async function generateAudio(context: ChannelContext, source: object): Promise<MediaAsset[]> {
   const request = record(source);
-  const body: Record<string, unknown> = { model: request.model, input: request.text ?? request.prompt, voice: text(request.voice, "alloy") };
+  if (referenceList(request.audios).length) invalid("当前语音接口只支持文本配音，尚未接入参考音频克隆");
+  const body: Record<string, unknown> = { model: request.model, input: request.text ?? request.prompt };
+  if (text(request.voice)) body.voice = text(request.voice);
   if (text(request.format)) body.response_format = request.format;
   if (typeof request.speed === "number") body.speed = request.speed;
   if (typeof request.sampleRate === "number") body.sample_rate = request.sampleRate;
+  if (isSiliconFlow(channelBase(context))) {
+    const voice = text(request.voice);
+    if (voice) body.voice = voice.includes(":") ? voice : `${request.model}:${voice}`;
+    if (body.response_format && !["mp3", "opus", "wav", "pcm"].includes(String(body.response_format))) invalid("硅基流动语音接口支持 MP3、Opus、WAV 或 PCM 格式");
+  }
   return readMedia(context, channelUrl(channelBase(context), "/v1/audio/speech"), { method: "POST", headers: authHeaders(context), body: JSON.stringify(body) }, "audio");
+}
+
+async function submitVideo(context: ChannelContext, url: string, init: RequestInit) {
+  return context.tool.task ? context.tool.task.run("videoSubmission", () => readJson(context, url, init)) : readJson(context, url, init);
 }
 
 async function generateVideo(context: ChannelContext, source: object): Promise<MediaAsset[]> {
   const request = record(source);
   const body: Record<string, unknown> = { model: request.model, prompt: request.prompt };
+  if (typeof request.generateAudio === "boolean") body.generate_audio = request.generateAudio;
   if (typeof request.duration === "number") body.duration = request.duration;
   const size = text(request.size);
   if (size) body.size = size;
@@ -209,31 +308,98 @@ async function generateVideo(context: ChannelContext, source: object): Promise<M
   if (audios.length) body.audio = audios.length === 1 ? audios[0] : audios;
 
   const apiUrl = channelBase(context);
+  const agnes = getAgnesModelCapabilities(apiUrl, text(request.model));
+  if (agnes?.durationResolutionMap) {
+    const error = getMediaCapabilityError(agnes, "video", source as VideoRequest);
+    if (error) invalid(error, true);
+    if ([firstFrame, lastFrame, ...images, ...videos, ...audios].some(value => value && !/^https?:\/\//i.test(value))) {
+      invalid("Agnes 视频参考要求供应商可访问的公开媒体地址；当前本地参考尚未上传，不能作为公开 URL 提交", true);
+    }
+    const startFrame = firstFrame || (request.mode === "singleImage" ? images[0] : "");
+    const mode = startFrame || lastFrame ? "keyframe" : images.length || videos.length || audios.length ? "reference" : "text";
+    const payload = { model: request.model, prompt: request.prompt, mode, seconds: String(request.duration ?? 5), size: resolution || size || "720P",
+      ...(ratio ? { aspect_ratio: ratio } : {}), ...(startFrame ? { first_frame: startFrame } : {}), ...(lastFrame ? { last_frame: lastFrame } : {}),
+      ...(mode === "reference" && images.length ? { images } : {}), ...(audios.length ? { audios } : {}), ...(videos.length ? { videos: videos.map(url => ({ url })) } : {}),
+    };
+    const submitted = await submitVideo(context, channelUrl(apiUrl, "/v1/videos"), { method: "POST", headers: authHeaders(context), body: JSON.stringify(payload) });
+    if (failedStatus.includes(pickStatus(submitted))) invalid(context.tool.errorMessage(submitted) || "视频提交失败");
+    const videoId = text(record(submitted).video_id);
+    if (!videoId || videoId.length > 200) invalid("Agnes 未返回 video_id，提交结果待渠道核对，不能使用 task_id 重新生成");
+    const pollUrl = new URL("/agnesapi", apiUrl);
+    pollUrl.searchParams.set("video_id", videoId); pollUrl.searchParams.set("model_name", text(request.model));
+    // 复用 videoSubmission 检查点；恢复仅查询同一 video_id，带有早期 URL 的非完成响应也继续等待。
+    for (let attempt = 0; attempt < 360; attempt++) {
+      context.signal?.throwIfAborted();
+      if (attempt) await sleep(5, context.signal);
+      const status = await readJson(context, pollUrl.href, { method: "GET", headers: authHeaders(context) });
+      if (failedStatus.includes(pickStatus(status))) invalid(`视频生成失败：${context.tool.errorMessage(status) || pickStatus(status)}`);
+      if (succeededStatus.includes(pickStatus(status))) {
+        const url = text(record(status).url);
+        if (!/^https?:\/\//i.test(url)) invalid("Agnes 视频任务已完成，但未返回有效结果地址");
+        return [{ type: "url", url, mediaType: "video" }];
+      }
+    }
+    invalid("Agnes 视频等待超时，可继续查询原任务；不要重新提交生成");
+  }
+  if (isSiliconFlow(apiUrl)) {
+    if (/i2v/i.test(String(request.model)) && !firstFrame && !images.length) invalid("该视频模型需要首帧图片");
+    if (lastFrame || videos.length || audios.length) invalid("硅基流动视频接口当前不支持尾帧、视频或音频参考");
+    if (images.length > 1 || firstFrame && images.length) invalid("硅基流动视频接口只支持一张首帧图片");
+    if (request.duration !== undefined || resolution || request.generateAudio === true) invalid("硅基流动视频接口不支持自定义时长、分辨率档位或音轨，请使用默认值");
+    const ratio = text(request.ratio);
+    const imageSize = size || ({ "16:9": "1280x720", "9:16": "720x1280", "1:1": "960x960" }[ratio]);
+    if (imageSize && !["1280x720", "720x1280", "960x960"].includes(imageSize)) invalid("硅基流动视频支持 16:9、9:16 或 1:1 尺寸");
+    const submitted = await submitVideo(context, channelUrl(apiUrl, "/v1/video/submit"), { method: "POST", headers: authHeaders(context), body: JSON.stringify({ model: request.model, prompt: request.prompt, ...(imageSize ? { image_size: imageSize } : {}), ...(firstFrame || images[0] ? { image: firstFrame || images[0] } : {}) }) });
+    const taskId = pickTaskId(submitted);
+    if (!taskId) invalid(context.tool.errorMessage(submitted) || "渠道未返回视频任务 ID");
+    for (let attempt = 0; attempt < 360; attempt++) {
+      if (attempt) await sleep(5, context.signal);
+      const status = await readJson(context, channelUrl(apiUrl, "/v1/video/status"), { method: "POST", headers: authHeaders(context), body: JSON.stringify({ requestId: taskId }) });
+      if (failedStatus.includes(pickStatus(status))) invalid(context.tool.errorMessage(status) || text(record(status).reason, "视频生成失败"));
+      if (succeededStatus.includes(pickStatus(status))) {
+        const url = pickUrl(record(status).results);
+        if (!url) invalid("视频任务已完成，但未返回视频地址");
+        return [{ type: "url", url, mediaType: "video" }];
+      }
+    }
+    invalid("视频生成超时，请稍后重试");
+  }
   const submitPath = text(context.config.submitPath, "/v1/videos");
   const pollPath = text(context.config.pollPath, "/v1/videos/{id}");
   const contentPath = text(context.config.contentPath);
-  const submitted = await readJson(context, bind(apiUrl, submitPath, ""), { method: "POST", headers: authHeaders(context), body: JSON.stringify(body) });
+  const submitted = await submitVideo(context, bind(apiUrl, submitPath, ""), { method: "POST", headers: authHeaders(context), body: JSON.stringify(body) });
   const failure = context.tool.errorMessage(submitted);
+  if (failedStatus.includes(pickStatus(submitted))) invalid(failure || "视频提交失败");
   const immediate = pickUrl(submitted);
   if (immediate) return [{ type: "url", url: immediate, mediaType: "video" }];
   const taskId = pickTaskId(submitted);
   if (!taskId) invalid(failure || "渠道未返回视频任务 ID");
   const pollUrl = bind(apiUrl, pollPath, taskId);
-  // ACT: 轮询上限 30 分钟、间隔 5 秒；更长的任务由用户在节点上重新发起。
+  // 轮询上限 30 分钟；创作页保留任务响应，超时后可继续查询。
   for (let attempt = 0; attempt < 360; attempt++) {
     context.signal?.throwIfAborted();
     if (attempt) await sleep(5, context.signal);
     const status = await readJson(context, pollUrl, { method: "GET", headers: authHeaders(context) });
+    if (failedStatus.includes(pickStatus(status))) invalid(`视频生成失败：${context.tool.errorMessage(status) || pickStatus(status)}`);
     const assetUrl = pickUrl(status);
     if (assetUrl) return [{ type: "url", url: assetUrl, mediaType: "video" }];
     if (contentPath && succeededStatus.includes(pickStatus(status))) return readMedia(context, bind(apiUrl, contentPath, taskId), { method: "GET", headers: authHeaders(context) }, "video");
-    if (failedStatus.includes(pickStatus(status))) invalid(`视频生成失败：${context.tool.errorMessage(status) || status}`);
   }
   invalid(failure || "视频生成超时，请稍后重试");
 }
 
-export async function runMediaChannel(kind: ChannelKind, context: ChannelContext, request: object): Promise<MediaAsset[]> {
-  if (kind === "image") return generateImage(context, request);
+export async function runMediaChannel(kind: ChannelKind, context: ChannelContext, request: object, imageTransport?: MediaGenerationRequest["imageTransport"]): Promise<MediaAsset[]> {
+  const protocol = text(context.config.protocol, "openai");
+  if (protocol !== "openai") {
+    const provider: Provider | undefined = mediaProviders.find(item => item.id === ({ apimart: "apiMart", minimax: "meta" }[protocol]));
+    if (!provider) invalid("当前 API 格式尚未接入");
+    const adapterContext = { ...context, config: { ...context.config, baseUrl: protocol === "apimart" ? channelUrl(channelBase(context), "/v1") : channelBase(context) } };
+    if (kind === "image" && provider.generateImage) return provider.generateImage.call(adapterContext, request as ImageRequest);
+    if (kind === "video" && provider.generateVideo) return provider.generateVideo.call(adapterContext, request as VideoRequest);
+    if (kind === "audio" && provider.generateAudio) return provider.generateAudio.call(adapterContext, request as AudioRequest);
+    invalid("当前 API 格式不支持该模型用途");
+  }
+  if (kind === "image") return generateImage(context, request, imageTransport);
   if (kind === "audio") return generateAudio(context, request);
   return generateVideo(context, request);
 }

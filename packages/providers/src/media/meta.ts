@@ -103,16 +103,21 @@ export default {
 
     // ACT: 单次生成最多等待 10 分钟。
     const signal = AbortSignal.any([AbortSignal.timeout(10 * 60_000), ...(this.signal ? [this.signal] : [])]);
-    const submitResponse = await this.tool.fetch(`${baseUrl}/v2/video_generation`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: request.model, duration: request.duration, resolution: request.resolution, ratio: request.ratio, content }),
-      signal,
-    });
-    if (!submitResponse.ok) throw new Error(`提交任务失败：HTTP ${submitResponse.status}`);
-    const submitData = await submitResponse.json() as { task_id?: string };
-    const taskId = submitData?.task_id;
-    if (!taskId) throw new Error("提交任务未返回任务 ID");
+    const submit = async () => {
+      const submitResponse = await this.tool.fetch(`${baseUrl}/v2/video_generation`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: request.model, duration: request.duration, resolution: request.resolution, ratio: request.ratio, content }),
+        signal,
+      });
+      if (!submitResponse.ok) throw new Error(`提交任务失败：HTTP ${submitResponse.status}`);
+      const submitData = await submitResponse.json() as { task_id?: string };
+      const taskId = submitData?.task_id;
+      if (!taskId) throw new Error("提交任务未返回任务 ID");
+
+      return taskId;
+    };
+    const taskId = this.tool.task ? await this.tool.task.run("videoSubmission", submit) : await submit();
 
     const videoUrl = await pollVideo(this, baseUrl, apiKey, taskId, signal);
     return [{ mediaType: "video", type: "url", url: videoUrl }];

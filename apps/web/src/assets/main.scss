@@ -1,4 +1,7 @@
 html:root {
+  --app-font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+  --app-gutter: clamp(12px, 2vw, 32px);
+  // 自定义卡片与控件也使用这些变量；保留圆形手柄/状态点，避免覆盖组件的功能形状。
   --ui-radius: 8px;
   --ui-radius-small: calc(var(--ui-radius) * 0.5);
   --ui-radius-large: calc(var(--ui-radius) * 1.5);
@@ -40,11 +43,45 @@ html,
 body,
 #app {
   margin: 0;
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
 }
 
-* {
+html {
+  height: 100%;
+  font-family: var(--app-font-family);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+*, *::before, *::after {
   box-sizing: border-box;
 }
+
+// ACT: 弹窗共享视口边界，内容内部滚动；不压缩文字来适配小窗口。
+.el-dialog:not(.is-fullscreen) {
+  max-width: calc(100% - 24px);
+  max-height: calc(100dvh - var(--el-dialog-margin-top, 15vh) - 12px);
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  .el-dialog__header, .el-dialog__footer { flex-shrink: 0; }
+  .el-dialog__body { min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+}
+.el-message-box, .el-popover.el-popper { max-width: calc(100vw - 24px); }
+.el-message { max-width: calc(100vw - 24px); overflow-wrap: anywhere; }
+.el-drawer { max-width: 100vw; max-height: 100dvh; }
+.el-form-item__content { min-width: 0; }
 
 .stream-markdown [data-stream-markdown="tooltip"] {
   z-index: var(--markdown-tooltip-z-index);

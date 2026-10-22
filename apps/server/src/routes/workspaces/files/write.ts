@@ -12,6 +12,7 @@ export default router.put("/", validateFields({ directory: z.string().min(1).max
   }
   const { directory, path } = await u.workspaceFile.resolveWorkspaceFile(req, req.query.directory as string, req.query.path as string);
   u.workspaceFile.protectWorkspaceRoot(directory, path);
+  await u.production.assertProductionWrite(directory, [path]);
   const release = u.workspaceFile.lockWorkspaceFiles([path]);
   try { await u.workspaceFile.writeWorkspaceFile(path, req.body ?? Buffer.alloc(0), req.query.exclusive === "true"); }
   finally { release(); }

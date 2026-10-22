@@ -2,16 +2,24 @@ import { t, translateMessage, validationOptions } from "@/lib/i18n";
 import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, readdir, unlink } from "@toonflow/file";
 import { dirname, join } from "node:path";
-import { createContext, SourceTextModule } from "node:vm";
 import type { AudioConvertOptions, Provider, ProviderTools } from "@toonflow/providers";
-import tfRouter from "@toonflow/providers/media/tfRouter";
 import { parse, parseExpression } from "@babel/parser";
 import { z } from "zod";
 import conf from "@/utils/conf";
+import { credentialFetch } from "@/utils/conf/credentialFetch";
+import { isProtectedCredential } from "@/utils/conf/credentialStorage";
 import { convertAudio } from "@/utils/media/audioProcessor";
+import { getSystemSpeechVoices, synthesizeSystemSpeech } from "@/utils/media/systemSpeech";
+import { getBackgroundRemovalStatus, removeBackground } from "@/utils/media/backgroundRemoval";
 import { runMediaChannel } from "@/utils/media/channelRuntime";
 import { createWorkspaceFfmpeg } from "@/utils/ffmpeg";
+import { mediaCapabilitySchema } from "@/utils/media/capabilities";
+import { getMediaCapabilityDeclarationError } from "@toonflow/providers/mediaCapabilities";
 import { lockWorkspaceFiles, writeWorkspaceFile } from "@/utils/workspace/files";
+import type { MediaGenerationRequest } from "@toonflow/tools-scaffold/runtime";
+import { createIsolatedProvider } from "./isolatedProvider";
+import { createProviderRuntime, mediaErrorMessage } from "./providerRuntime";
+import { describeFfmpeg } from "@toonflow/ffmpeg/runtime";
 
 type Expression = Extract<ReturnType<typeof parseExpression>, { type: "ParenthesizedExpression" }>["expression"];
 type ObjectExpression = Extract<Expression, { type: "ObjectExpression" }>;
@@ -22,67 +30,14 @@ export const providerIdSchema = z.string().max(96).regex(/^[a-z][a-zA-Z0-9]*$/)
   .refine(value => !/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(value), "供应商 ID 不能是系统保留文件名");
 export const mediaProviderFileSchema = z.string().refine(value => value.endsWith(".ts") && providerIdSchema.safeParse(value.slice(0, -3)).success, "供应商文件名无效");
 export const mediaModelsSchema = z.array(z.object({
+  ...mediaCapabilitySchema.shape,
   id: z.string().min(1).max(200).refine(value => !!value.trim()),
   label: z.string().min(1).max(200).refine(value => !!value.trim()),
   type: z.enum(["text", "image", "video", "audio"]),
-}).catchall(z.json())).max(2000).refine(models => new Set(models.map(model => model.id)).size === models.length, "模型 ID 不能重复");
+}).catchall(z.json()).superRefine((model, context) => { if (model.type === "text") return; const error = getMediaCapabilityDeclarationError(model, model.type); if (error) context.addIssue({ code: "custom", path: ["mode"], message: error }); })).max(2000).refine(models => new Set(models.map(model => model.id)).size === models.length, "模型 ID 不能重复");
 
 function invalid(message: string, status = 400): never {
   throw Object.assign(new Error(message), { status });
-}
-
-function mediaErrorMessage(value: unknown, config: Record<string, unknown>, depth = 0): string {
-  if (depth > 6 || value == null) return "";
-  let message = "";
-  if (typeof value === "string") {
-    message = value.trim();
-    if (/^[\[{]/.test(message)) {
-      try { message = mediaErrorMessage(JSON.parse(message), config, depth + 1); }
-      catch { /* ACT: 非 JSON 错误正文按纯文本显示。 */ }
-    }
-  } else if (Array.isArray(value)) {
-    message = value.slice(0, 10).map(item => mediaErrorMessage(item, config, depth + 1)).filter(Boolean).join("；");
-  } else if (typeof value === "object") {
-    const data = value as Record<string, unknown>;
-    const messages: string[] = [];
-    for (const key of ["failReason", "fail_reason", "error", "errors", "detail", "details", "error_description", "data", "task", "message", "msg", "status_msg"]) {
-      if ((key === "data" || key === "task") && typeof data[key] !== "object") continue;
-      const detail = mediaErrorMessage(data[key], config, depth + 1);
-      if (detail) messages.push(...detail.split("\n"));
-    }
-    message = [...new Set(messages)].join("\n");
-    if (!message && typeof data.data === "string") message = mediaErrorMessage(data.data, config, depth + 1);
-  }
-  if (!message || /^\s*<(?:!doctype|html|head|body)\b/i.test(message)) return "";
-  for (const [key, secret] of Object.entries(config)) {
-    if (!/api.?key|secret|token|password|authorization|cookie/i.test(key) || typeof secret !== "string" || !secret.trim()) continue;
-    const token = secret.trim().replace(/^Bearer\s*/i, "");
-    if (token) message = message.replaceAll(token, "••••••");
-  }
-  return message.replace(/(Bearer\s+)[^\s"'<>]+/gi, "$1••••••")
-    .replace(/([?&][^=&#\s]+)=[^&#\s"'<>]*/g, "$1=••••••")
-    .replace(/((?:api[_-]?key|secret|token|password|authorization|cookie)["']?\s*[:=]\s*["']?)[^\s"',;}&<>]+/gi, "$1••••••")
-    .slice(0, 4000);
-}
-
-async function responseErrorMessage(response: Response, config: Record<string, unknown>) {
-  if (!response.body || !/json|text|^$/i.test(response.headers.get("content-type") ?? "")) return "";
-  const reader = response.clone().body!.getReader();
-  const timer = setTimeout(() => { void reader.cancel().catch(() => {}); }, 3000);
-  const decoder = new TextDecoder();
-  let text = "";
-  let size = 0;
-  try {
-    // ACT: 错误正文最多读取 16 KB / 3 秒；大响应须由供应商在标准错误字段中提供摘要。
-    while (size < 16000) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      text += decoder.decode(value.subarray(0, 16000 - size), { stream: true });
-      size += value.byteLength;
-    }
-    return mediaErrorMessage(text + decoder.decode(), config);
-  } catch { return ""; }
-  finally { clearTimeout(timer); void reader.cancel().catch(() => {}); }
 }
 
 function unwrap(expression: Expression): Expression {
@@ -139,7 +94,7 @@ function parseProvider(source: string) {
         : target.computed && target.property.type === "StringLiteral" ? target.property.value : "";
       return ["vendor", "textRequest", "imageRequest", "videoRequest", "ttsRequest"].includes(name);
     });
-    if (legacy) invalid("检测到旧版 Toonflow 供应商 TS，无法在 Toonflow 2.0 中使用。请在「添加自定义媒体供应商」中点击「一键复制提示词」，结合旧代码和接口资料重新生成新版代码后再导入。");
+    if (legacy) invalid("检测到旧版供应商格式，请根据当前供应商模板和接口资料重新生成后导入。");
     invalid("供应商须通过 export default 导出对象");
   }
   const object = unwrap(exported.declaration as Expression);
@@ -164,24 +119,36 @@ function parseProvider(source: string) {
   const version = value("version");
   const readme = value("readme");
   const modelsUrl = value("modelsUrl");
+  const requiresApiKey = value("requiresApiKey");
   if (!providerIdSchema.safeParse(id).success) invalid("供应商 ID 必须为小驼峰文件名");
   if (typeof label !== "string" || !label.trim() || label.length > 200) invalid("供应商名称无效");
   if (version !== undefined && (typeof version !== "string" || !version.trim())) invalid("供应商版本必须为非空字符串");
   if (readme !== undefined && typeof readme !== "string") invalid("供应商说明必须为字符串");
+  if (requiresApiKey !== undefined && typeof requiresApiKey !== "boolean") invalid("API Key 要求必须为布尔值");
   if (modelsUrl !== undefined && !z.url({ protocol: /^https?$/ }).refine(value => {
     const url = new URL(value);
     return !url.username && !url.password && !url.hash;
   }).safeParse(modelsUrl).success) invalid("模型列表地址须为不含凭据或片段的 HTTP URL");
   const models = mediaModelsSchema.safeParse(value("models") ?? [], validationOptions());
   if (!models.success) invalid(models.error.issues.map(issue => translateMessage(issue.message)).join("; "));
-  return { object, modelProperty: entries.get("models"), id: id as string, label, version: version?.trim(), readme, modelsUrl: modelsUrl as string | undefined, models: models.data };
+  return { object, modelProperty: entries.get("models"), id: id as string, label, version: version?.trim(), readme, modelsUrl: modelsUrl as string | undefined, requiresApiKey: requiresApiKey !== false, models: models.data };
 }
 
-function metadata(fileName: string, source: string) {
-  const { id, label, version, readme, modelsUrl, models } = parseProvider(source);
+async function withLocalCapabilities<T extends { type: string }>(id: string, models: T[]): Promise<T[]> {
+  if (id === "biRefNet") {
+    const status = await getBackgroundRemovalStatus();
+    if (status.phase !== "ready") invalid(status.error ?? "请先在模型配置中下载本机背景移除模型", 424);
+    return models;
+  }
+  if (id !== "windowsSpeech") return models;
+  const voices = (await getSystemSpeechVoices()).map(voice => ({ title: `${voice.name} · ${voice.culture}`, voice: voice.name }));
+  return models.map(model => model.type === "audio" ? { ...model, voices } : model);
+}
+
+async function metadata(fileName: string, source: string) {
+  const { id, label, version, readme, modelsUrl, requiresApiKey, models } = parseProvider(source);
   if (fileName !== `${id}.ts`) invalid("供应商 ID 与文件名不一致");
-  // ACT: 旧 TF-Router 文件不会随应用覆盖，缺少列表地址时使用内置定义。
-  return { fileName, id, label, version, readme, modelsUrl: modelsUrl ?? (id === tfRouter.id ? tfRouter.modelsUrl : undefined), models,
+  return { fileName, id, label, version, readme, modelsUrl, requiresApiKey, models: await withLocalCapabilities(id, models),
     revision: createHash("sha256").update(source).digest("hex"), loadError: "" };
 }
 
@@ -214,7 +181,7 @@ export async function getMediaProvider(id: string) {
     if (error.code === "ENOENT") invalid("请先在媒体模型设置中添加供应商", 404);
     throw error;
   });
-  return { ...metadata(current.fileName, current.source), source: current.source };
+  return { ...await metadata(current.fileName, current.source), source: current.source };
 }
 
 export async function listMediaProviders() {
@@ -226,11 +193,11 @@ export async function listMediaProviders() {
       let current = { fileName: file.name, id: file.name.slice(0, -3), source: "", revision: "" };
       try {
         current = await readProvider(path, file.name);
-        return metadata(current.fileName, current.source);
+        return await metadata(current.fileName, current.source);
       } catch (error) {
         // ACT: 元数据损坏不影响其他供应商；仍保留原文版本，允许用户明确删除。
         const { source, ...file } = current;
-        return { ...file, label: current.id, version: "", readme: "", models: [], loadError: translateMessage(error instanceof Error ? error.message : "供应商文件无法读取") };
+        return { ...file, label: current.id, version: "", readme: "", requiresApiKey: true, models: [], loadError: translateMessage(error instanceof Error ? error.message : "供应商文件无法读取") };
       }
     }));
 }
@@ -238,7 +205,7 @@ export async function listMediaProviders() {
 export async function addMediaProvider(source: string) {
   const { id } = parseProvider(source);
   const fileName = `${id}.ts`;
-  const result = metadata(fileName, source);
+  const result = await metadata(fileName, source);
   const path = join((await directory(true))!, fileName);
   const release = lockWorkspaceFiles([path]);
   try { await writeWorkspaceFile(path, source, true); }
@@ -250,12 +217,25 @@ export async function addMediaProvider(source: string) {
   return result;
 }
 
-export async function writeMediaProviderSource(source: string) {
+export async function writeMediaProviderSource(source: string, revision?: string, commit?: () => void) {
   const { id } = parseProvider(source);
-  const result = metadata(`${id}.ts`, source);
+  const result = await metadata(`${id}.ts`, source);
   const path = join((await directory(true))!, `${id}.ts`);
   const release = lockWorkspaceFiles([path]);
-  try { await writeWorkspaceFile(path, source); }
+  try {
+    const previous = await readProvider((await directory())!, `${id}.ts`).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return null;
+      throw error;
+    });
+    if (revision !== undefined && (previous?.revision ?? "") !== revision) invalid("渠道已被修改，请刷新后重试", 409);
+    await writeWorkspaceFile(path, source);
+    try { commit?.(); }
+    catch (error) {
+      if (previous) await writeWorkspaceFile(path, previous.source);
+      else await unlink(path);
+      throw error;
+    }
+  }
   finally { release(); }
   return result;
 }
@@ -278,7 +258,7 @@ export async function saveMediaProvider(fileName: string, models: z.infer<typeof
     const replacement = modelProperty ? formatted : `${newline}  models: ${formatted},`;
     // ACT: 只替换 models 源码区间，保留供应商函数及其余用户编辑。
     const source = current.source.slice(0, start) + replacement + current.source.slice(end);
-    const result = metadata(fileName, source);
+    const result = await metadata(fileName, source);
     if (expectedApiKey !== undefined && getMediaProviderApiKey(result.id) !== expectedApiKey) invalid("供应商配置已变更，请重试", 409);
     await writeWorkspaceFile(join(path, fileName), source);
     return result;
@@ -296,7 +276,7 @@ export async function refreshMediaProviderModels(fileName: string, revision?: st
   if (revision !== undefined && revision !== provider.revision) invalid("供应商文件已被修改，请刷新页面后再获取", 409);
   if (!provider.modelsUrl) invalid("供应商未配置 modelsUrl");
   const apiKey = getMediaProviderApiKey(provider.id);
-  const response = await fetch(provider.modelsUrl, {
+  const response = await credentialFetch(provider.modelsUrl, apiKey)(provider.modelsUrl, {
     headers: { Accept: "application/json", ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}) },
     signal: AbortSignal.timeout(30000), redirect: "error",
   });
@@ -306,8 +286,7 @@ export async function refreshMediaProviderModels(fileName: string, revision?: st
   const requestedType = z.enum(["text", "image", "video", "audio"]).safeParse(new URL(provider.modelsUrl).searchParams.get("type"));
   const models = result.data.map(model => {
     const id = model.id.trim();
-    const previous = provider.models.find(item => item.id === id)
-      ?? (provider.id === tfRouter.id ? tfRouter.models.find(item => item.id === id) : undefined);
+    const previous = provider.models.find(item => item.id === id);
     const type = model.type ?? (requestedType.success ? requestedType.data : previous?.type);
     if (!type) invalid(t`模型 ${id} 缺少 type，请在返回数据或 modelsUrl 的 type 参数中指定`);
     // ACT: 只有 ID 的列表沿用同名模型参数，新模型不猜测生成能力。
@@ -328,103 +307,84 @@ export async function deleteMediaProvider(fileName: string, revision: string) {
     const current = await readProvider(path, fileName);
     if (current.revision !== revision) invalid("供应商文件已被修改，请刷新页面后再删除", 409);
     await unlink(file);
-    conf.delete(`settings.mediaProviderConfigs.${current.id}`);
+    try {
+      const settings = conf.get("settings", {});
+      const configs = { ...(settings.mediaProviderConfigs as Record<string, unknown> ?? {}) };
+      const defaults = { ...(settings.mediaChannelDefaults as Record<string, { providerId?: string }> ?? {}) };
+      delete configs[current.id];
+      for (const kind of Object.keys(defaults)) if (defaults[kind]?.providerId === current.id) delete defaults[kind];
+      const customProviders = Array.isArray(settings.customProviders) ? settings.customProviders.filter(provider => provider?.id !== current.id) : [];
+      conf.set("settings", { ...settings, mediaProviderConfigs: configs, mediaChannelDefaults: defaults, customProviders });
+    } catch (error) { await writeWorkspaceFile(file, current.source); throw error; }
   } finally { release(); }
 }
 
-export async function loadMediaProviderSource(source: string, config: Record<string, unknown> = {}, signal?: AbortSignal, fetchRequest = fetch, cwd?: string) {
+export async function loadMediaProviderSource(source: string, config: Record<string, unknown> = {}, signal?: AbortSignal, fetchRequest = fetch, cwd?: string, task?: ProviderTools["task"], onAsset?: ProviderTools["onAsset"], imageTransport?: MediaGenerationRequest["imageTransport"], reportUsage?: ProviderTools["reportUsage"]) {
   signal?.throwIfAborted();
-  const { id } = parseProvider(source);
-  // ACT: VM 只隔离可信供应商的全局上下文；不可信代码需要独立进程等更强隔离。
-  const context = createContext({
-    Buffer, URL, URLSearchParams, TextEncoder, TextDecoder, Blob,
-    AbortController, AbortSignal, setTimeout, clearTimeout,
-  }, { codeGeneration: { strings: false, wasm: false } });
-  const rejectImport = () => { throw new Error("供应商不能导入模块，请使用 this.tool 中的宿主工具"); };
-  const module = new SourceTextModule(providerTranspiler.transformSync(source), {
-    context,
-    identifier: `${id}.ts`,
-    importModuleDynamically: rejectImport,
-  });
-  await module.link(rejectImport);
-  await module.evaluate({ timeout: 1000 });
-  signal?.throwIfAborted();
-  const definition = (module.namespace as { default: Provider }).default;
-  const rules = Array.isArray(definition.rules) ? definition.rules : [];
-  const providerConfig = { ...Object.fromEntries(rules.map(rule => [rule.field, rule.value])), ...structuredClone(config) };
-  const provider = {
-    ...definition,
-    config: providerConfig,
-    signal,
-    tool: {
-      fetch: signal ? Object.assign((input: Parameters<typeof fetch>[0], init?: RequestInit) => {
-        signal.throwIfAborted();
-        const requestSignal = init?.signal === null ? undefined : init?.signal ?? (input instanceof Request ? input.signal : undefined);
-        return fetchRequest(input, { ...init, signal: requestSignal ? AbortSignal.any([signal, requestSignal]) : signal });
-      }, { preconnect: fetchRequest.preconnect }) as typeof fetch : fetchRequest,
-      hash: Bun.hash,
-      errorMessage: (value: unknown) => mediaErrorMessage(value, providerConfig),
-      image: Bun.Image,
-      audio: { convert: (input: Uint8Array, options: AudioConvertOptions) => convertAudio(input, options, signal) },
-      mediaChannel: (kind, channelContext, request) => runMediaChannel(kind, channelContext, request),
-      ffmpeg: async () => {
-        if (!cwd) throw new Error("当前操作没有工作目录，无法使用 FFmpeg");
-        return createWorkspaceFfmpeg(cwd, signal);
-      },
-    } satisfies ProviderTools,
-  };
-  for (const name of ["generateImage", "generateVideo", "generateAudio"] as const) {
-    const generate = definition[name];
-    if (!generate) continue;
-    Object.assign(provider, { [name]: async (request: ImageRequest & VideoRequest & AudioRequest) => {
-      let failure: { status?: number; message: string } | undefined;
-      let pendingRequests = 0;
-      let overlappingRequests = false;
-      let requestCount = 0;
-      const tool = { ...provider.tool, fetch: Object.assign(async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
-        if (++pendingRequests > 1) overlappingRequests = true;
-        const requestId = ++requestCount;
-        failure = undefined;
-        try {
-          const response = await provider.tool.fetch(input, init);
-          if (!response.ok) failure = { status: response.status, message: await responseErrorMessage(response, provider.config) };
-          else {
-            const readJson = response.json;
-            Object.assign(response, { json: async function(this: Response) {
-              const result = await readJson.call(this);
-              if (this === response && requestId === requestCount && !overlappingRequests && result && typeof result === "object") {
-                const data = result as Record<string, unknown>;
-                const failed = [data, data.data, data.task].some(item => {
-                  if (!item || typeof item !== "object") return false;
-                  const state = item as Record<string, unknown>;
-                  return ["failed", "failure", "error", "rejected"].includes(String(state.status ?? state.state ?? "").toLowerCase())
-                    || state.success === false || (typeof state.code === "number" && state.code >= 400 && state.code < 600);
-                });
-                if (failed) failure = { message: mediaErrorMessage(result, provider.config) };
-              }
-              return result;
-            } });
-          }
-          return response;
-        } finally { pendingRequests--; }
-      }, { preconnect: provider.tool.fetch.preconnect }) as typeof fetch };
-      try { return await generate.call({ ...provider, tool }, request); }
-      catch (error) {
-        const info = error as { name?: unknown; message?: unknown } | null;
-        if (signal?.aborted || info?.name === "AbortError") throw error;
-        let message = mediaErrorMessage(error, provider.config);
-        if (!message) throw error;
-        // ACT: 只补充串行请求中匹配的错误；并发时无法精确关联响应，由适配器使用 errorMessage 提取。
-        const matchesFailure = failure?.status !== undefined
-          ? new RegExp(`\\b(?:HTTP|status(?: code)?)\\s*[:：]?\\s*${failure.status}[)）.。\\s]*$`, "i").test(message)
-          : failure?.message.includes(message) || /(?:未返回任务\s*ID|^(?:图片|视频)?生成失败|^素材审核失败)$/.test(message);
-        if (!overlappingRequests && failure?.message && matchesFailure) {
-          message = [...new Set([...message.split("\n"), ...failure.message.split("\n")])].join("\n").slice(0, 4000);
-        }
-        if (message === (typeof error === "string" ? error : info?.message)) throw error;
-        throw Object.assign(new Error(message), typeof error === "object" ? error : undefined, { message, cause: error });
-      }
-    } });
-  }
-  return provider;
+  const { id, models } = parseProvider(source);
+  const availableModels = await withLocalCapabilities(id, models) as Provider["models"];
+  const instance = await createIsolatedProvider(providerTranspiler.transformSync(source), id, config, signal);
+  try {
+    const providerConfig = instance.metadata.config;
+    if (isProtectedCredential(providerConfig.apiKey)) invalid("密钥无法解密，请在设置中重新输入");
+    const protectedFetch = credentialFetch(typeof providerConfig.apiUrl === "string" ? providerConfig.apiUrl : undefined, typeof providerConfig.apiKey === "string" ? providerConfig.apiKey : "", fetchRequest);
+    const tools = (activeSignal: AbortSignal, markSynchronous: (callback: Function) => void) => {
+      const fetchWithSignal = Object.assign((input: Parameters<typeof fetch>[0], init?: RequestInit) => {
+        activeSignal.throwIfAborted();
+        const original = init?.signal ?? (input instanceof Request ? input.signal : undefined);
+        return protectedFetch(input, { ...init, signal: original ? AbortSignal.any([activeSignal, original]) : activeSignal });
+      }, { preconnect: protectedFetch.preconnect }) as typeof fetch;
+      const hostTools: ProviderTools = {
+        task, onAsset, reportUsage, fetch: fetchWithSignal, hash: Bun.hash, image: Bun.Image,
+        errorMessage: value => mediaErrorMessage(value, providerConfig),
+        imageProcessing: { removeBackground: input => removeBackground(input, activeSignal) },
+        audio: { convert: (input, options: AudioConvertOptions) => convertAudio(input, options, activeSignal), synthesize: input => synthesizeSystemSpeech(input, activeSignal) },
+        mediaChannel: () => { throw new Error("宿主渠道不接受供应商覆盖的上下文"); },
+        ffmpeg: async () => {
+          activeSignal.throwIfAborted();
+          if (!cwd) throw new Error("当前操作没有工作目录，无法使用 FFmpeg");
+          return createWorkspaceFfmpeg(cwd, activeSignal);
+        },
+      };
+      const channelProvider = createProviderRuntime({ ...instance.metadata, models: availableModels,
+        generateImage(request) { return runMediaChannel("image", this, request, imageTransport); },
+        generateVideo(request) { return runMediaChannel("video", this, request, imageTransport); },
+        generateAudio(request) { return runMediaChannel("audio", this, request, imageTransport); },
+      }, providerConfig, activeSignal, hostTools);
+      const preconnect = (url: string, options?: Parameters<typeof fetch.preconnect>[1]) => { activeSignal.throwIfAborted(); protectedFetch.preconnect(url, options); };
+      markSynchronous(preconnect);
+      // 仅导出当前任务所需能力；请求和响应流不传递宿主原生对象。
+      return {
+        task, onAsset, reportUsage, audio: hostTools.audio, imageProcessing: hostTools.imageProcessing, preconnect,
+        async fetch(input: { url: string; method: string; headers: [string, string][]; redirect: RequestInit["redirect"]; body?: string | Uint8Array; signal: AbortSignal }) {
+          const response = await fetchWithSignal(input.url, { method: input.method, headers: input.headers, redirect: input.redirect, body: typeof input.body === "string" ? input.body : input.body && new Uint8Array(input.body).buffer, signal: input.signal });
+          const reader = response.body?.getReader();
+          const cancel = () => { void reader?.cancel().catch(() => {}); };
+          activeSignal.addEventListener("abort", cancel, { once: true });
+          const release = () => { activeSignal.removeEventListener("abort", cancel); };
+          return { status: response.status, statusText: response.statusText, headers: [...response.headers], url: response.url, redirected: response.redirected, type: response.type,
+            read: reader && (async () => { try { activeSignal.throwIfAborted(); const next = await reader.read(); if (next.done) release(); return next; } catch (error) { release(); throw error; } }),
+            cancel: reader && (async () => { try { await reader.cancel(); } finally { release(); } }),
+          };
+        },
+        mediaChannel(kind: "image" | "video" | "audio", request: ImageRequest & VideoRequest & AudioRequest) {
+          activeSignal.throwIfAborted();
+          const generate = { image: channelProvider.generateImage!, video: channelProvider.generateVideo!, audio: channelProvider.generateAudio! }[kind];
+          return generate.call(channelProvider, request);
+        },
+        async ffmpeg() {
+          const runtime = describeFfmpeg(await hostTools.ffmpeg());
+          if (runtime.validateOutput) { const validate = runtime.validateOutput; runtime.validateOutput = path => { activeSignal.throwIfAborted(); validate(path); }; markSynchronous(runtime.validateOutput); }
+          return runtime;
+        },
+      };
+    };
+    type Method = "generateImage" | "generateVideo" | "generateAudio" | "checkForUpdates" | "updateVendor";
+    const provider: Omit<Provider, Method> & { [Name in Method]?: OmitThisParameter<NonNullable<Provider[Name]>> } & { config: Record<string, unknown>; dispose: typeof instance.dispose; pid: number } = { ...instance.metadata, models: availableModels, config: providerConfig, pid: instance.pid, dispose: instance.dispose };
+    for (const name of instance.methods) {
+      if (!["generateImage", "generateVideo", "generateAudio", "checkForUpdates", "updateVendor"].includes(name)) throw new Error("供应商方法无效");
+      Object.assign(provider, { [name]: (request: unknown) => instance.run(name, request, availableModels, tools) });
+    }
+    return provider;
+  } catch (error) { await instance.dispose(); throw error; }
 }

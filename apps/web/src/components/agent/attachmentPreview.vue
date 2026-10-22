@@ -116,7 +116,7 @@ watch([textPreviewVisible, () => props.attachment, () => props.directory], async
     padding: 6px 8px;
     box-sizing: border-box;
     border: 1px solid var(--el-border-color);
-    border-radius: 8px;
+    border-radius: var(--ui-radius, 8px);
     background: var(--el-fill-color-extra-light);
 
     .textAttachmentButton {
@@ -149,7 +149,7 @@ watch([textPreviewVisible, () => props.attachment, () => props.directory], async
     padding: 0;
     overflow: hidden;
     border: 1px solid var(--el-border-color);
-    border-radius: 10px;
+    border-radius: calc(var(--ui-radius, 8px) * 1.25);
     background: transparent;
     color: var(--el-text-color-secondary);
     cursor: pointer;

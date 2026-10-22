@@ -20,9 +20,16 @@ interface ProviderModel {
   associationSkills?: string;
   audio?: "optional" | boolean;
   imageSizes?: string[];
+  imageSizeRange?: import("./src/mediaCapabilities").ImageSizeRange;
   imageRatios?: string[];
+  videoRatios?: string[];
+  maxImageCount?: number;
+  imageReferenceLimit?: number;
+  imageQualities?: ("low" | "medium" | "high")[];
   durationResolutionMap?: { duration: number[]; resolution: string[] }[];
   voices?: { title: string; voice: string }[];
+  audioFormats?: string[];
+  audioSpeedRange?: { min: number; max: number };
 }
 
 interface ProviderFormRule {
@@ -75,16 +82,28 @@ interface FfmpegRequiredError extends Error {
 }
 
 interface ProviderTools {
+  /** 仅传供应商实际返回的用量或有明确币种的账单；同号回执更新而非相加。 */
+  reportUsage?: (report: import("./src/mediaCosts").MediaUsageReport) => Promise<void>;
+  /** 批量生成时及时交付单个结果，由宿主保存；调试等无工作区场景可省略。 */
+  onAsset?: (asset: MediaAsset) => Promise<void>;
+  /** 保存已提交任务的响应，恢复时复用，避免重复计费。 */
+  task?: { run<T>(key: string, submit: () => Promise<T>): Promise<T> };
   fetch: typeof globalThis.fetch;
   /** 提取供应商错误正文中的可读原因，并隐藏配置中的密钥和 URL 查询参数。 */
   errorMessage(value: unknown): string;
   hash: typeof Bun.hash;
   image: typeof Bun.Image;
+  /** 本机固定模型处理；返回透明 PNG，不上传输入图片。 */
+  imageProcessing: {
+    removeBackground(input: Uint8Array): Promise<{ data: Uint8Array; mimeType: "image/png"; width: number; height: number; inferenceMs: number; runtimeVersion: string; modelId: string; modelSha256: string }>;
+  };
   /**
    * 音频裁剪转码；仅接受 WAV 格式的内存字节并返回处理后的内存字节，不支持文件路径、URL 或其他压缩格式输入。
    */
   audio: {
     convert(input: Uint8Array, options: AudioConvertOptions): Promise<{ data: Uint8Array; mimeType: string }>;
+    /** Windows 系统语音；仅接收文本和已安装音色，返回 WAV 内存字节与实际音色名称。 */
+    synthesize(input: { text: string; voice: string }): Promise<{ data: Uint8Array; voice: string }>;
   };
   /**
    * OpenAI 兼容媒体渠道调用；只由「设置 → 模型渠道」生成的供应商文件使用。
@@ -184,9 +203,11 @@ interface ProviderDefinition<TRules extends readonly ProviderFormRule[] = readon
   /**
    * 媒体模型列表 GET 地址，使用配置的 apiKey 作为 Bearer 凭据，返回 { data: 模型数组 }。
    * 模型须含 id，type 可由 URL 的 type 参数或同名已有模型补全。
-   * 提供此字段后可手动获取；仅 TF-Router 在有 key 的程序启动时自动更新。
+   * 提供此字段后可由用户手动获取模型。
    */
   modelsUrl?: string;
+  /** 缺省要求配置 API Key；本机系统能力可明确声明不需要。 */
+  requiresApiKey?: boolean;
   protocol?: "openai-completions" | "openai-responses" | "anthropic-messages";
   /** 厂商说明的 Markdown 内容。 */
   readme?: string;

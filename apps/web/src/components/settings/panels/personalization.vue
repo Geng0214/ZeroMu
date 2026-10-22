@@ -2,8 +2,8 @@
   <div class="personalization">
     <section class="settingSection" aria-labelledby="instructionsTitle">
       <div class="settingInfo">
-        <h3 id="instructionsTitle">零幕 说明</h3>
-        <p class="description">为所有聊天提供额外说明和上下文。支持 Markdown，保存后下一次发送消息时生效。</p>
+        <h3 id="instructionsTitle">创作习惯</h3>
+        <p class="description">告诉 AI 你的画面风格、叙事习惯和输出要求。保存后，下一次对话时生效。</p>
       </div>
       <el-alert v-if="document.error" :title="getDocumentError(document)" type="error" :closable="false" showIcon />
       <el-input
@@ -13,7 +13,7 @@
         :maxlength="maxLength"
         :disabled="!document.loaded || document.loading"
         resize="none"
-        aria-label="零幕 说明内容" />
+        aria-label="创作习惯内容" />
       <div class="editorFooter">
         <span class="editorStatus">
           {{ document.loading ? "正在读取…" : isDirty(document) ? "有未保存的修改" : "" }}
@@ -24,7 +24,7 @@
             :icon="IconRefresh"
             :loading="document.loading"
             :disabled="document.saving"
-            aria-label="重新加载 零幕 说明"
+            aria-label="重新加载创作习惯"
             @click="reloadDocument(document, 'agents')">
             {{ document.loaded ? "重新加载" : "重试" }}
           </el-button>
@@ -33,7 +33,7 @@
             :icon="IconDeviceFloppy"
             :loading="document.saving"
             :disabled="!document.loaded || document.loading || document.conflict || !isDirty(document) || document.content.length > maxLength"
-            aria-label="保存 零幕 说明"
+            aria-label="保存创作习惯"
             @click="saveDocument(document, 'agents')">
             保存
           </el-button>
@@ -53,30 +53,22 @@
             aria-label="启用本地记忆"
             @change="(value) => setMemoryEnabled(value === true)" />
         </div>
-        <div class="settingHeader">
-          <div class="settingInfo">
-            <h4>删除本地记忆</h4>
-          </div>
+        <div class="memoryActions">
+          <el-button :icon="IconEye" :loading="memoryAction === 'view'" :disabled="!!memoryAction || memoryDocument.loading || memoryDocument.saving" aria-label="查看本地记忆" @click="viewMemory">
+            查看与编辑
+          </el-button>
           <el-button
             :icon="IconTrash"
             :loading="memoryAction === 'delete'"
             :disabled="!!memoryAction || memoryDocument.loading || memoryDocument.saving"
             aria-label="删除本地记忆"
             @click="deleteMemory">
-            删除
-          </el-button>
-        </div>
-        <div class="settingHeader">
-          <div class="settingInfo">
-            <h4>查看本地记忆</h4>
-          </div>
-          <el-button :icon="IconEye" :loading="memoryAction === 'view'" :disabled="!!memoryAction || memoryDocument.loading || memoryDocument.saving" aria-label="查看本地记忆" @click="viewMemory">
-            查看
+            清空记忆
           </el-button>
         </div>
       </div>
     </section>
-    <el-dialog v-model="memoryVisible" title="零幕 记忆" width="min(760px, calc(100vw - 32px))" alignCenter appendToBody>
+    <el-dialog v-model="memoryVisible" title="本地记忆" width="min(760px, calc(100vw - 32px))" alignCenter appendToBody>
       <div class="memoryContent">
         <el-alert v-if="memoryDocument.error" :title="getDocumentError(memoryDocument)" type="error" :closable="false" showIcon />
         <el-input
@@ -246,7 +238,7 @@ async function saveDocument(document: DocumentState, name: "agents" | "memory") 
     document.savedContent = data.data.content;
     document.revision = data.data.revision;
     if (document.content === content) document.content = data.data.content;
-    ElMessage.success(`${name === "agents" ? "零幕 说明" : "本地记忆"}已保存`);
+    ElMessage.success(`${name === "agents" ? "创作习惯" : "本地记忆"}已保存`);
     return true;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 409) document.conflict = true;
@@ -306,7 +298,7 @@ async function deleteMemory() {
       return;
     }
     try {
-      await ElMessageBox.confirm("将删除所有工作区共用的本地记忆及未保存的记忆修改，此操作无法撤销。零幕 说明会保留。", "删除本地记忆", {
+      await ElMessageBox.confirm("将删除所有工作区共用的本地记忆及未保存的记忆修改，此操作无法撤销。创作习惯会保留。", "删除本地记忆", {
         confirmButtonText: "删除",
         cancelButtonText: "取消",
         type: "warning",
@@ -346,7 +338,7 @@ onActivated(refreshDocument);
 .personalization {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
   padding: 0 4px 8px;
 
   .settingSection {
@@ -377,7 +369,10 @@ onActivated(refreshDocument);
     .memoryOptions {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 12px;
+      border-top: 1px solid var(--el-border-color-lighter);
+      padding-top: 24px;
+      .memoryActions { display: flex; flex-wrap: wrap; gap: 8px; .el-button { margin: 0; } }
 
       .settingHeader {
         display: flex;

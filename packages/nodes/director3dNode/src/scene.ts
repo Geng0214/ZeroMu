@@ -1,6 +1,6 @@
 import { z } from "@toonflow/nodes-scaffold/runtime";
-import { createJsonScene, registerObject, type SceneRuntime } from "threejson/core";
-import { AmbientLight, Box3, DirectionalLight, GridHelper, HemisphereLight, Mesh, PCFSoftShadowMap, PlaneGeometry, ShadowMaterial, Sphere, Vector3 } from "three";
+import { createJsonScene, deployJsonObject, disposeObjectTree, getObjectByThreeJsonId, registerObject, type SceneRuntime } from "threejson/core";
+import { AmbientLight, Box3, DirectionalLight, GridHelper, HemisphereLight, Mesh, MeshStandardMaterial, MeshBasicMaterial, MeshPhongMaterial, MeshLambertMaterial, Object3D, PCFSoftShadowMap, PlaneGeometry, ShadowMaterial, Sphere, Vector3 } from "three";
 import { Sky } from "three/examples/jsm/objects/Sky.js";
 import { createMannequin, mannequinJoints } from "./mannequin";
 
@@ -21,6 +21,7 @@ export const sceneSchema = z.strictObject({
   }),
   objectList: z.array(z.strictObject({
     threeJsonId: z.string().trim().min(1).max(100), name: z.string().max(100).optional(),
+    visible: z.boolean().optional(),
     objType: z.enum(["box", "sphere", "cylinder", "cone", "ring", "torus", "capsule", "plane", "mannequin"]),
     geometry: z.record(z.string().regex(/^[a-zA-Z]+$/), z.union([z.number().min(0).max(10000), z.boolean()]))
       .refine(value => Object.entries(value).every(([key, size]) => !/segments/i.test(key) || (typeof size === "number" && Number.isInteger(size) && size >= 1 && size <= 64)), "细分段数必须是 1～64 的整数"),
@@ -169,6 +170,71 @@ export function createEmptyScene(): SceneDocument {
   };
 }
 
+function applySceneObject(model: Object3D, object: SceneDocument["objectList"][number]) {
+  model.name = object.name ?? object.objType;
+  model.position.set(object.position.x, object.position.y, object.position.z);
+  model.rotation.set(object.rotation?.rotationX ?? 0, object.rotation?.rotationY ?? 0, object.rotation?.rotationZ ?? 0);
+  model.scale.set(object.scale?.scaleX ?? 1, object.scale?.scaleY ?? 1, object.scale?.scaleZ ?? 1);
+  model.visible = object.visible !== false;
+  if (object.objType === "mannequin") {
+    for (const joint of mannequinJoints) {
+      const rotation = object.pose?.[joint];
+      model.getObjectByName(joint)?.rotation.set(rotation?.x ?? 0, rotation?.y ?? 0, rotation?.z ?? 0);
+    }
+  }
+  model.traverse(part => {
+    if (!(part instanceof Mesh)) return;
+    part.castShadow = true;
+    part.receiveShadow = true;
+    for (const material of Array.isArray(part.material) ? part.material : [part.material]) {
+      if (!(material instanceof MeshStandardMaterial || material instanceof MeshBasicMaterial || material instanceof MeshPhongMaterial || material instanceof MeshLambertMaterial)) continue;
+      material.color.set(object.material.color);
+      material.opacity = object.material.opacity ?? 1;
+      const transparent = object.material.transparent ?? false;
+      if (material.transparent !== transparent) { material.transparent = transparent; material.needsUpdate = true; }
+      material.wireframe = object.material.wireframe ?? false;
+      if (material instanceof MeshStandardMaterial) {
+        material.roughness = object.material.roughness ?? (object.objType === "mannequin" ? .75 : 1);
+        material.metalness = object.material.metalness ?? 0;
+      }
+    }
+  });
+}
+
+// 已校验的基础模型直接更新，保留 renderer、相机和未修改对象，避免每次按钮操作重建 WebGL。
+export function syncStageObjects(runtime: SceneRuntime, previous: SceneDocument, next: SceneDocument) {
+  if (JSON.stringify(previous.sceneConfig) !== JSON.stringify(next.sceneConfig)) return false;
+  const objects = sceneSchema.parse(next).objectList;
+  const previousObjects = new Map(previous.objectList.map(object => [object.threeJsonId, object]));
+  const nextIds = new Set(objects.map(object => object.threeJsonId));
+  for (const object of previous.objectList) {
+    if (nextIds.has(object.threeJsonId)) continue;
+    const model = getObjectByThreeJsonId(object.threeJsonId, runtime.scene);
+    if (model) disposeObjectTree(model);
+  }
+  for (const object of objects) {
+    const before = previousObjects.get(object.threeJsonId);
+    let model = getObjectByThreeJsonId(object.threeJsonId, runtime.scene);
+    if (model && (!before || before.objType !== object.objType || before.material.type !== object.material.type
+      || JSON.stringify(before.geometry) !== JSON.stringify(object.geometry) || JSON.stringify(before.hiddenParts) !== JSON.stringify(object.hiddenParts))) {
+      disposeObjectTree(model);
+      model = null;
+    }
+    if (!model) {
+      if (object.objType === "mannequin") {
+        model = createMannequin(object.threeJsonId, object.material.color, object.hiddenParts);
+        runtime.scene.add(model);
+      } else model = deployJsonObject(runtime.scene, object);
+      if (!model) throw new Error(`无法创建场景对象：${object.name ?? object.objType}`);
+    }
+    applySceneObject(model, object);
+    registerObject(model, object, { recursive: false }, runtime.scene);
+  }
+  updateSunShadow(runtime);
+  runtime.invalidate();
+  return true;
+}
+
 export async function createStage(canvas: HTMLCanvasElement, document: SceneDocument, beforeFrame?: () => void, aspect = 16 / 9, lighting?: LightingSettings, settings: SceneSettings = { gridVisible: true, skyVisible: true }) {
   document = sceneSchema.parse(document);
   const width = Math.round(960 * Math.min(1, aspect) / 2) * 2;
@@ -198,6 +264,10 @@ export async function createStage(canvas: HTMLCanvasElement, document: SceneDocu
       });
       next.scene.add(mannequin);
       registerObject(mannequin, object, { recursive: false }, next.scene);
+    }
+    for (const object of document.objectList) {
+      const model = getObjectByThreeJsonId(object.threeJsonId, next.scene);
+      if (model) model.visible = object.visible !== false;
     }
     // 离屏 canvas 没有布局尺寸，不能依赖运行时从 clientWidth / clientHeight 推断。
     next.renderer.setSize(width, height, false);

@@ -21,9 +21,12 @@ const referenceMode = z.templateLiteral([z.enum(["image", "video", "audio"]), "R
   .refine(value => /Reference:(?:[1-9]\d?|1\d{2}|2[0-4]\d|25[0-6])$/.test(value), "参考数量必须在 1 到 256 之间");
 
 export const listMediaModelsSchema = z.strictObject({});
+export const resolveVideoWorkflowSchema = z.strictObject({ providerId: sharedFields.providerId, modelId: sharedFields.modelId });
 export const imageGenerationSchema = z.strictObject({
   ...sharedFields,
   size: z.string().trim().min(1).max(64).optional(),
+  quality: z.enum(["low", "medium", "high"]).optional(),
+  n: z.number().int().min(1).max(10).optional(),
 });
 export const videoGenerationSchema = z.strictObject({
   ...sharedFields,

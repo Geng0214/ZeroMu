@@ -23,11 +23,12 @@
           </el-form-item>
         </div>
         <el-form-item label="API 密钥" prop="apiKey">
-          <el-input v-model="form.apiKey" type="password" dir="ltr" showPassword autocomplete="off" placeholder="本地无鉴权服务可留空" />
+          <el-input v-model="form.apiKey" type="password" dir="ltr" showPassword autocomplete="new-password" :placeholder="props.provider?.apiKeyUnavailable ? '无法解密，请重新输入' : props.provider?.hasApiKey ? '已安全保存，留空保留' : '本地无鉴权服务可留空'" />
+          <el-checkbox v-if="props.provider?.hasApiKey" v-model="clearApiKey">清除已保存密钥</el-checkbox>
         </el-form-item>
         <div class="modelHeader">
           <el-text tag="strong">模型列表</el-text>
-          <el-button :icon="IconDownload" :loading="fetching || modelRefreshPending" @click="fetchModels()">获取模型列表</el-button>
+          <el-button :icon="IconDownload" :loading="fetching" @click="fetchModels()">获取模型列表</el-button>
         </div>
         <div class="modelList">
           <div v-for="item in models" :key="item.key" class="modelItem">
@@ -77,7 +78,7 @@
     </el-scrollbar>
     <template #footer>
       <el-button :disabled="saving" @click="visible = false">取消</el-button>
-      <el-button type="primary" :loading="saving" :disabled="fetching || modelRefreshPending" @click="addProvider">
+      <el-button type="primary" :loading="saving" :disabled="fetching" @click="addProvider">
         {{ provider ? "保存修改" : "确定添加供应商" }}
       </el-button>
     </template>
@@ -121,12 +122,12 @@ import {
 } from "@tabler/icons-vue";
 import { saveSettings, type CustomProvider, type CustomProviderModel } from "@/stores/settings";
 import { languageProviders } from "@toonflow/providers";
-import { isTfRouterProvider } from "@/lib/tf";
 
 const props = defineProps<{ provider?: CustomProvider }>();
 const visible = defineModel<boolean>({ default: false });
 const providerForm = ref<FormInstance>();
 const form = reactive({ id: "", label: "", apiUrl: "", protocol: "openai-completions", apiKey: "" });
+const clearApiKey = ref(false);
 const models = ref<(CustomProviderModel & { key: string })[]>([]);
 const expandedModels = ref(new Set<string>());
 const fetchedModels = shallowRef<CustomProviderModel[]>([]);
@@ -159,8 +160,6 @@ const resultColumns = computed<Column[]>(() => [
 ]);
 const resultsVisible = ref(false);
 const fetching = ref(false);
-const modelRefreshPending = ref(false);
-const modelFetchFailed = ref(false);
 const formError = ref("");
 let request: AbortController | undefined;
 const rules: FormRules = {
@@ -190,36 +189,20 @@ watch(visible, (value) => {
     resetForm();
     if (props.provider) {
       const { models: providerModels, ...config } = props.provider;
-      Object.assign(form, config);
+      Object.assign(form, config, { apiKey: "" });
       models.value = providerModels.map((item) => ({ ...item, key: crypto.randomUUID() }));
     }
   } else {
+    form.apiKey = "";
     request?.abort();
     resultsVisible.value = false;
   }
 }, { immediate: true });
 onBeforeUnmount(() => request?.abort());
 
-watch(
-  [visible, () => form.id, () => form.apiUrl, () => form.protocol, () => form.apiKey],
-  ([isVisible], _previous, onCleanup) => {
-    if (!isVisible || !isTfRouterProvider(form) || !form.apiKey.trim()) return;
-    modelRefreshPending.value = true;
-    let cancelled = false;
-    const timer = setTimeout(async () => {
-      try { await fetchModels(true); }
-      finally { if (!cancelled) modelRefreshPending.value = false; }
-    }, 500);
-    onCleanup(() => {
-      cancelled = true;
-      clearTimeout(timer);
-      request?.abort();
-      modelRefreshPending.value = false;
-    });
-  },
-);
 
 function resetForm() {
+  clearApiKey.value = false;
   Object.assign(form, { id: "", label: "", apiUrl: "", protocol: "openai-completions", apiKey: "" });
   models.value = [];
   expandedModels.value = new Set();
@@ -227,36 +210,28 @@ function resetForm() {
   selectedIds.value = new Set();
   modelSearch.value = "";
   formError.value = "";
-  modelFetchFailed.value = false;
 }
 
-async function fetchModels(autoApply = false) {
+async function fetchModels() {
   if (fetching.value || !(await providerForm.value?.validateField("apiUrl").catch(() => false))) return;
   fetching.value = true;
   formError.value = "";
-  modelFetchFailed.value = false;
   const controller = new AbortController();
   request = controller;
   try {
     const { data } = await axios.post(
       "/api/providers/models",
-      { apiUrl: form.apiUrl.trim(), protocol: form.protocol, apiKey: form.apiKey.trim() },
-      { signal: controller.signal, timeout: 35000 }
+      { id: props.provider?.id, apiUrl: form.apiUrl.trim(), protocol: form.protocol, apiKey: form.apiKey.trim() || (clearApiKey.value || !props.provider ? "" : undefined) },
+      { signal: controller.signal, timeout: 35000, headers: { "x-toonflow-workspace": "1" } }
     );
     if (controller.signal.aborted) return;
     if (data.code !== 200 || !Array.isArray(data.data)) throw new Error(data.message || "获取模型列表失败");
-    if (autoApply || isTfRouterProvider(form)) {
-      if (!data.data.length) throw new Error("未获取到可用模型，请检查 API Key 后重试");
-      models.value = data.data.map((item: CustomProviderModel) => ({ ...item, key: crypto.randomUUID() }));
-      return;
-    }
     fetchedModels.value = data.data;
     selectedIds.value = new Set();
     modelSearch.value = "";
     resultsVisible.value = true;
   } catch (error) {
     if (!controller.signal.aborted) {
-      modelFetchFailed.value = true;
       formError.value = axios.isAxiosError(error)
         ? error.response?.data?.message || "获取模型列表失败，请检查连接配置"
         : error instanceof Error
@@ -285,7 +260,7 @@ function addManualModel() {
 }
 
 async function addProvider() {
-  if (fetching.value || modelRefreshPending.value || (isTfRouterProvider(form) && modelFetchFailed.value)) return;
+  if (fetching.value) return;
   formError.value = "";
   if (saving.value || !(await providerForm.value?.validate().catch(() => false))) return;
   const providerId = props.provider?.id;
@@ -308,7 +283,7 @@ async function addProvider() {
       ...form,
       label: form.label.trim(),
       apiUrl: form.apiUrl.trim(),
-      apiKey: form.apiKey.trim(),
+      apiKey: form.apiKey.trim() || (clearApiKey.value || !providerId ? "" : undefined),
       models: models.value.map(({ key, ...item }) => ({
         ...item,
         id: item.id.trim(),

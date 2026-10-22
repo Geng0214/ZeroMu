@@ -111,7 +111,7 @@ defineExpose({ preview });
     cursor: pointer;
 
     svg { flex-shrink: 0; }
-    .inlineMentionThumbnail { width: 24px; height: 24px; border-radius: 3px; }
+    .inlineMentionThumbnail { width: 24px; height: 24px; border-radius: calc(var(--ui-radius, 8px) * 0.375); }
     .mentionLabel { min-width: 0; }
   }
 }

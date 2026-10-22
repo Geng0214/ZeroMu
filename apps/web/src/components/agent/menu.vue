@@ -1,20 +1,8 @@
 <template>
   <header class="agentMenu">
+    <div class="agentIdentity"><agentIcon :size="16" :strokeWidth="1.6" aria-hidden="true" /><span>创作 Agent</span></div>
+    <el-button class="agentMode" disabled title="Codex 暂未接入" aria-label="Codex（暂未接入）"><icon-arrows-exchange :size="16" :strokeWidth="1.6" /><span>Codex</span></el-button>
     <el-button v-if="parentFile" class="backButton" text circle :icon="IconArrowLeft" aria-label="返回父 Agent" title="返回父 Agent" @click="emit('back')" />
-    <el-input
-      v-if="editingName && !parentFile"
-      ref="nameInput"
-      v-model="nameDraft"
-      class="conversationName"
-      size="small"
-      :maxlength="80"
-      aria-label="对话名称"
-      @keydown.enter="saveName"
-      @keydown.esc.prevent="editingName = false"
-      @blur="saveName" />
-    <span v-else class="conversationName">
-      <span class="conversationTitle" :class="{ readOnly: parentFile }" :title="name" :tabindex="sessionFile && !parentFile ? 0 : -1" @dblclick="editName" @keydown.enter.prevent="editName">{{ name }}</span>
-    </span>
     <div class="menuActions">
       <el-popover v-if="subAgents?.length" v-model:visible="subAgentsVisible" trigger="click" placement="bottom-end" :width="340" :showArrow="false" :popperStyle="{ maxWidth: 'calc(100vw - 24px)' }">
         <template #reference>
@@ -44,13 +32,12 @@
           </ul>
         </div>
       </el-popover>
-      <el-button v-if="!parentFile" text circle aria-label="新建对话" title="新建对话" @click="emit('newChat')"><icon-message-plus :size="17" /></el-button>
       <el-popover v-if="!parentFile" v-model:visible="historyVisible" trigger="click" placement="bottom-end" :width="280" :showArrow="false" @show="emit('history')">
         <template #reference>
           <el-button text circle :loading="loading" :icon="IconHistory" aria-label="历史对话" title="历史对话" />
         </template>
         <div class="historyList" role="group" aria-label="历史对话">
-          <p v-if="!history.length" class="historyTips" role="status">{{ loading ? "正在加载对话…" : "暂无历史对话，点击“新建对话”开始。" }}</p>
+          <p v-if="!history.length" class="historyTips" role="status">{{ loading ? "正在加载对话…" : "暂无历史对话，发送消息后会在这里显示。" }}</p>
           <div
             v-for="item in history"
             :key="item.file"
@@ -75,26 +62,26 @@
           </div>
         </div>
       </el-popover>
-      <el-button text circle :loading="configLoading" :icon="IconAdjustmentsHorizontal" aria-label="媒体生成控制" title="媒体生成控制" @click="openMediaConfig" />
+      <el-button v-if="!parentFile" text circle :disabled="loading" aria-label="新建对话" title="新建对话" @click="emit('newChat')"><icon-plus :size="17" :strokeWidth="1.6" /></el-button>
+      <el-button v-if="!parentFile" text circle aria-label="Agent 设置" title="Agent 设置" @click="settingsVisible = true"><icon-adjustments-horizontal :size="18" :strokeWidth="1.75" /></el-button>
       <slot name="actions" />
-      <el-button text circle aria-label="关闭对话" title="关闭" @click="emit('close')"><icon-x :size="17" /></el-button>
+      <el-button text circle aria-label="关闭对话" title="收起右侧栏" @click="emit('close')"><icon-layout-sidebar-right-collapse :size="17" :strokeWidth="1.6" /></el-button>
     </div>
   </header>
-  <pluginConfigDialog v-if="mediaTool" v-model="configVisible" :plugin="mediaTool" :canManage="canManageTools" />
+  <settingsDialog v-model="settingsVisible" />
 </template>
 
 <script setup lang="ts">
-import axios from "axios";
-import { nextTick, ref, shallowRef, watch } from "vue";
-import { ElMessage, ElMessageBox, type InputInstance } from "element-plus";
+import agentIcon from "@/components/agent/agentIcon.vue";
+import { ref, watch } from "vue";
+import { ElMessageBox } from "element-plus";
+import settingsDialog from "./settingsDialog.vue";
 import type { AgentHistory } from "./types";
 import type { AgentSubAgent } from "@toonflow/server/agent/types";
-import pluginConfigDialog from "@/components/settings/panels/pluginMarket/pluginConfigDialog.vue";
-import type { Plugin } from "@/components/settings/panels/pluginMarket/types";
 import {
-  IconMessagePlus, IconHistory,
+  IconArrowsExchange, IconPlus, IconLayoutSidebarRightCollapse, IconAdjustmentsHorizontal, IconHistory,
   IconX, IconPencil,
-  IconMessageCircle, IconCheck, IconAdjustmentsHorizontal,
+  IconMessageCircle, IconCheck,
   IconArrowLeft, IconUsersGroup,
 } from "@tabler/icons-vue";
 
@@ -106,45 +93,19 @@ const props = defineProps<{
   subAgents?: AgentSubAgent[];
   parentFile?: string;
 }>();
-const emit = defineEmits<{ newChat: []; history: []; select: [file: string]; rename: [file: string, name: string]; remove: [file: string]; close: []; openSubAgent: [file: string]; back: [] }>();
+const emit = defineEmits<{ history: []; select: [file: string]; rename: [file: string, name: string]; remove: [file: string]; close: []; newChat: []; openSubAgent: [file: string]; back: [] }>();
+const settingsVisible = ref(false);
 const historyVisible = ref(false);
 const subAgentsVisible = ref(false);
-const editingName = ref(false);
-const nameDraft = ref("");
-const nameInput = ref<InputInstance>();
-const configVisible = ref(false);
-const configLoading = ref(false);
-const canManageTools = ref(false);
-const mediaTool = shallowRef<Plugin>();
 const subAgentStatusLabels: Record<string, string> = {
   pending: "准备中", running: "执行中", completed: "已完成", error: "失败",
   limited: "达到限制", cancelled: "已取消", inputRequired: "等待补充", unknown: "状态待确认",
 };
 
 watch(() => [props.sessionFile, props.parentFile], () => {
-  editingName.value = false;
   historyVisible.value = false;
   subAgentsVisible.value = false;
 });
-
-async function openMediaConfig() {
-  if (configLoading.value) return;
-  configLoading.value = true;
-  try {
-    const { data } = await axios.get<{ code: number; data: { tools: (Plugin & { loadError?: string })[]; canManage: boolean }; message?: string }>("/api/tools/get", {
-      headers: { "Cache-Control": "no-cache", "x-toonflow-workspace": "1" },
-    });
-    if (data.code !== 200) throw new Error(data.message || "读取工具配置失败");
-    const tool = data.data.tools.find(tool => tool.name === "mediaGeneration");
-    if (!tool) throw new Error("请先安装媒体生成工具");
-    if (tool.loadError) throw new Error(tool.loadError);
-    mediaTool.value = { ...tool, key: `tool:${tool.name}`, type: "tool" };
-    canManageTools.value = data.data.canManage;
-    configVisible.value = true;
-  } catch (error) {
-    ElMessage.error(axios.isAxiosError(error) ? error.response?.data?.message || "读取工具配置失败" : error instanceof Error ? error.message : "读取工具配置失败");
-  } finally { configLoading.value = false; }
-}
 
 function selectConversation(file: string) {
   historyVisible.value = false;
@@ -154,21 +115,6 @@ function selectConversation(file: string) {
 function selectSubAgent(file: string) {
   subAgentsVisible.value = false;
   emit("openSubAgent", file);
-}
-
-async function editName() {
-  if (!props.sessionFile || props.parentFile) return;
-  nameDraft.value = props.name;
-  editingName.value = true;
-  await nextTick();
-  nameInput.value?.select();
-}
-
-function saveName(event: Event) {
-  if (!editingName.value || (event instanceof KeyboardEvent && event.isComposing)) return;
-  const value = nameDraft.value.trim();
-  if (value && props.sessionFile && !props.parentFile) emit("rename", props.sessionFile, value);
-  editingName.value = false;
 }
 
 async function renameHistory(item: AgentHistory) {
@@ -186,10 +132,20 @@ async function renameHistory(item: AgentHistory) {
 .agentMenu {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex-shrink: 0;
   min-width: 0;
-  padding: 12px 12px 0;
+  height: 57px;
+  box-sizing: border-box;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--agentBorder);
+  .agentIdentity {
+    display: flex; align-items: center; gap: 7px; flex: 0 1 auto; min-width: 0;
+    color: var(--agentText); font-size: 13px; font-weight: 600;
+    svg { flex-shrink: 0; }
+    span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  }
+  .agentMode { flex-shrink: 0; margin: 0; padding: 0 9px; height: 28px; border: 1px solid var(--agentBorder); border-radius: calc(var(--ui-radius, 8px) * 1.125); background: transparent; color: var(--agentMuted); :deep(> span) { display: flex; gap: 7px; } }
 
   .backButton {
     flex-shrink: 0;
@@ -200,23 +156,8 @@ async function renameHistory(item: AgentHistory) {
     color: var(--el-text-color-secondary);
   }
 
-  .conversationName {
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 14px;
-    font-weight: 500;
-
-    .conversationTitle {
-      cursor: text;
-      user-select: text;
-      &.readOnly { cursor: default; }
-    }
-  }
-
   .menuActions {
+    margin-left: auto;
     display: flex;
     flex-shrink: 0;
     gap: 4px;
@@ -234,7 +175,7 @@ async function renameHistory(item: AgentHistory) {
         height: 14px;
         padding: 0 3px;
         border: 1px solid var(--el-bg-color);
-        border-radius: 7px;
+        border-radius: calc(var(--ui-radius, 8px) * 0.875);
         background: var(--el-color-primary);
         color: var(--el-color-white);
         font-size: 10px;
@@ -244,12 +185,23 @@ async function renameHistory(item: AgentHistory) {
     }
 
     :deep(.el-button) {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--ui-radius, 8px);
+      &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
       margin: 0;
       padding: 0;
-      color: var(--el-text-color-secondary);
+      color: var(--agentMuted);
     }
+  }
+}
+
+@container agentPanelLayout (max-width: 380px) {
+  .agentMenu {
+    padding: 0 12px;
+    gap: 6px;
+    .agentMode { display: none; }
+    .menuActions { gap: 2px; }
   }
 }
 

@@ -7,33 +7,35 @@
       </div>
     </button>
   </nodeSkeleton>
-  <sceneEditor v-if="editing" v-model:anchors="anchors" v-model:prompt="prompt" v-model:model="model" v-model:lighting="lighting" v-model:sceneSettings="sceneSettings"
-    :scene="scene" :result="selectedPlan" :models="models" :modelsLoading="modelsLoading" :addingMannequin="addingMannequin"
-    :plans="plans" :selectedPlanId="data.selectedPlanId ?? ''" :tasks="tasks"
+  <sceneEditor v-if="editing" v-model:anchors="anchors" v-model:prompt="prompt" v-model:model="model" v-model:lighting="lighting" v-model:sceneSettings="sceneSettings" v-model:aspectRatio="aspectRatio" v-model:lastView="lastView"
+    :scene="scene" :result="selectedPlan" :models="models" :modelsLoading="modelsLoading" :sceneSaving="sceneSaving"
+    :plans="plans" :selectedPlanId="data.selectedPlanId ?? ''" :tasks="tasks" :readOnlyReference="!!data.productionReferenceSource" :referenceMediaType="data.productionReferenceMediaType"
     :exportingVideo="exportingVideo" :exportingImage="exportingImage" :exportProgress="exportProgress"
-    @exportVideo="exportVideo" @exportImage="exportImage" @addMannequin="addMannequin"
-    @selectPlan="data.selectedPlanId = $event" @loadModels="loadModels" @generate="generate" @editInstruction="setPrompt" @close="editing = false">
+    @exportVideo="exportVideo" @exportImage="exportImage" :saveScene="saveScene" :restoreScene="restoreScene" :canUndo="undoScenes.length > 0" :canRedo="redoScenes.length > 0"
+    @selectPlan="!data.productionReferenceSource && (data.selectedPlanId = $event)" @loadModels="loadModels" @generate="generate" @editInstruction="setPrompt" @close="editing = false">
     <template #input>
       <referenceItem v-if="refList.length" v-model="refList" @preview="setReferencePreview" @remove="removeReference" />
       <promptInput v-model="promptModel" v-model:text="prompt" :references="referenceMentions" />
     </template>
+    <template v-if="!data.productionReferenceSource" #production="{ viewAnchor, selectedAnchorId }"><directorProduction :nodeId="node.id" :anchors="anchors" :selectedAnchorId="selectedAnchorId" :scene="scene" :lighting="lighting" :sceneSettings="sceneSettings" :planId="selectedPlan?.id" :hasPlan="!!selectedPlan" :busy="sceneSaving || exportingVideo || !!exportingImage || modelLoading" :pendingJobs="productionJobs" :captureReference="captureProductionReference" :resumeReference="resumeProductionReference" :closeForGeneration="() => editing = false" :viewAnchor="viewAnchor" /></template>
   </sceneEditor>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue";
+import { computed, inject, onBeforeUnmount, ref, shallowRef, watch } from "vue";
 import { useVueFlow } from "@vue-flow/core";
 import { IconCube3dSphere } from "@tabler/icons-vue";
 import { ElLoading, ElMessage } from "element-plus";
-import { nodeSkeleton, useNode, useNodeFiles, useNodeReferences, z, type NodeHandle, type NodeData, type NodeAiModel } from "@toonflow/nodes-scaffold/runtime";
+import { nodeSkeleton, useNode, useNodeFiles, uploadNodeFile, useNodeReferences, z, type NodeHandle, type NodeData, type NodeAiModel, type DirectorCaptureJob, type DirectorProductionBridge } from "@toonflow/nodes-scaffold/runtime";
 import promptInput from "@toonflow/nodes-scaffold/promptInput";
 import referenceItem from "@toonflow/nodes-scaffold/referenceItem";
 import sceneEditor from "./sceneEditor.vue";
-import { capturePreview, sceneSchema, createEmptyScene, createMannequinObject, createStage, disposeStage, getSceneLighting, type LightingSettings, type SceneDocument, type SceneSettings } from "./scene";
+import directorProduction from "./directorProduction.vue";
+import { capturePreview, cameraViewSchema, sceneSchema, createEmptyScene, createStage, disposeStage, getSceneLighting, type CameraView, type LightingSettings, type SceneDocument, type SceneSettings } from "./scene";
 import { createDirectorDraft } from "./agentTools";
 import { directorPrompt } from "./agentPrompt";
-import { anchorSchema, prepareMotion, sampleMotion, type CameraAnchor } from "./motion";
-import { directorPlanSchema, prepareSceneAnimation, type DirectorPlan, type DirectorGeneration } from "./sceneAnimation";
+import { anchorSchema, applyCamera, prepareMotion, sampleMotion, type CameraAnchor } from "./motion";
+import { directorPlanSchema, prepareSceneAnimation, rebaseScenePlans, type DirectorPlan, type DirectorGeneration } from "./sceneAnimation";
 import { renderImage, renderVideo } from "./renderMedia";
 
 type PromptModel = NonNullable<InstanceType<typeof promptInput>["$props"]["modelValue"]>;
@@ -48,7 +50,8 @@ defineOptions({
   icon: IconCube3dSphere,
   handles: [{ id: "in", type: "target", dataType: ["STRING", "IMAGE", "VIDEO"], label: "文本、图片、视频输入" }] satisfies NodeHandle[],
 });
-const { node, nodeProps, previewReady, ai, files, nodeEvent } = useNode({ label: "3D导演台" });
+const { node, nodeProps, previewReady, ai, files, nodeEvent, nodeTools } = useNode({ label: "3D导演台" });
+const productionBridge = inject<DirectorProductionBridge>("directorProduction");
 const vLoading = ElLoading.directive;
 const { addNodes, findNode, getNodes, nodeTypes, removeNodes } = useVueFlow();
 const mediaFiles = useNodeFiles();
@@ -66,11 +69,19 @@ const data = computed(() => node.data as typeof node.data & {
   promptModel?: PromptModel;
   model?: string;
   anchors?: CameraAnchor[];
+  aspectRatio?: string;
+  lastView?: CameraView;
   selectedPlanId?: string;
+  productionCaptureJobs?: DirectorCaptureJob[];
+  productionReferenceSource?: string;
+  productionReferenceMediaType?: "image" | "video";
 });
+const productionJobs = computed({ get: () => data.value.productionCaptureJobs || [], set: (value: DirectorCaptureJob[]) => { data.value.productionCaptureJobs = value; } });
 const { refList, referenceMentions, setReferencePreview, removeReference } = useNodeReferences();
 const promptModel = computed({ get: () => data.value.promptModel ?? [], set: (value: PromptModel) => { data.value.promptModel = value; } });
-const anchors = computed({ get: () => data.value.anchors ?? [], set: (value: CameraAnchor[]) => { data.value.anchors = value; } });
+const anchors = computed({ get: () => data.value.anchors ?? [], set: (value: CameraAnchor[]) => { if (!data.value.productionReferenceSource) data.value.anchors = value; } });
+const aspectRatio = computed({ get: () => data.value.aspectRatio ?? "16:9", set: (value: string) => { if (!data.value.productionReferenceSource) data.value.aspectRatio = value; } });
+const lastView = computed({ get: () => cameraViewSchema.safeParse(data.value.lastView).data, set: (value: CameraView | undefined) => { data.value.lastView = value; } });
 const prompt = computed({ get: () => data.value.prompt ?? "", set: (value: string) => { data.value.prompt = value; } });
 const model = computed({ get: () => data.value.model ?? "", set: (value: string) => { data.value.model = value; } });
 // ACT: 场景和动画只在节点内部持有，画布数据仅保存文件引用，避免拖动时遍历大量关键帧。
@@ -78,8 +89,8 @@ const modelDocument = shallowRef<ModelDocument>({ version: 1, scene: createEmpty
 const plans = computed(() => modelDocument.value.plans);
 const selectedPlan = computed(() => plans.value.find(plan => plan.id === data.value.selectedPlanId));
 const scene = computed(() => modelDocument.value.scene);
-const lighting = computed({ get: () => ({ ...getSceneLighting(scene.value), ...data.value.lighting }), set: (value: LightingSettings) => { data.value.lighting = value; } });
-const sceneSettings = computed({ get: () => ({ gridVisible: true, skyVisible: true, ...data.value.sceneSettings }), set: (value: SceneSettings) => { data.value.sceneSettings = value; } });
+const lighting = computed({ get: () => ({ ...getSceneLighting(scene.value), ...data.value.lighting }), set: (value: LightingSettings) => { if (!data.value.productionReferenceSource) data.value.lighting = value; } });
+const sceneSettings = computed({ get: () => ({ gridVisible: true, skyVisible: true, ...data.value.sceneSettings }), set: (value: SceneSettings) => { if (!data.value.productionReferenceSource) data.value.sceneSettings = value; } });
 const editing = ref(false);
 const tasks = ref<DirectorGeneration[]>([]);
 const modelsLoading = ref(false);
@@ -89,7 +100,8 @@ const preview = ref("");
 let previewVersion = 0;
 const modelLoading = ref(true);
 const modelError = ref("");
-const addingMannequin = ref(false);
+const sceneSaving = ref(false);
+nodeEvent.on("canUnload", () => !modelLoading.value && !sceneSaving.value && !exportingVideo.value && !exportingImage.value && !editing.value && !tasks.value.some(task => !task.error));
 let modelSaving = Promise.resolve();
 let disposed = false;
 onBeforeUnmount(() => { disposed = true; exportController.abort(new Error("导演节点已关闭，导出已停止")); });
@@ -141,41 +153,59 @@ let modelReady = loadModel();
 async function openEditor() {
   if (modelError.value) modelReady = loadModel();
   await modelReady;
+  if (!disposed && data.value.productionReferenceSource && productionBridge) {
+    const capture = await productionBridge.capture(data.value.productionReferenceSource);
+    const snapshot = capture.snapshot as { modelDocument: unknown; anchor: unknown; lighting: LightingSettings | null; settings: SceneSettings | null; selectedPlanId: string | null };
+    const anchor = anchorSchema.parse(snapshot.anchor);
+    modelDocument.value = modelDocumentSchema.parse(snapshot.modelDocument);
+    data.value.anchors = [anchor]; data.value.selectedPlanId = snapshot.selectedPlanId ?? undefined;
+    data.value.productionReferenceMediaType = capture.mediaType;
+    data.value.lighting = snapshot.lighting ?? undefined; data.value.sceneSettings = snapshot.settings ?? undefined;
+    data.value.lastView = { camera: anchor.camera, controls: anchor.controls }; data.value.aspectRatio = anchor.aspect;
+  }
   if (!disposed && !modelError.value) editing.value = true;
 }
+nodeTools.register({ name: "openDirector", description: "打开导演台并回看指定机位；机位快照节点只读", parameters: z.strictObject({ anchorId: z.string().min(1).optional() }), async execute(args) {
+  const anchor = args.anchorId ? anchors.value.find(anchor => anchor.id === args.anchorId) : undefined;
+  if (args.anchorId && !anchor) throw new Error("机位已被移除，请查看固定机位快照");
+  if (anchor) { data.value.lastView = { camera: anchor.camera, controls: anchor.controls }; data.value.aspectRatio = anchor.aspect || aspectRatio.value; }
+  await openEditor(); return { opened: editing.value, anchorId: anchor?.id };
+} });
 
-async function addMannequin() {
-  if (modelLoading.value || modelError.value || addingMannequin.value || exportingVideo.value || exportingImage.value || tasks.value.some(task => !task.error)) return;
-  addingMannequin.value = true;
-  try {
-    const workspaceFiles = files.getWorkspaceFiles();
-    const saving = modelSaving.then(async () => {
-      if (disposed) return;
-      const current = scene.value;
-      const object = createMannequinObject(crypto.randomUUID());
-      const mannequins = current.objectList.filter(item => item.objType === "mannequin");
-      object.position.x = mannequins.length ? Math.max(...mannequins.map(item => item.position.x)) + 1 : 0;
-      const nextScene: SceneDocument = { ...current, objectList: [...current.objectList, object] };
-      if (!current.objectList.length) {
-        nextScene.sceneConfig = {
-          ...current.sceneConfig,
-          camera: { ...current.sceneConfig.camera, position: { x: 3, y: 2.2, z: 4 } },
-          controls: { target: { x: 0, y: 0.9, z: 0 } },
-        };
-      }
-      const value: ModelDocument = { ...modelDocument.value, scene: sceneSchema.parse(nextScene) };
-      const path = await writeModel(workspaceFiles, value);
-      if (disposed) return;
-      modelDocument.value = value;
-      data.value.modelPath = path;
-    });
-    modelSaving = saving.catch(() => {});
-    await saving;
-  } catch (error) {
-    if (!disposed) ElMessage.error(error instanceof Error ? error.message : "人偶添加失败");
-  } finally {
-    addingMannequin.value = false;
-  }
+const undoScenes = shallowRef<ModelDocument[]>([]);
+const redoScenes = shallowRef<ModelDocument[]>([]);
+
+async function saveScene(next: SceneDocument, history?: "undo" | "redo") {
+  if (data.value.productionReferenceSource) throw new Error("此节点用于查看固定机位快照，不能修改原场景");
+  if (modelLoading.value || modelError.value || sceneSaving.value || exportingVideo.value || exportingImage.value || tasks.value.some(task => !task.error)) throw new Error("请等待当前生成、保存或导出完成");
+  const previous = modelDocument.value;
+  const stack = history === "undo" ? undoScenes : redoScenes;
+  const value = modelDocumentSchema.parse(history ? stack.value.at(-1) : { ...previous, scene: next, plans: rebaseScenePlans(plans.value, scene.value, next) });
+  const workspaceFiles = files.getWorkspaceFiles();
+  sceneSaving.value = true;
+  const saving = modelSaving.then(async () => {
+    if (disposed) throw new Error("导演台已关闭");
+    const path = await writeModel(workspaceFiles, value);
+    if (disposed) return;
+    if (history) {
+      stack.value = stack.value.slice(0, -1);
+      const target = history === "undo" ? redoScenes : undoScenes;
+      target.value = [...target.value.slice(-29), previous];
+    } else {
+      undoScenes.value = [...undoScenes.value.slice(-29), previous];
+      redoScenes.value = [];
+    }
+    modelDocument.value = value;
+    data.value.modelPath = path;
+  });
+  // 保存钩子需要收到失败，下一次编辑的队列仍可继续。
+  modelSaving = saving;
+  try { await saving; }
+  finally { modelSaving = saving.catch(() => {}); sceneSaving.value = false; }
+}
+
+function restoreScene(direction: "undo" | "redo") {
+  return saveScene(scene.value, direction);
 }
 
 nodeEvent.on("copy", async () => {
@@ -274,11 +304,51 @@ function exportVideo(aspect: number) {
 }
 
 function exportImage(anchor: CameraAnchor, aspect: number, time: number) {
-  const name = `关键帧${anchors.value.findIndex(item => item.id === anchor.id) + 1}`;
+  const name = (anchor.name ?? `机位${anchors.value.findIndex(item => item.id === anchor.id) + 1}`).replace(/[\\/:*?"<>|]/g, "_");
   return exportToCanvas("image", anchor.id, aspect, async signal => {
     const file = await renderImage(scene.value, anchor, aspect, time, signal, selectedPlan.value, lighting.value, sceneSettings.value);
     return new File([file], `${name}.png`, { type: file.type });
   });
+}
+async function captureProductionReference(input: DirectorCaptureJob) {
+  if (!productionBridge) throw new Error("当前工作区未提供镜头制作能力");
+  if (exportingVideo.value || exportingImage.value || sceneSaving.value || modelLoading.value) throw new Error("请等待当前保存或导出完成");
+  if (data.value.productionReferenceSource) throw new Error("请在原导演节点生成新的参考");
+  let job = productionJobs.value.find(job => job.captureId === input.captureId);
+  if (!job) { job = { ...input }; productionJobs.value = [...productionJobs.value, job]; }
+  if (job.mediaType === "video") exportingVideo.value = true; else exportingImage.value = job.captureId;
+  const workspaceFiles = files.getWorkspaceFiles();
+  try {
+    const capture = await productionBridge.reserve(node.id, job);
+    exportController.signal.throwIfAborted();
+    if (capture.status !== "completed") {
+      if (!job.mediaPath || !job.mediaHash) {
+        const snapshot = capture.snapshot as { modelDocument: unknown; anchor: unknown; aspect: number; time: number; lighting: Partial<LightingSettings> | null; settings: Partial<SceneSettings> | null; selectedPlanId: string | null };
+        const document = modelDocumentSchema.parse(snapshot.modelDocument);
+        const anchor = anchorSchema.parse(snapshot.anchor);
+        const plan = document.plans.find(plan => plan.id === snapshot.selectedPlanId);
+        const capturedLighting = { ...getSceneLighting(document.scene), ...snapshot.lighting };
+        const capturedSettings = { gridVisible: true, skyVisible: true, ...snapshot.settings };
+        const file = job.mediaType === "image"
+          ? await renderImage(document.scene, anchor, snapshot.aspect, snapshot.time, exportController.signal, plan, capturedLighting, capturedSettings)
+          : await renderVideo(document.scene, plan!, snapshot.aspect, exportController.signal, value => { exportProgress.value = value; }, capturedLighting, capturedSettings);
+        exportController.signal.throwIfAborted();
+        job.mediaHash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", await file.arrayBuffer()))].map(byte => byte.toString(16).padStart(2, "0")).join("");
+        job.mediaPath = await uploadNodeFile(workspaceFiles, job.captureId, file);
+        productionJobs.value = [...productionJobs.value];
+        await productionBridge.flush();
+      }
+      await productionBridge.finish(job.captureId, job.mediaPath, job.mediaHash);
+    }
+    productionJobs.value = productionJobs.value.filter(item => item.captureId !== job!.captureId);
+    await productionBridge.flush();
+    ElMessage.success("固定参考已保存，可准备镜头生成节点");
+  } finally { exportingVideo.value = false; exportingImage.value = ""; }
+}
+async function resumeProductionReference(captureId: string) {
+  let job = productionJobs.value.find(job => job.captureId === captureId);
+  if (!job) { const capture = await productionBridge?.capture(captureId); if (!capture?.anchorId || !capture.stateHash || !capture.mediaType) throw new Error("原参考记录缺少依据，请查看素材版本"); job = { captureId, createdAt: capture.createdAt, shotId: capture.shotId, anchorId: capture.anchorId, stateHash: capture.stateHash, mediaType: capture.mediaType }; }
+  await captureProductionReference(job);
 }
 
 async function loadModels() {
@@ -307,6 +377,7 @@ async function renderPreview(scene: SceneDocument, plan: DirectorPlan | undefine
       player.setTime(plan.duration);
       sampleMotion(runtime.camera, prepareMotion(plan.cameraFrames), plan.duration);
     }
+    if (!plan && lastView.value) applyCamera(runtime.camera, lastView.value);
     return capturePreview(runtime);
   } finally {
     player?.dispose();
@@ -315,10 +386,10 @@ async function renderPreview(scene: SceneDocument, plan: DirectorPlan | undefine
 }
 
 const planPreviews = new WeakMap<DirectorPlan, { scene: SceneDocument; lighting: LightingSettings; settings: SceneSettings; image: string }>();
-watch([scene, selectedPlan, lighting, sceneSettings, modelLoading, previewReady], async ([value, plan, light, settings, loading, ready]) => {
+watch([scene, selectedPlan, lighting, sceneSettings, modelLoading, previewReady, lastView, editing], async ([value, plan, light, settings, loading, ready, , editorOpen]) => {
   const version = ++previewVersion;
-  preview.value = "";
-  if (!ready || loading || modelError.value) return;
+  // 编辑器已经呈现场景，关闭后再更新画布缩略图，避免双倍的场景创建与 GPU 读回。
+  if (editorOpen || !ready || loading || modelError.value) return;
   try {
     const cached = plan && planPreviews.get(plan);
     const image = cached?.scene === value && JSON.stringify(cached.lighting) === JSON.stringify(light) && JSON.stringify(cached.settings) === JSON.stringify(settings) ? cached.image : await renderPreview(value, plan, light, settings);
@@ -335,7 +406,8 @@ function setPrompt(value: string) {
 }
 
 async function generate() {
-  if (modelLoading.value || modelError.value || addingMannequin.value) return;
+  if (data.value.productionReferenceSource) return;
+  if (modelLoading.value || modelError.value || sceneSaving.value) return;
   const choice = selectedModel.value;
   const requirement = prompt.value.trim();
   if (!choice || !requirement) return;
@@ -396,6 +468,8 @@ async function generate() {
       if (disposed) return;
       planPreviews.set(plan, { scene: nextScene, lighting: previewLighting, settings: previewSettings, image });
       modelDocument.value = value;
+      undoScenes.value = [];
+      redoScenes.value = [];
       data.value.modelPath = path;
       if ((data.value.selectedPlanId ?? "") === basePlanId) data.value.selectedPlanId = plan.id;
     });

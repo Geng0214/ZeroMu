@@ -28,8 +28,8 @@ export function requireNewerVersion(current: unknown, incoming: unknown, label: 
     return match[0];
   });
   const [installed, next] = versions;
-  if (!installed || !next) invalid(t`${label}已安装，但现有或待安装版本缺失或无效，无法判断更新顺序；请在开发者设置中使用强制安装`, 409);
-  if (Bun.semver.order(next, installed) <= 0) invalid(t`${label}已安装版本 ${installed}，待安装版本 ${next} 不高于现有版本；如需覆盖或降级，请在开发者设置中使用强制安装`, 409);
+  if (!installed || !next) invalid(t`${label}已安装，但现有或待安装版本缺失或无效，请联系扩展提供者确认版本后重试`, 409);
+  if (Bun.semver.order(next, installed) <= 0) invalid(t`${label}已安装版本 ${installed}，待安装版本 ${next} 不高于现有版本，请选择更新版本`, 409);
 }
 
 function nodeVersion(source: string) {

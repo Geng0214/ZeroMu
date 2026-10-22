@@ -1,13 +1,14 @@
 <template>
   <div class="videoPlayer">
     <video
+      v-if="activated"
       ref="video"
       class="videoPreview"
       :class="{ nodrag: fullscreen }"
       :src="src"
       :controls="fullscreen"
       playsinline
-      preload="auto"
+      preload="metadata"
       draggable="false"
       :aria-label="label"
       @fullscreenchange="fullscreen = !!video?.matches(':fullscreen')"
@@ -19,13 +20,17 @@
       @ended="playing = false"
       @volumechange="readVolume"
       @error="mediaError" />
+    <button v-else class="posterButton nodrag" type="button" :aria-label="`播放原视频：${label}`" @pointerdown.stop @click.stop="togglePlayback">
+      <img v-if="poster" :src="poster" :alt="`${label}缩略图`" draggable="false" />
+      <span v-else>点击播放原视频</span><icon-player-play class="posterPlay" :size="32" aria-hidden="true" />
+    </button>
     <div v-show="!fullscreen" class="playerControls nodrag nopan nowheel" @pointerdown.stop @mousedown.stop @dblclick.stop @keydown.stop>
-      <el-button class="playerButton playButton" text circle :icon="playing ? IconPlayerPause : IconPlayerPlay" :disabled="!ready" :aria-label="playing ? '暂停视频' : '播放视频'" :title="playing ? '暂停' : '播放'" @click="togglePlayback" />
+      <el-button class="playerButton playButton" text circle :icon="playing ? IconPlayerPause : IconPlayerPlay" :disabled="activated && !ready" :aria-label="playing ? '暂停视频' : '播放视频'" :title="playing ? '暂停' : '播放'" @click="togglePlayback" />
       <span class="currentTime">{{ formatTime(currentTime) }}</span>
       <el-slider class="progressSlider" :modelValue="currentTime" :min="0" :max="duration || 1" :step="0.01" :disabled="!ready || !duration" :formatTooltip="formatTime" aria-label="视频播放进度" @input="seek" />
       <span class="durationLabel"><span class="timeSeparator">/</span>{{ formatTime(duration) }}</span>
       <div class="volumeControl">
-        <el-popover trigger="hover" placement="top" :width="40" :popperStyle="{ minWidth: '40px', padding: '8px 0', borderRadius: 'var(--el-border-radius-base)' }" :showArrow="false" :showAfter="80" :hideAfter="150" :disabled="!ready">
+        <el-popover trigger="hover" placement="top" :persistent="false" :width="40" :popperStyle="{ minWidth: '40px', padding: '8px 0', borderRadius: 'var(--el-border-radius-base)' }" :showArrow="false" :showAfter="80" :hideAfter="150" :disabled="!ready">
           <template #reference>
             <el-button class="playerButton volumeButton" text circle :icon="muted || !volume ? IconVolumeOff : IconVolume" :disabled="!ready" :aria-pressed="muted || !volume" :aria-label="muted || !volume ? '取消静音' : '静音视频'" title="音量 · 点击切换静音" @click="toggleMute" />
           </template>
@@ -35,7 +40,7 @@
           </div>
         </el-popover>
       </div>
-      <el-dropdown class="captureMenu" trigger="click" placement="top-end" :disabled="!ready || capturing" @visibleChange="captureMenuVisible = $event" @command="captureFrame">
+      <el-dropdown class="captureMenu" trigger="click" placement="top-end" :persistent="false" :disabled="!ready || capturing" @visibleChange="captureMenuVisible = $event" @command="captureFrame">
         <el-button class="playerButton" text circle :icon="IconPhotoScan" :loading="capturing" :disabled="!ready || capturing" :aria-expanded="captureMenuVisible" aria-label="截取视频帧" title="截取视频帧" />
         <template #dropdown>
           <el-dropdown-menu>
@@ -50,15 +55,20 @@
 </template>
 
 <script setup lang="ts">
-import { inject, onBeforeUnmount, ref, watch } from "vue";
+import { inject, nextTick, onBeforeUnmount, ref, watch, type Ref } from "vue";
 import { useNode, useVueFlow } from "@vue-flow/core";
 import { ElButton, ElDropdown, ElDropdownMenu, ElDropdownItem, ElMessage, ElPopover, ElSlider } from "element-plus";
 import { IconPlayerPlay, IconPlayerPause, IconVolume, IconVolumeOff, IconPhotoScan, IconPlayerSkipBack, IconPlayerSkipForward } from "@tabler/icons-vue";
 import { useNodeFiles } from "../workspaceFiles";
+import { useNodePreviewReady } from "../useNodePreviewReady";
 
-const { src, label = "节点视频" } = defineProps<{ src: string; label?: string }>();
+const { src, label = "节点视频", poster = "", initialDuration = 0, lazy = false } = defineProps<{ src: string; label?: string; poster?: string; initialDuration?: number; lazy?: boolean }>();
 const emit = defineEmits<{ loadedmetadata: [event: Event] }>();
 const video = ref<HTMLVideoElement>();
+const activated = ref(!lazy);
+const visible = useNodePreviewReady(false);
+const canvasActive = inject<Readonly<Ref<boolean>>>("nodeCanvasActive", ref(true));
+let resumeTime = 0;
 const fullscreen = ref(false);
 const ready = ref(false);
 const playing = ref(false);
@@ -66,7 +76,7 @@ const muted = ref(false);
 const volume = ref(100);
 let lastVolume = 100;
 const currentTime = ref(0);
-const duration = ref(0);
+const duration = ref(initialDuration);
 const capturing = ref(false);
 const captureMenuVisible = ref(false);
 const { node } = useNode();
@@ -81,11 +91,18 @@ watch(() => src, () => {
   ready.value = false;
   playing.value = false;
   currentTime.value = 0;
-  duration.value = 0;
+  duration.value = initialDuration; resumeTime = 0; activated.value = !lazy;
 }, { flush: "sync" });
+watch(() => initialDuration, value => { if (!activated.value) duration.value = value; });
+watch([visible, canvasActive], ([inViewport, active]) => {
+  if (inViewport && active || fullscreen.value || !lazy) return;
+  resumeTime = video.value?.currentTime ?? currentTime.value;
+  video.value?.pause(); activated.value = false; ready.value = false; playing.value = false;
+});
 onBeforeUnmount(() => captureController?.abort());
 
 async function enterFullscreen() {
+  if (!activated.value) { activated.value = true; await nextTick(); }
   if (!video.value) return;
   fullscreen.value = true;
   try {
@@ -106,6 +123,7 @@ function formatTime(value: number) {
 function readMetadata(event: Event) {
   const value = video.value?.duration ?? 0;
   duration.value = Number.isFinite(value) ? value : 0;
+  if (resumeTime && video.value) { video.value.currentTime = Math.min(duration.value, resumeTime); resumeTime = 0; }
   emit("loadedmetadata", event);
 }
 
@@ -116,6 +134,7 @@ function mediaError() {
 }
 
 async function togglePlayback() {
+  if (!activated.value) { activated.value = true; await nextTick(); }
   if (!video.value) return;
   if (playing.value) video.value.pause();
   else {
@@ -250,6 +269,7 @@ async function captureFrame(command: "current" | "first" | "last") {
   cursor: grab;
 
   &:active { cursor: grabbing; }
+  .posterButton { position: relative; display: grid; place-items: center; width: 100%; min-height: 160px; padding: 0; border: 0; background: var(--el-fill-color-darker); color: var(--el-text-color-primary); cursor: pointer; font: inherit; img { display: block; width: 100%; height: 240px; object-fit: contain; } .posterPlay { position: absolute; padding: 10px; border-radius: 50%; background: var(--el-bg-color-overlay); } &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; } }
   .videoPreview {
     display: block;
     width: 100%;

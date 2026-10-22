@@ -1,41 +1,51 @@
 <template>
-  <nodeSkeleton
+  <nodeSkeleton class="mediaNode"
     v-bind="nodeProps"
     v-model:bottomVisible="node.selected"
     :topVisible="node.selected"
     topWidth="max-content"
-    :downloadUrl="previewUrl"
+    :downloadUrl="originalUrl"
     :downloadName="outputFile?.url.split(/[\\/]/).at(-1)"
     @fullscreen="previewVisible = true"
-    :bottomWidth="660"
+    :bottomWidth="720"
     :style="{ width: previewUrl && imageWidth ? `${imageWidth + 18}px` : undefined }">
     <template #topActions>
       <mediaHistory mediaType="image" :current="outputFile" :disabled="generating || deleting || uploading" @select="outputs.image = { dataType: 'IMAGE', value: $event }" />
       <el-button :icon="IconTransfer" :loading="uploading" :disabled="generating || deleting" text title="替换图片" aria-label="替换图片" @click.stop="fileInput?.click()" />
-      <input ref="fileInput" type="file" accept="image/*" hidden aria-label="选择替换图片" :disabled="generating || deleting || uploading" @change="replaceOutput" />
     </template>
+    <input ref="fileInput" type="file" accept="image/*" hidden aria-label="选择图片" :disabled="generating || deleting || uploading" @change="replaceOutput" />
     <div v-loading="generating || uploading" class="imageContent nopan" :aria-busy="generating || uploading">
       <img
         v-if="previewUrl"
         class="imagePreview"
         :src="previewUrl"
         draggable="false"
-        alt="生成图片"
+        alt="图片"
         @load="resizeImage"
         @error="showNodeError('无法预览该图片', '图片预览失败')" />
-      <div v-else class="imageEmpty" role="img" aria-label="暂无生成图片">
-        <icon-photo-ai :size="48" stroke="1.25" aria-hidden="true" />
+      <span v-if="previewUrl && imageDimensions" class="imageInfo">{{ imageDimensions }}<template v-if="imageFileSize"> · {{ imageFileSize }}</template></span>
+      <div v-else-if="outputFile" class="mediaEmpty"><el-button class="nodrag" text :disabled="!originalUrl" @click.stop="previewVisible = true">查看原图</el-button><span class="emptyHint">{{ previewInfo?.message || '正在准备缩略图…' }}</span></div>
+      <div v-else class="mediaEmpty">
+        <el-button class="uploadButton nodrag" text :disabled="generating || deleting || uploading" aria-label="上传图片" @dblclick.stop @click.stop="fileInput?.click()">
+          <span class="uploadPrompt"><icon-upload :size="32" stroke="1.5" aria-hidden="true" /><span>上传图片</span></span>
+        </el-button>
+        <span class="emptyHint">或连接输入生成</span>
       </div>
     </div>
     <template #bottom>
-      <el-card class="promptCard" shadow="never" :bodyStyle="{ padding: '14px 16px 12px' }">
-        <referenceItem
-          v-if="refList.length"
-          v-model="refList"
-          @preview="setReferencePreview"
-          @remove="removeReference" />
-        <promptInput v-model="data.promptModel" v-model:text="data.prompt" :references="referenceMentions" expandable />
-        <div class="promptFooter">
+      <nodeComposer title="图片创作" :referenceCount="refList.length">
+        <template #references>
+          <referenceItem
+            v-if="refList.length"
+            v-model="refList"
+            @preview="setReferencePreview"
+            @remove="removeReference" />
+        </template>
+        <template #hint><p v-if="referenceHint || capabilityError">{{ referenceHint || capabilityError }}</p><p v-else-if="selectedModel">参数使用模型已声明的能力；未声明项使用渠道默认。</p></template>
+        <template #default="{ expanded }">
+          <promptInput v-model="data.promptModel" v-model:text="data.prompt" :references="referenceMentions" :minHeight="160" placeholder="描述想生成的画面，输入 @ 引用参考" :expandedLayout="expanded" />
+        </template>
+        <template #footer>
           <el-select
             v-model="data.model"
             class="modelSelect"
@@ -57,34 +67,38 @@
             </el-option-group>
           </el-select>
           <generationSettings
+            v-model:quality="data.quality"
+            v-model:count="data.n"
             v-model:size="data.size"
             v-model:ratio="data.ratio"
             :sizes="sizeOptions"
             :ratios="ratioOptions"
+            :model="selectedModel"
             :disabled="generating || deleting || !selectedModel" />
           <el-button
             class="sendButton"
             :icon="generating ? IconPlayerStop : IconArrowUp"
-            :disabled="deleting || uploading || (!generating && (!generationPrompt || !selectedModel))"
+            :disabled="deleting || uploading || (!generating && (!generationPrompt || !selectedModel || !!referenceHint || !!capabilityError))"
             :title="generating ? '停止生成' : '生成图片'"
             :aria-label="generating ? '停止生成' : '生成图片'"
             @click="generating ? generationController?.abort() : startGeneration().catch((error) => showNodeError(error, '图片生成失败'))" />
-        </div>
-      </el-card>
+        </template>
+      </nodeComposer>
     </template>
   </nodeSkeleton>
   <el-image-viewer
-    v-if="previewVisible && previewUrl"
-    :urlList="[previewUrl]"
+    v-if="previewVisible && originalUrl"
+    :urlList="[originalUrl]"
     teleported
     @close="previewVisible = false" />
 </template>
 
 <script setup lang="ts">
+import { imageNodeIcon } from "@toonflow/nodes-scaffold/nodeIcons";
 import { computed, nextTick, onMounted, onScopeDispose, ref, watch } from "vue";
-import { ElButton, ElCard, ElSelect, ElOption, ElOptionGroup, ElLoading, ElImageViewer } from "element-plus";
-import { IconPhotoAi, IconSparkles, IconArrowUp, IconPlayerStop, IconTransfer } from "@tabler/icons-vue";
-import { groupNodeModels, nodeSkeleton, nodeTools, showNodeError, useNode, useNodeGeneration, useNodeReferences, z, type NodeMediaModel, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
+import { ElButton, ElSelect, ElOption, ElOptionGroup, ElLoading, ElImageViewer } from "element-plus";
+import { IconUpload, IconSparkles, IconArrowUp, IconPlayerStop, IconTransfer } from "@tabler/icons-vue";
+import { getMediaCapabilityError, supportsImageSize, groupNodeModels, nodeSkeleton, nodeComposer, nodeTools, showNodeError, useNode, useNodeGeneration, useNodeReferences, z, type NodeMediaModel, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import promptInput from "@toonflow/nodes-scaffold/promptInput";
 import referenceItem from "@toonflow/nodes-scaffold/referenceItem";
 import mediaHistory from "@toonflow/nodes-scaffold/mediaHistory";
@@ -92,24 +106,30 @@ import generationSettings from "./components/generationSettings.vue";
 
 defineOptions({
   inheritAttrs: false,
-  icon: IconPhotoAi,
+  icon: imageNodeIcon,
   handles: [
-    { id: "in", type: "target", dataType: ["IMAGE", "STRING"], label: "图片、文本输入" },
+    { id: "in", type: "target", dataType: ["STRING", "IMAGE", "VIDEO", "AUDIO"], label: "参考输入" },
     { id: "image", type: "source", dataType: "IMAGE", label: "图片输出" },
   ] satisfies NodeHandle[],
 });
 const vLoading = ElLoading.directive;
 const { id, node, nodeProps, nodeEvent, outputs, files, ai, updateNodeInternals } = useNode({
-  label: "图片生成",
+  label: "图片",
 });
+// ACT: 保留旧类型、节点 ID 和文件引用，只统一内置默认标题。
+if (["图片素材", "图片生成"].includes(String(node.data.label))) node.data.label = "图片";
 type PromptModel = NonNullable<InstanceType<typeof promptInput>["$props"]["modelValue"]>;
-const data = computed(() => node.data as { prompt: string; promptModel: PromptModel; model: string; size: string; ratio: string });
+const data = computed(() => node.data as { prompt: string; promptModel: PromptModel; model: string; size: string; ratio: string; n: number; quality?: string });
+data.value.n ??= 1;
+data.value.quality ??= "";
 data.value.prompt ??= "";
 data.value.promptModel ??= [];
 data.value.model ??= "";
 data.value.size ??= "";
 data.value.ratio ??= "16:9";
 const { refList, referenceMentions, setReferencePreview, removeReference } = useNodeReferences();
+const referenceHint = computed(() => refList.value.some(item => item.dataType === "VIDEO" || item.dataType === "AUDIO")
+  ? "参考已连接；当前图片生成接口仅支持文本和图片，请先将视频、音频转为支持的参考或移除此引用。" : "");
 const models = ref<NodeMediaModel[]>([]);
 const modelsLoading = ref(false);
 const uploading = ref(false);
@@ -118,23 +138,33 @@ let disposed = false;
 const deleting = ref(false);
 const previewVisible = ref(false);
 const imageWidth = ref(0);
+const imageDimensions = ref("");
+const imageBytes = ref<number>();
+const imageFileSize = computed(() => {
+  const size = imageBytes.value;
+  if (size === undefined) return "";
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+});
 let generationController: AbortController | undefined;
 const generationState = useNodeGeneration(outputs, () => generationController?.abort());
 const { generating } = generationState;
 let generation: Promise<void> | undefined;
 let modelsRequest: Promise<void> | undefined;
 const selectedModel = computed(() => models.value.find((item) => JSON.stringify([item.providerId, item.modelId]) === data.value.model));
-const sizeOptions = computed(() => (selectedModel.value?.imageSizes?.length ? selectedModel.value.imageSizes : ["2K"]));
-const ratioOptions = computed(() => (selectedModel.value?.imageRatios?.length ? selectedModel.value.imageRatios : ["16:9"]));
+const sizeOptions = computed(() => selectedModel.value?.imageSizes ?? []);
+const ratioOptions = computed(() => selectedModel.value?.imageRatios ?? []);
+const capabilityError = computed(() => selectedModel.value ? getMediaCapabilityError(selectedModel.value, "image", { size: data.value.size || undefined, ratio: data.value.ratio || undefined, quality: data.value.quality || undefined, n: data.value.n, images: refList.value.filter(item => item.dataType === "IMAGE"), videos: refList.value.filter(item => item.dataType === "VIDEO"), audios: refList.value.filter(item => item.dataType === "AUDIO") }) : undefined);
 watch(
   selectedModel,
   (choice) => {
-    if (!choice) return;
+    if (modelsLoading.value || !choice) return;
     // ACT: 现有分辨率使用 K 单位；出现其他单位时再统一换算，未知名称排在数值选项之后。
-    if (!sizeOptions.value.includes(data.value.size)) data.value.size = sizeOptions.value.toSorted((left, right) =>
-      (Number.parseFloat(left) || Infinity) - (Number.parseFloat(right) || Infinity)
-    )[0]!;
-    if (!ratioOptions.value.includes(data.value.ratio)) data.value.ratio = ratioOptions.value.includes("16:9") ? "16:9" : ratioOptions.value[0]!;
+    if (data.value.size && !supportsImageSize(choice, data.value.size)) data.value.size = "";
+    if (!ratioOptions.value.includes(data.value.ratio)) data.value.ratio = "";
+    if (data.value.quality && !choice.imageQualities?.includes(data.value.quality as "low" | "medium" | "high")) data.value.quality = "";
+    if (!Number.isInteger(data.value.n) || data.value.n < 1 || data.value.n > (choice.maxImageCount ?? 1)) data.value.n = 1;
   },
   { flush: "sync" }
 );
@@ -148,10 +178,10 @@ const generationPrompt = computed(() =>
     .join("\n\n")
 );
 const outputFile = computed(() => outputs.value.image?.dataType === "IMAGE" ? outputs.value.image.value : undefined);
-const previewUrl = files.useFileUrl(
-  outputFile,
-  (error) => showNodeError(error, "图片读取失败")
-);
+const previewInfo = files.useMediaPreview(outputFile);
+const previewUrl = computed(() => previewInfo.value?.thumbnailUrl || "");
+const originalUrl = computed(() => previewInfo.value?.originalUrl || "");
+watch(previewInfo, info => { imageBytes.value = info?.bytes; imageDimensions.value = info?.width && info.height ? `${info.width} × ${info.height}` : ""; });
 
 onMounted(() => loadModels().catch((error) => showNodeError(error, "模型读取失败")));
 onScopeDispose(() => {
@@ -189,11 +219,6 @@ function loadModels() {
   modelsRequest = ai.getMediaModels().then((items) => {
     if (generating.value || deleting.value) return;
     models.value = items.filter((item) => item.type === "image");
-    // ACT: 只给空配置选默认模型，保留暂时不可用的旧选择及其参数。
-    if (!data.value.model) {
-      const first = models.value[0];
-      data.value.model = first ? JSON.stringify([first.providerId, first.modelId]) : "";
-    }
   }).finally(() => {
     modelsLoading.value = false;
     modelsRequest = undefined;
@@ -206,7 +231,9 @@ async function startGeneration() {
   if (generating.value) throw new Error("图片正在生成，请等待完成");
   if (uploading.value) throw new Error("图片正在替换，请等待完成");
   if (deleting.value) throw new Error("节点正在删除");
+  if (referenceHint.value) throw new Error(referenceHint.value);
   if (!choice) throw new Error("请先选择图片模型");
+  if (capabilityError.value) throw new Error(capabilityError.value);
   if (!generationPrompt.value) throw new Error("请输入生成提示词");
   if (refList.value.some(item => item.value === undefined)) throw new Error("引用节点暂无内容，请先补充引用内容");
   const workspace = files.getWorkspaceFiles();
@@ -215,8 +242,10 @@ async function startGeneration() {
     providerId: choice.providerId,
     modelId: choice.modelId,
     prompt: generationPrompt.value,
-    size: data.value.size,
-    ratio: data.value.ratio,
+    size: data.value.size || undefined,
+    ratio: data.value.ratio || undefined,
+    n: data.value.n,
+    quality: data.value.quality || undefined,
     outputDirectory: `assets/${id}`,
     images: refList.value.flatMap((item) => (item.dataType === "IMAGE" && item.value ? [{ path: item.value.url, mimeType: item.value.mimeType }] : [])),
   };
@@ -231,6 +260,7 @@ async function startGeneration() {
     .then(([result]) => {
       controller.signal.throwIfAborted();
       if (!result) throw new Error("供应商未返回图片");
+      if (result.warning) showNodeError(result.warning, "部分结果未完成");
       outputs.value.image = { dataType: "IMAGE", value: { url: result.path, mimeType: result.mimeType } };
     }))
     .catch((error) => showNodeError(error, "图片生成失败"))
@@ -240,6 +270,7 @@ async function startGeneration() {
   return { status: "generating" };
 }
 
+nodeEvent.on("canUnload", () => !generating.value && !uploading.value && !deleting.value);
 nodeEvent.on("save", (reason) => {
   if (reason === "reload" && (generating.value || uploading.value || deleting.value)) throw new Error("图片处理中，请完成后再刷新节点");
 });
@@ -258,10 +289,35 @@ nodeEvent.on("delete", async () => {
 async function resizeImage(event: Event) {
   const image = event.currentTarget as HTMLImageElement;
   if (!image.naturalWidth || !image.naturalHeight) return;
+  imageDimensions.value = `${previewInfo.value?.width || image.naturalWidth} × ${previewInfo.value?.height || image.naturalHeight}`;
   imageWidth.value = (240 * image.naturalWidth) / image.naturalHeight;
   await nextTick();
   updateNodeInternals();
 }
+
+nodeTools.register({
+  name: "setImage",
+  description: "选择工作区内已有的图片文件作为此节点的输出，path 使用工作区相对路径",
+  parameters: z.strictObject({
+    path: z.string().min(1).max(4096),
+    mimeType: z.string().regex(/^image\/[a-zA-Z0-9.+-]+$/),
+  }),
+  async execute({ path, mimeType }, { signal }) {
+    signal?.throwIfAborted();
+    if (disposed || uploading.value || generating.value || deleting.value) throw new Error("图片处理中，请稍后重试");
+    uploading.value = true;
+    try {
+      const content = await files.getWorkspaceFiles().read(path);
+      signal?.throwIfAborted();
+      if (!content.byteLength || content.byteLength > 100 * 1024 * 1024) throw new Error("图片不能为空且不能超过 100 MB");
+      if (disposed) throw new Error("节点已关闭");
+      outputs.value.image = { dataType: "IMAGE", value: { url: path, mimeType } };
+      return outputs.value.image;
+    } finally {
+      uploading.value = false;
+    }
+  },
+});
 
 function getConfig() {
   return {
@@ -270,6 +326,8 @@ function getConfig() {
       modelId: selectedModel.value?.modelId ?? "",
       size: data.value.size,
       ratio: data.value.ratio,
+      n: data.value.n,
+    quality: data.value.quality || undefined,
     },
     models: models.value,
   };
@@ -293,8 +351,9 @@ nodeTools.register({
   parameters: z.strictObject({
     providerId: z.string().min(1).optional(),
     modelId: z.string().min(1).optional(),
-    size: z.string().min(1).optional(),
-    ratio: z.string().min(1).optional(),
+    size: z.string().max(64).optional(),
+    ratio: z.string().max(64).optional(),
+    n: z.number().int().min(1).max(10).optional(),
   }).refine((args) => (args.providerId === undefined) === (args.modelId === undefined), "providerId 与 modelId 必须同时提供"),
   async execute(args, { signal }) {
     signal?.throwIfAborted();
@@ -305,13 +364,13 @@ nodeTools.register({
     const choice = args.modelId === undefined ? selectedModel.value
       : models.value.find((item) => item.providerId === args.providerId && item.modelId === args.modelId);
     if (!choice) throw new Error("请选择 getConfig 返回的有效图片模型");
-    const sizes = choice.imageSizes?.length ? choice.imageSizes : ["2K"];
-    const ratios = choice.imageRatios?.length ? choice.imageRatios : ["16:9"];
-    if (args.size !== undefined && !sizes.includes(args.size)) throw new Error(`当前模型不支持分辨率 ${args.size}，可选：${sizes.join("、")}`);
-    if (args.ratio !== undefined && !ratios.includes(args.ratio)) throw new Error(`当前模型不支持比例 ${args.ratio}，可选：${ratios.join("、")}`);
+    if (args.size && !supportsImageSize(choice, args.size)) throw new Error(`当前模型未声明支持尺寸 ${args.size}，请使用 getConfig 返回的档位或像素范围`);
+    if (args.ratio && !choice.imageRatios?.includes(args.ratio)) throw new Error(`当前模型未声明支持比例 ${args.ratio}`);
+    if (args.n !== undefined && args.n > (choice.maxImageCount ?? 1)) throw new Error(`当前模型一次最多生成 ${choice.maxImageCount ?? 1} 张`);
     data.value.model = JSON.stringify([choice.providerId, choice.modelId]);
     if (args.size !== undefined) data.value.size = args.size;
     if (args.ratio !== undefined) data.value.ratio = args.ratio;
+    if (args.n !== undefined) data.value.n = args.n;
     return getConfig();
   },
 });
@@ -340,6 +399,24 @@ nodeTools.register({
 </script>
 
 <style scoped lang="scss">
+.mediaNode { --node-handle-opacity: 1; }
+.mediaEmpty {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 4px;
+  min-height: 144px;
+  .uploadButton {
+    height: auto;
+    min-height: 76px;
+    padding: 12px 24px;
+    color: var(--el-text-color-regular);
+    &:hover { color: var(--el-color-primary); }
+    .uploadPrompt { display: grid; justify-items: center; gap: 10px; font-size: 13px; }
+  }
+  .emptyHint { color: var(--el-text-color-secondary); font-size: 12px; }
+}
+
 .imageContent {
   position: relative;
   display: grid;
@@ -348,12 +425,14 @@ nodeTools.register({
   overflow: hidden;
   border-radius: var(--el-border-radius-base);
 
-  .imageEmpty {
-    display: grid;
-    place-items: center;
-    min-height: 144px;
-    color: var(--el-text-color-placeholder);
+  .imageInfo {
+    display: var(--canvasImageInfoDisplay, block);
+    position: absolute; right: 6px; bottom: 6px; max-width: calc(100% - 12px);
+    padding: 3px 6px; border-radius: 4px; background: #000b; color: #fff;
+    font-size: 11px; line-height: 1.4; font-variant-numeric: tabular-nums;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
   }
+
 
   :deep(.el-loading-mask) {
     pointer-events: none;
@@ -369,37 +448,4 @@ nodeTools.register({
 
 }
 
-.promptCard {
-  .promptFooter {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 12px;
-
-    .modelSelect {
-      width: 190px;
-      min-width: 0;
-
-      &:deep(.el-select__wrapper) {
-        gap: 6px;
-        padding: 0;
-        box-shadow: none;
-        background: transparent;
-      }
-    }
-
-    .sendButton {
-      width: 32px;
-      height: 32px;
-      margin-left: auto;
-      padding: 0;
-      --el-button-bg-color: var(--el-text-color-primary);
-      --el-button-border-color: transparent;
-      --el-button-text-color: var(--el-bg-color);
-      --el-button-hover-bg-color: var(--el-text-color-regular);
-      --el-button-hover-border-color: transparent;
-      --el-button-hover-text-color: var(--el-bg-color);
-    }
-  }
-}
 </style>

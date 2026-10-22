@@ -9,10 +9,13 @@
   "exports": {
     ".": "./index.ts",
     "./types": "./types.d.ts",
-    "./language/tfRouter": "./src/language/tfRouter.ts",
+    "./channelModels": "./src/channelModels.ts",
+    "./mediaCapabilities": "./src/mediaCapabilities.ts",
+    "./mediaCosts": "./src/mediaCosts.ts",
     "./language/deepSeek": "./src/language/deepSeek.ts",
-    "./media/tfRouter": "./src/media/tfRouter.ts",
     "./media/apiMart": "./src/media/apiMart.ts",
-    "./media/meta": "./src/media/meta.ts"
+    "./media/meta": "./src/media/meta.ts",
+    "./media/windowsSpeech": "./src/media/windowsSpeech.ts",
+    "./media/biRefNet": "./src/media/biRefNet.ts"
   }
 }

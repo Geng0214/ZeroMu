@@ -1,6 +1,6 @@
 <template>
   <el-button :icon="IconHistory" :disabled="disabled" text title="历史记录" aria-label="历史记录" @click.stop="visible = true" />
-  <el-dialog v-model="visible" :title="`${mediaType === 'image' ? '图片' : '视频'}历史记录`" width="min(760px, calc(100vw - 32px))" appendToBody destroyOnClose>
+  <el-dialog v-model="visible" :title="`${mediaType === 'image' ? '图片' : mediaType === 'audio' ? '音频' : '视频'}历史记录`" width="min(760px, calc(100vw - 32px))" appendToBody destroyOnClose>
     <div v-loading="loading" class="mediaHistory nodrag nopan nowheel" @pointerdown.stop @mousedown.stop @dblclick.stop @keydown.stop>
       <el-alert v-if="loadError" :title="loadError" type="error" :closable="false" />
       <el-empty v-else-if="!loading && !items.length" description="暂无历史记录" />
@@ -23,6 +23,7 @@
           <div class="historyPreview" v-loading="!!selected && !previewReady && !previewError">
             <el-alert v-if="previewError" :title="previewError" type="error" :closable="false" />
             <img v-else-if="previewUrl && mediaType === 'image'" :src="previewUrl" alt="历史图片预览" @load="previewReady = true" @error="previewError = '无法预览该图片'" />
+            <audio v-else-if="previewUrl && mediaType === 'audio'" :src="previewUrl" controls preload="metadata" aria-label="历史音频预览" @loadedmetadata="previewReady = true" @error="previewError = '无法预览该音频，可下载后播放'" />
             <video v-else-if="previewUrl" :src="previewUrl" controls playsinline preload="auto" aria-label="历史视频预览" @loadeddata="previewReady = true" @error="previewError = '无法预览该视频'" />
           </div>
         </div>
@@ -44,7 +45,7 @@ import { IconHistory } from "@tabler/icons-vue";
 import { useNodeFiles } from "../workspaceFiles";
 import type { NodeMediaValue } from "../values";
 
-const props = defineProps<{ mediaType: "image" | "video"; current?: NodeMediaValue; disabled?: boolean }>();
+const props = defineProps<{ mediaType: "image" | "video" | "audio"; current?: NodeMediaValue; disabled?: boolean }>();
 const emit = defineEmits<{ select: [value: NodeMediaValue] }>();
 const vLoading = ElLoading.directive;
 const { id } = useNode();
@@ -60,6 +61,7 @@ const page = ref(1);
 const pageSize = 20;
 const pageItems = computed(() => items.value.slice((page.value - 1) * pageSize, page.value * pageSize));
 const mimeTypes: Record<string, string> = {
+  mp3: "audio/mpeg", wav: "audio/wav", flac: "audio/flac", aac: "audio/aac", opus: "audio/opus", ogg: "audio/ogg", m4a: "audio/mp4",
   png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", webp: "image/webp", gif: "image/gif",
   avif: "image/avif", apng: "image/apng", bmp: "image/bmp", svg: "image/svg+xml", ico: "image/x-icon", tif: "image/tiff", tiff: "image/tiff",
   mp4: "video/mp4", m4v: "video/mp4", webm: "video/webm", mov: "video/quicktime", mkv: "video/x-matroska", avi: "video/x-msvideo", ogv: "video/ogg",

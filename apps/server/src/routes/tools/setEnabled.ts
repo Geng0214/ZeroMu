@@ -21,8 +21,7 @@ export default router.put("/", validateFields({ name: u.plugins.toolNameSchema, 
     });
     if (marker && !marker.isFile()) return res.status(409).json(error("工具状态文件无效", null, 409));
     if (enabled) {
-      const { plugin, metadata } = await u.plugins.loadTool(name);
-      u.plugins.validateToolConfig(plugin, u.plugins.getToolConfig(metadata));
+      await u.plugins.validateInstalledToolConfig(name);
       if (marker) await unlink(markerPath);
     } else if (!marker) {
       await writeFile(markerPath, "", { flag: "wx" });

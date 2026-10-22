@@ -54,7 +54,7 @@ watch([inView, () => props.thumbnail?.url, () => props.thumbnail?.mimeType, () =
   width: 36px;
   height: 36px;
   overflow: hidden;
-  border-radius: 5px;
+  border-radius: calc(var(--ui-radius, 8px) * 0.625);
   background: var(--el-fill-color-light);
   color: var(--el-text-color-secondary);
 

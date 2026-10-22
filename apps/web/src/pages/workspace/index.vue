@@ -4,83 +4,108 @@
       :key="workspaceStore.project?.directory"
       ref="canvasPanelRef"
       class="canvasPanel"
-      :class="{ backgroundPanel: activePanel !== 'canvas' }"
-      :inert="activePanel !== 'canvas'"
-      :aria-hidden="activePanel !== 'canvas'"
-      :active="activePanel === 'canvas'"
+      :active="true"
       :settingsVisible="settingsVisible" />
-    <keep-alive :max="1">
-      <documentPanel
-        v-if="activePanel === 'document'"
-        :key="workspaceStore.project?.directory"
-        ref="documentPanelRef"
-        :readNode="readDocumentNode"
-        :saveNode="saveDocumentNode" />
-    </keep-alive>
-    <workspaceMenu class="workspaceMenu" @openSettings="settingsVisible = true" />
-    <el-segmented :modelValue="activePanel" class="panelSwitcher" :options="panelOptions" size="small" aria-label="切换面板" @change="switchPanel">
-      <template #default="{ item }">
-        <span class="panelOption">
-          <component :is="item.icon" :size="14" aria-hidden="true" />
-          {{ item.label }}
-        </span>
-      </template>
-    </el-segmented>
-    <el-tooltip v-if="!agentVisible" content="零幕 Agent" placement="bottom" :showArrow="false" :hideAfter="0">
-      <el-button
-        class="agentButton"
-        :class="{ active: agentVisible }"
-        :aria-expanded="agentVisible"
-        aria-label="零幕 Agent"
-        aria-controls="agentPanel"
-        @click="agentVisible = !agentVisible"></el-button>
-    </el-tooltip>
-    <floatingAgent v-model="agentVisible" @resize="agentWidth = $event" />
+    <el-button v-if="!agentVisible" class="agentButton canvasTopButton" text :loading="agentLoading" aria-label="打开 AI 对话" title="展开右侧 AI 对话栏" :aria-expanded="false" @click="openAgent"><agentIcon :size="18" :strokeWidth="1.75" /><span>{{ agentLoading ? '正在打开…' : '创作 Agent' }}</span></el-button>
+    <component :is="floatingAgent" v-if="floatingAgent" v-model="agentVisible" @resize="agentWidth = $event" />
     <settings v-model="settingsVisible" />
+    <taskButton class="workspaceTasks" />
+    <nav class="productionButtons" aria-label="项目制作"><el-button @click="production.open('storyboard')">分镜</el-button><el-button @click="production.open('assets')">素材版本</el-button><el-button @click="production.open('edit')">成片</el-button><el-button @click="production.open('packages')">项目包</el-button></nav>
+    <productionPanel />
   </main>
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, nextTick, onMounted, onScopeDispose, provide, ref } from "vue";
-import { onBeforeRouteLeave } from "vue-router";
+import agentIcon from "@/components/agent/agentIcon.vue";
+import { markRaw, onScopeDispose, provide, ref, shallowRef, watch } from "vue";
+import { onBeforeRouteLeave, useRouter } from "vue-router";
 import axios from "axios";
-import { IconLayoutDashboard, IconFileText } from "@tabler/icons-vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import settings from "@/components/settings/index.vue";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { registerWorkspaceControl, waitForControlValue } from "@/lib/mcpControl";
-import anonymousData from "@/lib/anonymousData";
 import canvasPanel from "./panels/canvas/canvasHost.vue";
-import workspaceMenu from "./components/workspaceMenu.vue";
-import floatingAgent from "./components/floatingAgent.vue";
+import taskButton from "@/components/taskButton.vue";
+import { useTaskCenterStore } from "@/stores/taskCenter";
+import { useProductionStore, productionError } from "@/stores/production";
+import productionPanel from "./components/productionPanel.vue";
 
-const documentPanel = defineAsyncComponent(() => import("./panels/document/index.vue"));
-
-const activePanel = ref<"canvas" | "document">("canvas");
-onMounted(() => anonymousData.track("workspace.canvas"));
 const workspaceStore = useWorkspaceStore();
-const panelOptions = [
-  { label: "画布", value: "canvas", icon: IconLayoutDashboard },
-  { label: "文档", value: "document", icon: IconFileText },
-];
-const agentVisible = ref(true);
+const taskCenter = useTaskCenterStore();
+const production = useProductionStore();
+const router = useRouter();
+provide("openProductionProject", async (path: string) => { await flushSave(); await workspaceStore.openProject(path); await router.replace({ path: "/workspace", query: {} }); });
+provide("flushProductionProject", flushSave);
+const agentVisible = ref(false);
+const agentLoading = ref(false);
+const floatingAgent = shallowRef<typeof import("./components/floatingAgent.vue")["default"]>();
 const agentWidth = ref(0);
 const settingsVisible = ref(false);
 const canvasPanelRef = ref<InstanceType<typeof canvasPanel>>();
-const documentPanelRef = ref<InstanceType<typeof documentPanel>>();
 provide("canvas", () => canvasPanelRef.value?.getCanvasContext());
 provide("mentionCanvas", () => canvasPanelRef.value?.mentionSource);
-provide("activateCanvasPanel", () => switchPanel("canvas"));
-
+provide("activateCanvasPanel", () => Promise.resolve(true));
 const controlLifetime = new AbortController();
-onScopeDispose(() => controlLifetime.abort(new Error("工作区已关闭")));
+const projectionJobs = new Map<string, Promise<void>>();
+const projectionAttempts = new Set<string>();
+provide("applyProductionSelection", applyProductionSelection);
+provide("openDirectorSource", async (captureId: string) => { await canvasPanelRef.value?.openDirectorSource(captureId); production.visible = false; });
+function applyProductionSelection(shotId: string, path: string) {
+  const key = JSON.stringify([path, shotId]);
+  const prior = projectionJobs.get(key); if (prior) return prior;
+  const job = Promise.resolve().then(async () => {
+    let release: (() => void) | undefined;
+    try { release = production.startProjection(path);
+      const panel = await waitForControlValue(() => canvasPanelRef.value, controlLifetime.signal); const selection = await panel.applyProductionSelection(shotId, path); projectionAttempts.delete(JSON.stringify([path, selection.canvasId, selection.nodeId, selection.candidateId])); if (production.directory === path) delete production.projectionErrors[shotId]; }
+    catch (cause) { if (production.directory === path) production.projectionErrors[shotId] = productionError(cause); throw cause; }
+    finally { release?.(); projectionJobs.delete(key); }
+  });
+  projectionJobs.set(key, job); return job;
+}
+watch(() => [production.project?.revision, canvasPanelRef.value?.canvasId, canvasPanelRef.value?.canvasReady], async () => {
+  const panel = canvasPanelRef.value; const path = production.directory; const canvasId = panel?.canvasId;
+  if (!panel?.canvasReady || !canvasId || production.busy) return;
+  for (const shot of production.project?.shots || []) {
+    if (shot.archived || shot.canvasId !== canvasId || !shot.nodeId || !shot.adoptedCandidateId || panel.hasProductionSelection(canvasId, shot.nodeId, shot.adoptedCandidateId)) continue;
+    const key = JSON.stringify([path, canvasId, shot.nodeId, shot.adoptedCandidateId]); if (projectionAttempts.has(key)) continue;
+    projectionAttempts.add(key);
+    await applyProductionSelection(shot.shotId, path).catch(() => {});
+    if (production.directory !== path || panel.canvasId !== canvasId) break;
+  }
+}, { flush: "post" });
+onScopeDispose(() => { controlLifetime.abort(new Error("工作区已关闭")); production.visible = false; });
+watch(() => taskCenter.location, async location => {
+  if (!location || location.directory !== workspaceStore.project?.directory) return;
+  try {
+    const panel = await waitForControlValue(() => canvasPanelRef.value, controlLifetime.signal);
+    await panel.locateTask(location.canvasId, location.nodeId);
+    if (taskCenter.location === location) taskCenter.location = undefined;
+  } catch (cause) { ElMessage.error(cause instanceof Error ? cause.message : "任务原位置无法打开，请在画布仓库重新选择"); }
+}, { flush: "post", immediate: true });
+
+async function openAgent() {
+  if (agentLoading.value) return;
+  agentLoading.value = true;
+  try {
+    // 首次打开才下载对话界面；关闭后保留实例，让进行中的对话继续运行。
+    floatingAgent.value ??= markRaw((await import("./components/floatingAgent.vue")).default);
+    if (!controlLifetime.signal.aborted) agentVisible.value = true;
+  } catch {
+    if (!controlLifetime.signal.aborted) ElMessage.error("AI 对话加载失败，请重新打开");
+  } finally {
+    agentLoading.value = false;
+  }
+}
+watch(() => workspaceStore.pendingAgentMessage, message => {
+  if (message && message.directory === workspaceStore.project?.directory) void openAgent();
+}, { immediate: true });
 registerWorkspaceControl({
   getState: () => ({
     directory: workspaceStore.project?.directory ?? null,
     canvasId: canvasPanelRef.value?.canvasId || null,
-    panel: activePanel.value,
+    panel: "canvas",
     tools: canvasPanelRef.value?.canvasReady ? canvasPanelRef.value.getCanvasContext()?.tools ?? [] : [],
-    document: documentPanelRef.value?.getDocument(false),
+
   }),
   flushSave,
   async call(request, signal) {
@@ -93,21 +118,12 @@ registerWorkspaceControl({
     };
     checkDirectory();
     if (request.name === "switchPanel") {
-      if (request.args.panel !== "canvas" && request.args.panel !== "document") throw new Error("未知面板");
-      if (!(await switchPanel(request.args.panel))) throw new Error("面板切换失败，请检查文档是否保存成功");
-      checkDirectory();
-      return { panel: activePanel.value };
+      if (request.args.panel !== "canvas") throw new Error("当前工作区仅支持画布");
+      return { panel: "canvas" };
     }
     if (["getDocument", "openDocument", "writeDocument"].includes(request.name)) {
-      if (!(await switchPanel("document"))) throw new Error("文档面板无法打开");
-      const panel = await waitForControlValue(() => documentPanelRef.value, callSignal);
-      checkDirectory();
-      if (request.name === "openDocument") await panel.openDocument(request.args, callSignal);
-      if (request.name === "writeDocument") await panel.writeDocument(request.args, callSignal);
-      checkDirectory();
-      return panel.getDocument();
+      throw new Error("文档栏目已移除，请使用工作区文件接口访问文档");
     }
-    if (!(await switchPanel("canvas"))) throw new Error("画布面板无法打开");
     const context = await waitForControlValue(
       () => (canvasPanelRef.value?.canvasReady ? canvasPanelRef.value.getCanvasContext() : undefined),
       callSignal
@@ -118,11 +134,12 @@ registerWorkspaceControl({
 });
 
 async function flushSave() {
-  await documentPanelRef.value?.flushSave();
+
   await canvasPanelRef.value?.flushSave();
 }
 
 onBeforeRouteLeave(async () => {
+  if (production.projectionCounts.get(production.directory)) { ElMessage.warning("采用结果正在同步到画布，请稍后退出"); return false; }
   if (canvasPanelRef.value?.saveBusy) {
     ElMessage.warning("画布操作尚未完成，请稍后退出");
     return false;
@@ -146,171 +163,78 @@ onBeforeRouteLeave(async () => {
       () => false
     );
     if (leave) {
-      documentPanelRef.value?.cancelSave();
+
       canvasPanelRef.value?.cancelSave();
     }
     return leave;
   }
 });
 
-async function switchPanel(value: string | number | boolean) {
-  if (value !== "canvas" && value !== "document") return false;
-  try {
-    if (activePanel.value === "document") await documentPanelRef.value?.flushSave();
-    const changed = activePanel.value !== value;
-    activePanel.value = value;
-    await nextTick();
-    if (changed) anonymousData.track(value === "canvas" ? "workspace.canvas" : "workspace.document");
-    return true;
-  } catch (error) {
-    ElMessage.error(error instanceof Error ? error.message : "文本保存失败");
-    return false;
-  }
-}
-
-function readDocumentNode(directory: string, canvasPath: string, nodeId: string) {
-  if (!canvasPanelRef.value) throw new Error("画布尚未就绪");
-  return canvasPanelRef.value.readDocumentNode(directory, canvasPath, nodeId);
-}
-
-function saveDocumentNode(directory: string, canvasPath: string, nodeId: string, handleId: string, text: string) {
-  if (!canvasPanelRef.value) throw new Error("画布尚未就绪");
-  return canvasPanelRef.value.saveDocumentNode(directory, canvasPath, nodeId, handleId, text);
-}
 </script>
 
 <style scoped lang="scss">
 .workspacePage {
+  --canvasTopButtonSize: 36px;
   position: relative;
   width: 100%;
+  height: 100vh;
   height: 100dvh;
+  overflow: hidden;
   background-color: var(--el-bg-color);
 
   .canvasPanel {
     position: absolute;
     inset: 0;
-
-    &.backgroundPanel {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
+    width: calc(100% - var(--agentWidth, 0px));
   }
+  .workspaceTasks { position: absolute; bottom: 18px; right: calc(var(--agentWidth, 0px) + 18px); z-index: 5; }
+  .productionButtons { position: absolute; right: calc(var(--agentWidth, 0px) + 15px); top: 64px; display: flex; gap: 8px; z-index: 5; .el-button { margin-left: 0; background: var(--el-bg-color-overlay); } }
 
-  .workspaceMenu {
-    position: absolute;
-    top: 15px;
-    left: 15px;
-    z-index: 5;
-  }
-
-  .panelSwitcher {
-    --el-border-radius-base: 999px;
-    --el-segmented-bg-color: var(--el-bg-color-overlay);
-    --el-segmented-item-selected-color: var(--el-color-primary);
-    --el-segmented-item-selected-bg-color: var(--el-color-primary-light-9);
-    position: absolute;
-    top: 15px;
-    left: 50%;
-    z-index: 5;
-    min-height: 32px;
-    padding: 3px;
-    border: 1px solid var(--el-border-color-light);
-    box-shadow: var(--el-box-shadow-lighter);
-    font-size: 12px;
-    transform: translateX(-50%);
-
-    .panelOption {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 5px;
-      padding: 0 3px;
-      line-height: 24px;
-    }
-  }
-
-  .agentButton {
+  .agentButton.canvasTopButton {
     position: absolute;
     top: 15px;
     right: 15px;
     z-index: 5;
-    width: 44px;
-    height: 44px;
-    padding: 0;
-    border: 1px solid var(--el-border-color-light);
-    border-radius: 50%;
-    background: linear-gradient(145deg, var(--el-fill-color-light), var(--el-bg-color-overlay));
-    color: #f4fffe;
-    overflow: hidden;
-    isolation: isolate;
-    transition: transform 180ms ease;
-
-    &::before,
-    &::after {
-      content: "";
-      position: absolute;
-      inset: 5px;
-      border-radius: 50%;
-      pointer-events: none;
-    }
-
-    &::before {
-      z-index: -2;
-      background: radial-gradient(ellipse at 22% 15%, #a5fff0, transparent 55%), radial-gradient(ellipse at 85% 85%, #a999ff, transparent 60%),
-        radial-gradient(ellipse at 85% 20%, #1dd6cb, transparent 55%), linear-gradient(150deg, #12b8c9, #2765ba 65%, #5a5cc4);
-      animation: agentFlow 10s linear infinite;
-      filter: saturate(0.85);
-      transition: filter 180ms ease;
-    }
-
-    &::after {
-      z-index: -1;
-      background: radial-gradient(ellipse at 30% 12%, #ffffff80, transparent 48%), radial-gradient(ellipse at 65% 95%, #17246070, transparent 65%);
-      box-shadow: inset 0 1px 2px #ffffff80, inset 0 -2px 4px #14255460;
-    }
-
-    &.active::before,
-    &:hover::before {
-      filter: saturate(1.15);
-    }
-
-    &:hover {
-      transform: translateY(-1px);
-    }
-
-    &:active {
-      transform: scale(0.95);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--el-color-primary);
-      outline-offset: 3px;
-    }
-
-    .agentLogo {
-      width: 24px;
-      height: 24px;
-      flex-shrink: 0;
-      background: currentColor;
-      mask-size: contain;
-      mask-position: center;
-      mask-repeat: no-repeat;
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      transition: none;
-
-      &::before {
-        animation: none;
-      }
-    }
+    width: auto;
+    padding: 0 12px;
+    gap: 7px;
+    background: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color-light);
+    font-size: 12px;
+    font-weight: 600;
+    :deep(> span) { gap: 7px; }
   }
-}
 
-@keyframes agentFlow {
-  to {
-    transform: rotate(360deg);
+  :deep(.canvasTopButton) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--canvasTopButtonSize);
+    height: var(--canvasTopButtonSize);
+    padding: 0;
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: var(--ui-radius, 8px);
+    background: transparent;
+    color: var(--el-text-color-regular);
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+    &:hover { background: var(--el-fill-color); color: var(--el-text-color-primary); }
+    &:active { background: var(--el-fill-color-dark); }
+    &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
+    &[aria-expanded='true']:not(.sidebarToggle) { background: var(--el-fill-color-light); border-color: var(--el-border-color-light); }
+    .el-badge { display: inline-flex; }
+    svg { flex-shrink: 0; }
+  }
+
+  @media (pointer: coarse) {
+    --canvasTopButtonSize: 44px;
+  }
+
+  @media (prefers-reduced-motion: reduce) { :deep(.canvasTopButton) { transition: none; } }
+
+  @media (max-width: 640px) {
+    .canvasPanel { width: 100%; }
+    .agentButton.canvasTopButton { right: 12px; width: var(--canvasTopButtonSize); padding: 0; :deep(> span > span) { display: none; } }
   }
 }
 </style>

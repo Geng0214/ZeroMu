@@ -35,7 +35,7 @@ export async function* readAgentEvents(response: Response, signal: AbortSignal) 
   }
 }
 
-export function createReplyStream(reply: AgentMessage) {
+export function createReplyStream(reply: AgentMessage, streamResponses = true) {
   const parts = reply.parts!;
   let thinkingPart: Extract<AgentMessagePart, { type: "thinking" }> | undefined;
   let thinkingStartedAt = 0;
@@ -84,7 +84,7 @@ export function createReplyStream(reply: AgentMessage) {
     }
     if (part.type === "text") finishThinking();
     pendingContent.set(part, event.content ?? (pendingContent.get(part) ?? part.content) + (event.delta ?? ""));
-    flushContent();
+    if (streamResponses || event.done) flushContent();
     if (event.done) {
       flushContent.flush();
       if (part.type === "thinking" && thinkingPart === part) finishThinking();
@@ -92,6 +92,7 @@ export function createReplyStream(reply: AgentMessage) {
   }
 
   function finish() {
+    flushContent();
     flushContent.flush();
     flushContent.cancel();
     finishThinking();
@@ -106,7 +107,7 @@ export function createReplyStream(reply: AgentMessage) {
 }
 
 // 父会话请求和转发的子会话事件共用消息归并，切换界面不改变正在接收的回复。
-export function createConversationStream(messages: Ref<AgentMessage[]>) {
+export function createConversationStream(messages: Ref<AgentMessage[]>, streamResponses = () => true) {
   let reply: AgentMessage | undefined;
   let stream: ReturnType<typeof createReplyStream> | undefined;
 
@@ -119,7 +120,7 @@ export function createConversationStream(messages: Ref<AgentMessage[]>) {
   function begin(message: AgentMessage) {
     finish();
     reply = message;
-    stream = createReplyStream(message);
+    stream = createReplyStream(message, streamResponses());
   }
 
   function ensureReply(userId?: string) {

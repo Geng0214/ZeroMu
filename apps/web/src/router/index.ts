@@ -13,10 +13,17 @@ const router = createRouter({
     {
       path: "/home",
       component: () => import("@/pages/home/index.vue"),
+      beforeEnter: to => to.query.section === "projects" ? "/canvas" : to.query.section === "assets" ? { path: "/assets", query: { tab: "materials" } } : to.query.section === "prompts" ? "/prompts" : true,
     },
     {
+      path: "/studio/:kind(image|video|audio)",
+      component: () => import("@/pages/studio/index.vue"),
+    },
+    { path: "/prompts", component: () => import("@/pages/prompts/index.vue") },
+    { path: "/assets", component: () => import("@/pages/assets/index.vue") },
+    {
       path: "/canvas",
-      redirect: "/workspace",
+      component: () => import("@/pages/canvasLibrary/index.vue"),
     },
     {
       path: "/workspace",

@@ -8,6 +8,7 @@ import { join, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { promisify } from "node:util";
+import fetchUpdateArtifact from "./fetchUpdateArtifact";
 
 const execFileAsync = promisify(execFile);
 const hashPattern = /^[a-zA-Z0-9]{1,64}$/;
@@ -15,8 +16,10 @@ const versionPattern = /^\d+\.\d+\.\d+$/;
 type versionInfo = { identifier: string; name: string; channel: string; version: string; hash: string; baseUrl: string };
 type preparedUpdate = { version: string; hash: string; archiveSha256: string };
 type updateLifecycle = { requestQuitApproval(): unknown; cancelQuitApproval(approval: unknown): void; quitAfterApproval(approval: unknown): void };
+let startupConfirmation: { transactionId: string; version: string; hash: string; success: boolean } | undefined;
 
 export function confirmWindowsUpdateStartup(resourcesDirectory: string, failed = false) {
+  if (startupConfirmation) return startupConfirmation;
   const transactionId = process.env.TOONFLOW_UPDATE_TRANSACTION;
   if (!transactionId) return;
   if (!/^[a-f0-9]{32}$/.test(transactionId)) throw new Error(t`更新事务标识无效`);
@@ -25,8 +28,28 @@ export function confirmWindowsUpdateStartup(resourcesDirectory: string, failed =
   const { version, hash } = JSON.parse(readFileSync(join(resourcesDirectory, "version.json"), "utf8"));
   if (typeof version !== "string" || !versionPattern.test(version) || typeof hash !== "string" || !hashPattern.test(hash)) throw new Error(t`桌面安装标识无效，请重新安装`);
   // ACT: 只有本次主界面首次就绪才确认更新；后续页面重载不覆盖事务结果。
-  writeAtomicSync(join(extractionDirectory, `update-${transactionId}.started.json`), JSON.stringify({ transactionId, version, hash, success: !failed }), { exclusive: true });
+  const result = { transactionId, version, hash, success: !failed };
+  writeAtomicSync(join(extractionDirectory, `update-${transactionId}.started.json`), JSON.stringify(result), { exclusive: true });
   delete process.env.TOONFLOW_UPDATE_TRANSACTION;
+  startupConfirmation = result;
+  return result;
+}
+
+export async function waitForWindowsUpdateCommit(resourcesDirectory: string, confirmation: NonNullable<ReturnType<typeof confirmWindowsUpdateStartup>>) {
+  if (!confirmation.success) throw new Error(t`本次界面启动失败，已保留原内置技能`);
+  const path = resolve(resourcesDirectory, "../../self-extraction/updateResult.json");
+  const deadline = performance.now() + 15000;
+  while (performance.now() < deadline) {
+    const info = lstatSync(path, { throwIfNoEntry: false });
+    if (info && (!info.isFile() || info.isSymbolicLink() || info.size > 65536)) throw new Error(t`更新结果文件无效，已保留原内置技能`);
+    const result = info ? await file(path).json().catch(() => null) : null;
+    if (result?.transactionId === confirmation.transactionId) {
+      if (result.success !== true || result.version !== confirmation.version || result.hash !== confirmation.hash) throw new Error(t`更新尚未确认成功，已保留原内置技能`);
+      return;
+    }
+    await Bun.sleep(100);
+  }
+  throw new Error(t`等待更新确认超时，已保留原内置技能，请关闭并重新打开零幕`);
 }
 
 // ACT: 单人桌面单进程使用一个下载任务；保留现有发布协议和 bspatch，不修改 SDK 缓存。
@@ -95,7 +118,7 @@ export default function createWindowsUpdater(resourcesDirectory: string, lifecyc
   async function getLocalInfo() {
     if (!localInfo) {
       const info = await file(join(resourcesDirectory, "version.json")).json();
-      if (!info || info.identifier !== "local.toonflow.desktop" || !["stable", "canary", "dev"].includes(info.channel)
+      if (!info || info.identifier !== "local.zeromu.desktop" || !["stable", "canary", "dev"].includes(info.channel)
         || typeof info.version !== "string" || !versionPattern.test(info.version) || typeof info.hash !== "string" || !hashPattern.test(info.hash)
         || typeof info.baseUrl !== "string" || typeof info.name !== "string" || !/^[a-zA-Z0-9_-]+$/.test(info.name)) {
         throw new Error(t`桌面安装标识无效，请重新安装`);
@@ -158,7 +181,7 @@ export default function createWindowsUpdater(resourcesDirectory: string, lifecyc
       const info = await getLocalInfo();
       state.error = "";
       if (info.channel === "dev") return state;
-      const response = await fetch(artifactUrl(`${info.channel}-win-x64-update.json`), { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30000)]) });
+      const response = await fetchUpdateArtifact(artifactUrl(`${info.channel}-win-x64-update.json`), AbortSignal.any([controller.signal, AbortSignal.timeout(30000)]));
       if (!response.ok) throw new Error(t`检查更新失败：HTTP ${response.status}`);
       const chunks: Uint8Array[] = [];
       let size = 0;
@@ -189,8 +212,13 @@ export default function createWindowsUpdater(resourcesDirectory: string, lifecyc
   }
 
   async function readArchiveInfo(path: string): Promise<versionInfo> {
-    const { stdout } = await execFileAsync(tarExecutable, ["-xOf", path, `${localInfo.name}/Resources/version.json`], { windowsHide: true, timeout: 60000, maxBuffer: 65536 });
-    const info = JSON.parse(stdout);
+    let info;
+    try {
+      const { stdout } = await execFileAsync(tarExecutable, ["-xOf", path, `${localInfo.name}/Resources/version.json`], { windowsHide: true, timeout: 60000, maxBuffer: 65536 });
+      info = JSON.parse(stdout);
+    } catch (error) {
+      throw new Error(t`更新包不完整或无法读取，请重新下载。当前应用和项目数据未改变。`, { cause: error });
+    }
     if (!info || info.identifier !== localInfo.identifier || info.channel !== localInfo.channel || typeof info.hash !== "string" || !hashPattern.test(info.hash)
       || typeof info.version !== "string" || !versionPattern.test(info.version)) throw new Error(t`更新包安装标识不匹配`);
     return info;
@@ -198,7 +226,7 @@ export default function createWindowsUpdater(resourcesDirectory: string, lifecyc
 
   async function download(fileName: string, path: string) {
     const signal = AbortSignal.timeout(15 * 60_000);
-    const response = await fetch(artifactUrl(fileName), { signal });
+    const response = await fetchUpdateArtifact(artifactUrl(fileName), signal);
     if (!response.ok) throw new Error(t`下载更新失败：HTTP ${response.status}`);
     if (!response.body) throw new Error(t`下载更新失败：响应为空`);
     await pipeline(Readable.from(response.body), createWriteStream(path, { flags: "wx", signal }), { signal });
@@ -244,7 +272,11 @@ export default function createWindowsUpdater(resourcesDirectory: string, lifecyc
         const compressedPath = temporaryFile(".tar.zst");
         await download(target.artifact.file, compressedPath);
         archivePath = temporaryFile(".tar");
-        await execFileAsync(join(installDirectory, "app/bin/zig-zstd.exe"), ["decompress", "-i", compressedPath, "-o", archivePath, "--no-timing"], { windowsHide: true, timeout: 10 * 60_000 });
+        try {
+          await execFileAsync(join(installDirectory, "app/bin/zig-zstd.exe"), ["decompress", "-i", compressedPath, "-o", archivePath, "--no-timing"], { windowsHide: true, timeout: 10 * 60_000 });
+        } catch (error) {
+          throw new Error(t`更新包解压失败，请重新下载。当前应用和项目数据未改变。`, { cause: error });
+        }
       }
       const archiveInfo = await readArchiveInfo(archivePath);
       if (archiveInfo.hash !== target.hash || archiveInfo.version !== target.version) throw new Error(t`更新包版本与清单不一致`);

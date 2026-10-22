@@ -1,6 +1,5 @@
-import fg from "fast-glob";
 import path from "node:path";
-import { readFile, writeAtomic } from "@toonflow/file";
+import { readFile, readdir, writeAtomic } from "@toonflow/file";
 
 function fileNameToRoutePath(fileName: string): string {
   let routePath = fileName.replace(/\.(ts)$/, "");
@@ -15,7 +14,11 @@ function fileNameToRoutePath(fileName: string): string {
 export default async function generateRouter(): Promise<void> {
   const sourceRoot = import.meta.dirname;
   const routerPath = path.join(sourceRoot, "router.ts");
-  const entries = (await fg(["routes/**/*.ts"], { cwd: sourceRoot })).sort((a, b) => a.localeCompare(b));
+  const entries = (await readdir(path.join(sourceRoot, "routes"), { recursive: true, withFileTypes: true }))
+    .filter(file => file.isFile() && file.name.endsWith(".ts"))
+    .map(file => path.relative(sourceRoot, path.join(file.parentPath, file.name)))
+    .filter(entry => !entry.split(path.sep).some(part => part.startsWith(".")))
+    .sort((a, b) => a.localeCompare(b));
 
   const importLines: string[] = [];
   const routeLines: string[] = [];

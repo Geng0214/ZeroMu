@@ -1,9 +1,12 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { detectLocale, msg, normalizeLocale, translate } from "@toonflow/i18n";
+import { detectLocale, msg, normalizeLocale, translate, loadLocale, supportedLocales } from "@toonflow/i18n";
 import type { Locale, MessageDescriptor } from "@toonflow/i18n";
 import type { RequestHandler } from "express";
 import { ar, bn, en, fa, hi, id, ja, ko, ms, ru, ta, th, tr, ur, vi, zhCN, zhTW } from "zod/locales";
 import { z } from "zod";
+
+// 服务端保持同步消息出口；网页只按所选语言加载同一套字典。
+await Promise.all(supportedLocales.map(item => loadLocale(item.code)));
 
 const requestLocale = new AsyncLocalStorage<Locale>();
 // ACT: 已安装的 Zod 没有 fil/te/mr/pa，参数校验提示回退英文；应用消息仍使用所选语言。

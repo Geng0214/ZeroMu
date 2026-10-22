@@ -25,8 +25,15 @@ export function createA2aRouter() {
       const card = createTeamAgentCard(team.manifest, `${getA2aUrl(req)}/${name}`);
       if (!endpoint || endpoint.signal !== configurationSignal) {
         // ACT: 任务由 SDK 保存在单进程内存；仅等待补充的协调者额外保留 Pi 上下文，重启后需重新发起任务。
-        const pending = new Map<string, { runner: Awaited<ReturnType<typeof createTeamRunner>>; userId: string }>();
+        const pending = new Map<string, { runner: Awaited<ReturnType<typeof createTeamRunner>>; tools: Awaited<ReturnType<typeof createAgentTools>>; userId: string }>();
+        const release = async (taskId: string) => {
+          const current = pending.get(taskId);
+          if (!current) return;
+          pending.delete(taskId);
+          await Promise.allSettled([current.runner.dispose(), current.tools.dispose()]);
+        };
         const execute = async (request: TeamA2aRequest) => {
+          let owned = false;
           try {
             const signal = AbortSignal.any([request.signal, configurationSignal]);
             signal.throwIfAborted();
@@ -36,6 +43,7 @@ export function createA2aRouter() {
             if (!task || task.length > 24000) throw new Error("团队任务文本应为 1 到 24000 字符");
             let current = pending.get(request.taskId);
             if (current && current.userId !== request.userId) throw new Error("任务不属于当前调用方");
+            owned = true;
             if (request.task && !current) throw new Error("任务上下文已释放，请创建新任务");
             if (!current) {
               const settings = getA2aSettings();
@@ -48,29 +56,33 @@ export function createA2aRouter() {
                 id: connection.state.canvasId ?? "a2a", tools: connection.state.tools,
                 call: (call, callSignal) => callControl(connection.id, call.name, call.args, callSignal ?? signal, cwd),
               } : undefined;
-              const tools = await createAgentTools(cwd, canvas);
-              current = { userId: request.userId, runner: await createTeamRunner({
+              const tools = await createAgentTools(cwd, canvas, undefined, signal);
+              try { current = { userId: request.userId, tools, runner: await createTeamRunner({
                 name, cwd, tools, canvas, modelRuntime: runtime,
                 model: runtime.getModel(settings.providerId, settings.modelId), thinkingLevel: settings.thinkingLevel,
-              }) };
+              }) }; } catch (error) { await tools.dispose(); throw error; }
               pending.set(request.taskId, current);
             }
+            signal.throwIfAborted();
             const { result } = await current.runner.run(task, signal, text => request.emit({ type: "status", text }), true);
             signal.throwIfAborted();
             if (result.status === "inputRequired") return { status: "inputRequired" as const, text: result.result };
-            pending.delete(request.taskId);
+            await release(request.taskId);
             if (result.status !== "completed") throw new Error(result.result || "团队未完成任务");
             return { status: "completed" as const, text: result.result, artifacts: [Artifact.fromJSON({
               artifactId: request.taskId, name: "团队结果", parts: [{ text: result.result, mediaType: "text/plain" }],
             })] };
-          } catch (error) { pending.delete(request.taskId); throw error; }
+          } catch (error) { if (owned) await release(request.taskId); throw error; }
         };
         endpoint = { card, signal: configurationSignal, router: createTeamA2aRouter({
           card, authenticate: authenticateA2a, execute,
-          onCancel: taskId => { pending.delete(taskId); },
+          onCancel: taskId => { void release(taskId); },
         }) };
         endpoints.set(name, endpoint);
-        configurationSignal.addEventListener("abort", () => { pending.clear(); endpoints.delete(name); }, { once: true });
+        configurationSignal.addEventListener("abort", () => {
+          for (const taskId of pending.keys()) void release(taskId);
+          endpoints.delete(name);
+        }, { once: true });
       } else Object.assign(endpoint.card, card);
       endpoint.router(req, res, next);
     } catch (error) { next(error); }

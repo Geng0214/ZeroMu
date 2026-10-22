@@ -12,7 +12,6 @@
       </div>
     </div>
 
-    <el-alert title="本地定制版：更新需使用零幕自己的发布源，可在开发者设置中配置。" type="info" :closable="false" />
     <el-card class="infoCard updateCard" shadow="never">
       <div class="cardHeader">
         <div class="updateCopy">
@@ -22,22 +21,23 @@
           </div>
         </div>
         <div class="updateActions">
-          <el-select :modelValue="updateSource" aria-label="更新源" size="small" :disabled="working || sourceSaving" @change="saveUpdateSource">
-            <template #prefix>
-              <icon-brand-github v-if="updateSource === 'github'" :size="14" aria-hidden="true" />
-              <icon-world v-else :size="14" aria-hidden="true" />
-            </template>
-            <el-option label="本地定制版" value="official" disabled />
-            <el-option label="上游源不可用于零幕" value="github" disabled />
-            <el-option v-if="customUpdateUrl" label="自定义源" value="custom" />
-          </el-select>
           <el-badge isDot :hidden="!hasDesktopUpdate">
-            <el-button size="small" type="primary" plain :loading="checking" :disabled="sourceSaving" @click="openUpdate">
+            <el-button size="small" type="primary" plain :loading="checking" :disabled="sourceSaving || !isDesktop" @click="openUpdate">
               {{ snapshot?.installFailure ? "查看更新失败原因" : snapshot?.updateReady ? "更新已就绪" : snapshot?.updating || action === "download" ? "查看更新进度" : "检查更新" }}
             </el-button>
           </el-badge>
         </div>
       </div>
+      <p v-if="!isDesktop" class="cardDescription">版本检查和安装更新需在 Windows 桌面客户端中进行。</p>
+      <details class="updateSettings">
+        <summary>更新源设置</summary>
+        <p>填写零幕发布方提供的 HTTPS 更新目录地址。保存后，版本检查使用此地址。</p>
+        <form class="updateSourceForm" @submit.prevent="saveCustomUpdateUrl">
+          <el-input v-model="updateUrlDraft" aria-label="更新源目录地址" placeholder="https://example.com/desktopUpdates" :disabled="sourceSaving || working" clearable />
+          <el-button nativeType="submit" :loading="sourceSaving" :disabled="working">保存更新源</el-button>
+        </form>
+        <el-text v-if="updateUrlError" type="danger" role="alert">{{ updateUrlError }}</el-text>
+      </details>
       <div v-if="snapshot?.hash" class="buildInfo">
         <span>构建标识</span>
         <code>{{ snapshot.hash }}</code>
@@ -45,18 +45,13 @@
       <div v-if="snapshot?.installFailure" class="installFailureNotice" role="alert">
         <strong>上次更新未成功</strong>
         <p>{{ snapshot.installFailure.message }}</p>
-        <p>请前往 GitHub 最新发布页，选择适合当前系统的完整安装包，关闭客户端后重新安装。</p>
+        <p>请前往零幕发布页获取完整安装包，关闭客户端后重新安装。项目和素材请先备份。</p>
         <el-button tag="a" type="primary" size="small" :href="snapshot.installFailure.downloadUrl" target="_blank" rel="noopener noreferrer">前往下载页</el-button>
       </div>
     </el-card>
 
-    <el-card class="infoCard repositoryCard" shadow="never">
+    <nav class="repositoryLinks" aria-label="项目与开源信息">
       <a class="repositoryLink" href="https://github.com/Geng0214/ZeroMu" target="_blank" rel="noopener noreferrer"><icon-brand-github class="repositoryIcon" :size="22" /><span class="repositoryTitle">零幕 · GitHub 项目</span><icon-external-link :size="16" /></a>
-    </el-card>
-    <el-card class="infoCard repositoryCard" shadow="never">
-      <a class="repositoryLink" href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf" target="_blank" rel="noopener noreferrer"><icon-world class="repositoryIcon" :size="22" /><span class="repositoryTitle">上游使用教程</span><icon-external-link :size="16" /></a>
-    </el-card>
-    <el-card class="infoCard repositoryCard" shadow="never">
       <a class="repositoryLink" :href="repositoryUrl" target="_blank" rel="noopener noreferrer" aria-label="GitHub 仓库：HBAI-Ltd/Toonflow-app">
         <icon-brand-github class="repositoryIcon" :size="22" aria-hidden="true" />
         <div class="repositoryInfo">
@@ -64,24 +59,14 @@
         </div>
         <icon-external-link class="externalIcon" :size="16" aria-hidden="true" />
       </a>
-    </el-card>
-
-    <el-card class="infoCard repositoryCard" shadow="never">
-      <a class="repositoryLink" href="https://api.toonflow.net/" target="_blank" rel="noopener noreferrer">
-        <icon-world class="repositoryIcon" :size="22" aria-hidden="true" />
-        <div class="repositoryInfo">
-          <span class="repositoryTitle">第三方模型平台 TF-Router</span>
-        </div>
-        <icon-external-link class="externalIcon" :size="16" aria-hidden="true" />
-      </a>
-    </el-card>
+    </nav>
 
     <el-dialog v-model="resultVisible" title="版本更新" width="min(480px, 92vw)" alignCenter appendToBody>
       <div class="updateResult" aria-live="polite" :aria-busy="working">
         <div class="resultHeader">
-          <span class="resultIcon" :class="{ warning: !!updateError, success: !working && !updateError && !snapshot?.updateAvailable }">
+          <span class="resultIcon" :class="{ warning: !!updateError, success: !working && !updateError && snapshot?.sourceConfigured !== false && !snapshot?.updateAvailable }">
             <icon-refresh v-if="working" class="loadingIcon" :size="22" aria-hidden="true" />
-            <icon-alert-circle v-else-if="updateError" :size="22" aria-hidden="true" />
+            <icon-alert-circle v-else-if="updateError || snapshot?.sourceConfigured === false" :size="22" aria-hidden="true" />
             <icon-arrow-up-circle v-else-if="snapshot?.updateAvailable" :size="22" aria-hidden="true" />
             <icon-circle-check v-else :size="22" aria-hidden="true" />
           </span>
@@ -139,12 +124,10 @@ import {
   IconArrowUpCircle,
   IconCircleCheck,
   IconArrowRight,
-  IconWorld,
 } from "@tabler/icons-vue";
 import logoUrl from "@toonflow/assets/zeromuIcon.png";
 import { saveSettings } from "@/stores/settings";
 import {
-  desktopUpdateSource as updateSource,
   desktopUpdateCustomUrl as customUpdateUrl,
   desktopUpdateSnapshot as snapshot,
   desktopUpdateError as updateError,
@@ -158,11 +141,14 @@ const repositoryUrl = "https://github.com/HBAI-Ltd/Toonflow-app";
 const isDesktop = new URLSearchParams(window.location.search).get("desktop") === "1";
 const currentVersion = computed(() => snapshot.value?.version || import.meta.env.appVersion);
 const sourceSaving = ref(false);
+const updateUrlDraft = ref(customUpdateUrl.value);
+const updateUrlError = ref("");
 const checking = computed(() => desktopUpdateChecking.value);
 const working = computed(() => !!action.value);
 const resultVisible = ref(false);
 const resultTitle = computed(() => {
   if (snapshot.value?.installFailure) return translate("上次更新未成功");
+  if (snapshot.value?.sourceConfigured === false) return translate("尚未配置更新源");
   if (updateError.value) return translate("更新未完成");
   if (checking.value) return translate("正在检查更新");
   if (action.value === "read") return translate("正在读取更新状态");
@@ -173,6 +159,7 @@ const resultTitle = computed(() => {
 });
 const resultMessage = computed(() => {
   if (snapshot.value?.installFailure) return snapshot.value.installFailure.message;
+  if (snapshot.value?.sourceConfigured === false) return translate("当前版本可继续使用。在关于页的“更新源设置”中填写零幕专用 HTTPS 更新地址后，即可检查新版本。");
   if (updateError.value) return updateError.value;
   if (checking.value) return translate("正在获取最新版本信息…");
   if (action.value === "read") return translate("正在确认客户端的更新状态，请稍候…");
@@ -198,21 +185,28 @@ function openUpdate() {
   void runUpdate("check");
 }
 
-async function saveUpdateSource(source: string) {
-  if (source === updateSource.value || sourceSaving.value || working.value) return;
-  if (source !== "official" && source !== "github" && (source !== "custom" || !customUpdateUrl.value)) return;
-  sourceSaving.value = true;
+async function saveCustomUpdateUrl() {
+  if (sourceSaving.value || working.value) return;
+  updateUrlError.value = "";
+  const url = updateUrlDraft.value.trim();
   try {
-    await saveSettings(() => ({ desktopUpdateSource: source }));
-  } catch (error) {
-    ElMessage.error(getUpdateError(error));
-  } finally {
-    sourceSaving.value = false;
-  }
+    if (url) {
+      if (!URL.canParse(url)) throw new Error("请输入有效的 HTTPS 更新目录地址");
+      const parsed = new URL(url);
+      const local = ["localhost", "127.0.0.1", "[::1]"].includes(parsed.hostname);
+      if (!(parsed.protocol === "https:" || parsed.protocol === "http:" && local) || parsed.username || parsed.password || parsed.search || parsed.hash || url.length > 2048)
+        throw new Error("请输入不含账号、查询参数或锚点的 HTTPS 地址；仅本机测试允许 HTTP");
+    }
+    sourceSaving.value = true;
+    await saveSettings(() => ({ desktopUpdateCustomUrl: url, desktopUpdateSource: url ? "custom" : "official" }));
+    updateUrlDraft.value = url;
+    ElMessage.success("更新源已保存");
+  } catch (error) { updateUrlError.value = error instanceof Error ? getUpdateError(error) : "保存更新源失败，请重试"; }
+  finally { sourceSaving.value = false; }
 }
 
 function getUpdateError(error: unknown) {
-  return axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message || error.message : String(error);
+  return axios.isAxiosError<{ message?: string }>(error) ? error.response?.data?.message || error.message : error instanceof Error ? error.message : String(error);
 }
 
 async function runUpdate(nextAction: "read" | "check" | "download" | "apply") {
@@ -235,8 +229,11 @@ async function runUpdate(nextAction: "read" | "check" | "download" | "apply") {
 .about {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 24px;
 
+  .cardDescription, .updateSettings p { margin: 12px 0; color: var(--el-text-color-secondary); font-size: 12px; line-height: 1.7; }
+  .updateSettings { margin-top: 16px; summary { cursor: pointer; font-size: 13px; color: var(--el-text-color-regular); } summary:focus-visible { outline: 2px solid var(--el-color-primary); } }
+  .updateSourceForm { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; .el-input { flex: 1 1 240px; } }
   .brand {
     display: flex;
     align-items: center;
@@ -272,6 +269,7 @@ async function runUpdate(nextAction: "read" | "check" | "download" | "apply") {
         font-size: 20px;
         font-weight: 600;
       }
+      p { margin: 0 0 12px; color: var(--el-text-color-secondary); font-size: 13px; }
 
       .brandMeta {
         display: flex;
@@ -356,23 +354,22 @@ async function runUpdate(nextAction: "read" | "check" | "download" | "apply") {
       p { margin: 8px 0 12px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
     }
 
-    &.repositoryCard {
-      transition: border-color 0.2s;
-
-      :deep(.el-card__body) {
-        padding: 0;
-      }
-      &:hover {
-        border-color: var(--el-border-color-darker);
-      }
-
+  }
+    .repositoryLinks {
+      display: grid;
+      gap: 4px;
       .repositoryLink {
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 14px;
-        color: var(--el-text-color-primary);
+        padding: 10px 0;
+        color: var(--el-text-color-regular);
         text-decoration: none;
+        font-size: 13px;
+        line-height: 1.6;
+        &:hover { color: var(--el-color-primary); }
+        .repositoryTitle, .repositoryInfo { flex: 1; }
+        > svg { flex-shrink: 0; }
 
         &:focus-visible {
           outline: 2px solid var(--el-color-primary);
@@ -396,14 +393,12 @@ async function runUpdate(nextAction: "read" | "check" | "download" | "apply") {
           min-width: 0;
 
           .repositoryTitle {
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 400;
           }
         }
       }
     }
-  }
-
 }
 
 .updateResult {

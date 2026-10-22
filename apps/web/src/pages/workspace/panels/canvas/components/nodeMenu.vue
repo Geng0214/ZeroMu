@@ -29,6 +29,7 @@
         class="nodeMenu"
         :aria-label="menuLevel === 'selection' ? '选区操作' : menuLevel === 'arrange' ? '整理选中节点' : menuLevel === 'actions' ? '操作菜单' : '添加节点'">
         <template v-if="menuLevel === 'selection'">
+          <el-dropdown-item v-if="associatedShot" command="productionShot">查看关联分镜 · {{ associatedShot.title }}</el-dropdown-item>
           <el-dropdown-item command="duplicateSelection" :icon="IconCopyPlus" :disabled="selectionBusy || deleting || !selectedNodes.length">
             创建副本
           </el-dropdown-item>
@@ -67,10 +68,12 @@
         <template v-else>
           <el-dropdown-item v-if="!directNodes" command="actions" :icon="IconChevronLeft">返回操作菜单</el-dropdown-item>
           <el-dropdown-item v-else disabled>添加节点</el-dropdown-item>
-          <el-dropdown-item v-for="node in filteredNodes" :key="node.type" :command="node.type" :icon="node.icon">
+          <el-dropdown-item v-if="preparingNodes" disabled>正在读取可连接节点…</el-dropdown-item>
+          <el-dropdown-item v-for="node in filteredNodes" :key="node.type" :command="node.type">
+            <component :is="node.icon" class="nodeTypeIcon" :size="20" />
             {{ node.label }}
           </el-dropdown-item>
-          <el-dropdown-item v-if="(pendingHandle || pendingGroup.length) && !filteredNodes.length" disabled>没有可连接的节点</el-dropdown-item>
+          <el-dropdown-item v-if="!preparingNodes && (pendingHandle || pendingGroup.length) && !filteredNodes.length" disabled>没有可连接的节点</el-dropdown-item>
         </template>
       </el-dropdown-menu>
     </template>
@@ -78,9 +81,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, shallowRef, type Component } from "vue";
+import { getNodeIcon } from "@toonflow/nodes-scaffold/nodeIcons";
+import { newGenerationData } from "@/lib/creationPreferences";
+import { computed, inject, nextTick, onBeforeUnmount, ref, shallowRef, type Component } from "vue";
+import { useProductionStore } from "@/stores/production";
+import type { CanvasContext } from "@toonflow/tool-canvas/runtime";
 import { useVueFlow, type ConnectingHandle, type GraphNode, type HandleType } from "@vue-flow/core";
-import { isTypeCompatible, useNodeEvent, validateConnection, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
+import { isTypeCompatible, validateConnection, type NodeHandle } from "@toonflow/nodes-scaffold/connection";
+import { useNodeEvent } from "@toonflow/nodes-scaffold/nodeEvent";
 import { ElMessage } from "element-plus";
 import type { DropdownInstance } from "element-plus";
 import selectionHandle from "./selectionHandle.vue";
@@ -103,8 +111,9 @@ import {
   IconLayoutGrid,
 } from "@tabler/icons-vue";
 
-const { remoteNodes = [], pasteNode, uploadFiles, canUndo = false, canRedo = false, selectionBusy = false, batchHistory } = defineProps<{
+const { remoteNodes = [], loadNodes, pasteNode, uploadFiles, canUndo = false, canRedo = false, selectionBusy = false, batchHistory } = defineProps<{
   remoteNodes?: { type: string; label: string }[];
+  loadNodes: (types: string[]) => Promise<void>;
   pasteNode?: (position: { x: number; y: number }) => Promise<boolean>;
   uploadFiles?: (position: { x: number; y: number }) => void;
   canUndo?: boolean;
@@ -117,6 +126,10 @@ const menu = ref<DropdownInstance>();
 const menuList = ref<{ $el: HTMLElement }>();
 const menuLevel = ref<"actions" | "nodes" | "selection" | "arrange">("actions");
 const selectedNodes = shallowRef<GraphNode[]>([]);
+const production = useProductionStore();
+const getCanvas = inject<() => CanvasContext | undefined>("canvas");
+function boundShot(nodeId: string) { return production.project?.shots.find(shot => !shot.archived && shot.canvasId === getCanvas?.()?.id && shot.nodeId === nodeId); }
+const associatedShot = computed(() => selectedNodes.value.length === 1 ? boundShot(selectedNodes.value[0]!.id) : undefined);
 const deleting = ref(false);
 const pasting = ref(false);
 const directNodes = ref(false);
@@ -127,6 +140,8 @@ let nodePosition = { x: 0, y: 0 };
 type DraggedHandle = { node: GraphNode; id: string; type: HandleType; start: ConnectingHandle };
 const pendingHandle = shallowRef<DraggedHandle>();
 const pendingGroup = shallowRef<GraphNode[]>([]);
+const preparingNodes = ref(false);
+let menuRequest = 0;
 const selectionHandleRef = ref<InstanceType<typeof selectionHandle>>();
 const groupHandleRefs = ref<InstanceType<typeof selectionHandle>[]>([]);
 const groups = computed(() => flow.getNodes.value.filter(node => node.type === "canvasGroup" && !node.hidden));
@@ -138,12 +153,11 @@ const canArrangeSelection = computed(() => {
       && Number.isFinite(node.dimensions.width) && node.dimensions.width > 0
       && Number.isFinite(node.dimensions.height) && node.dimensions.height > 0);
 });
-const nodeOrder: Record<string, number> = { "remote-textNode": 0, "remote-imageNode": 1, "remote-videoNode": 2, "remote-audioNode": 3 };
 const filteredNodes = computed(() => {
   const nodes = remoteNodes.map(node => ({
     ...node,
-    icon: (flow.nodeTypes?.value?.[node.type] as { icon?: Component } | undefined)?.icon ?? IconBox,
-  })).sort((left, right) => (nodeOrder[left.type] ?? 4) - (nodeOrder[right.type] ?? 4));
+    icon: getNodeIcon(node.type) ?? (flow.nodeTypes?.value?.[node.type] as { icon?: Component } | undefined)?.icon ?? IconBox,
+  }));
   if (pendingGroup.value.length) {
     if (!flow.nodesConnectable.value || pendingGroup.value.some(node => flow.findNode(node.id) !== node || node.connectable === false)) return [];
     return nodes.filter(node => {
@@ -169,6 +183,8 @@ function clearSelectionHandles() {
 }
 
 function clearConnection() {
+  menuRequest++;
+  preparingNodes.value = false;
   if (pendingHandle.value) {
     pendingHandle.value = undefined;
     flow.endConnection();
@@ -229,19 +245,28 @@ async function openMenu(event: MouseEvent | TouchEvent, nodesOnly = false, selec
   }
   await nextTick();
   menu.value?.handleOpen();
+  if (handle || group.length) {
+    const request = ++menuRequest;
+    preparingNodes.value = true;
+    // 拖线添加节点需要插件声明的端口；按需读取后再筛选兼容类型。
+    await Promise.allSettled(remoteNodes.map(node => loadNodes([node.type])));
+    if (request === menuRequest) preparingNodes.value = false;
+  }
 }
 
 onPaneContextMenu(openMenu);
 onSelectionContextMenu(({ event, nodes }) => openMenu(event, false, nodes));
 onPaneClick(() => menu.value?.handleClose());
 onMoveStart(() => menu.value?.handleClose());
-flow.onNodeContextMenu(() => {
+flow.onNodeContextMenu(({ event, node }) => {
+  if (boundShot(node.id)) { void openMenu(event, false, [node]); return; }
   clearConnection();
   menu.value?.handleClose();
 });
 defineExpose({ openMenu, deleteSelection });
 
 async function handleCommand(command: unknown) {
+  if (command === "productionShot" && associatedShot.value) { menu.value?.handleClose(); production.openShot(associatedShot.value.shotId); return; }
   if (command === "nodes" || command === "actions" || command === "selection" || command === "arrange") {
     if (command === "arrange" && !canArrangeSelection.value) return;
     menuLevel.value = command;
@@ -303,10 +328,14 @@ async function runCommand(command: unknown) {
   if (!node) return;
   const handle = pendingHandle.value;
   const group = pendingGroup.value;
+  const request = menuRequest;
+  const position = { ...nodePosition };
+  await loadNodes([node.type]);
+  if (request !== menuRequest) return;
   if (handle && flow.findNode(handle.node.id) !== handle.node) return;
   if (group.some(source => flow.findNode(source.id) !== source)) return;
   const id = crypto.randomUUID();
-  addNodes({ id, type: node.type, position: { ...nodePosition }, data: { label: node.label } });
+  addNodes({ id, type: node.type, position, data: { ...newGenerationData(node.type), label: node.label } });
   if (!handle && !group.length) {
     flow.removeSelectedElements();
     flow.nodesSelectionActive.value = false;
@@ -396,6 +425,11 @@ async function deleteSelection(selection = selectedNodes.value) {
 <style lang="scss" scoped>
 .nodeMenu {
   min-width: 180px;
+
+  .nodeTypeIcon {
+    flex-shrink: 0;
+    margin-right: 10px;
+  }
 
   :deep(.el-divider--horizontal) {
     margin: 4px 0;

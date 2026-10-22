@@ -29,11 +29,14 @@
     "dev:web": "bun run --filter '@toonflow/web' dev",
     "dev:server": "bun run --filter '@toonflow/server' dev",
     "dev:desktop": "bun run --filter '@toonflow/desktop' dev",
+    "prepare:desktop": "bun apps/desktop/node_modules/electrobun/bin/electrobun.cjs sync",
     "dev:plugins": "NODE_ENV=dev bun run --filter './packages/tools/*' --filter './packages/nodes/*' build",
     "dev:updateServer": "bun run --filter '@toonflow/updateServer' dev",
     "start:updateServer": "bun run --filter '@toonflow/updateServer' start",
     "publish:update": "bun run apps/updateServer/scripts/publish.ts",
     "start:server": "bun run --cwd apps/server start",
+    "start:web": "bun run --cwd apps/web preview --host localhost --port 5173 --strictPort",
+    "start:local": "bun run --parallel --filter '@toonflow/server' --filter '@toonflow/web' start:local",
     "build:server": "bun apps/server/scripts/buildStandalone.ts",
     "build": "bun run build:tools && bun run --filter '@toonflow/web' --filter '@toonflow/server' build",
     "build:nodes": "bun -e \"import { rmSync } from '@toonflow/file'; import { resolve } from 'node:path'; rmSync(resolve('build/nodes'), { recursive: true, force: true });\" && NODE_ENV=production bun run --filter './packages/nodes/*' build",
@@ -52,5 +55,14 @@
     "postcss": "^8.5.28",
     "postcss-pxtorem": "^6.1.0",
     "typescript": "^7.0.2"
+  },
+  "overrides": {
+    "proxy-addr": "2.0.8",
+    "undici": "8.10.2",
+    "katex": "0.18.2",
+    "dompurify": "3.4.17",
+    "fast-uri": "3.1.8",
+    "source-map-js": "1.2.2",
+    "brace-expansion": "5.0.12"
   }
 }

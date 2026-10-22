@@ -1,11 +1,8 @@
 <template>
   <el-config-provider :locale="elementLocale">
     <config-provider :globalConfig="tdesignLocale">
-      <router-view v-slot="{ Component: currentComponent }">
-        <transition name="el-fade-in">
-          <component :is="currentComponent" />
-        </transition>
-      </router-view>
+      <router-view />
+      <taskCenter />
       <ffmpegRequired />
       <updateBox
         v-if="updateBoxBuild && !installFailure"
@@ -27,7 +24,7 @@
               <dd><strong>{{ installFailure.targetVersion ? `v${installFailure.targetVersion}` : "未知版本" }}</strong><code>{{ installFailure.targetHash || "构建标识未知" }}</code></dd>
             </div>
           </dl>
-          <p class="failureHint">请前往 GitHub 最新发布页，选择适合当前系统的完整安装包，关闭客户端后重新安装。</p>
+          <p class="failureHint">请前往零幕发布页获取完整安装包，关闭客户端后重新安装。项目和素材请先备份。</p>
         </div>
         <template #footer>
           <el-button @click="installFailureVisible = false">稍后</el-button>
@@ -58,6 +55,7 @@ import { desktopUpdateSnapshot, stopDesktopUpdateObservation } from "@/stores/de
 import { useMcpControl } from "@/lib/mcpControl";
 import ffmpegRequired from "@/components/settings/ffmpegRequired.vue";
 import updateBox from "@/components/updateBox.vue";
+import taskCenter from "@/components/taskCenter.vue";
 import "element-plus/theme-chalk/dark/css-vars.css";
 
 useMcpControl();
@@ -120,36 +118,17 @@ function rememberUpdateBox() {
   }).catch(() => { ElMessage.warning("更新说明的展示记录保存失败，下次启动时可能再次显示。"); });
 }
 
-function preventPageZoom(event: WheelEvent) {
-  if (event.ctrlKey || event.metaKey) event.preventDefault();
-}
-function preventPageZoomShortcut(event: KeyboardEvent) {
-  if ((event.ctrlKey || event.metaKey) && !event.altKey && ["+", "=", "-", "0"].includes(event.key)) event.preventDefault();
-}
-// 仅取消浏览器默认缩放，继续传递事件供 Vue Flow 缩放画布。
-window.addEventListener("wheel", preventPageZoom, { capture: true, passive: false });
-// 画布在捕获阶段先处理自己的快捷键，再在冒泡阶段取消浏览器缩放。
-window.addEventListener("keydown", preventPageZoomShortcut);
+// ACT: 画布自己消费缩放手势；其他页面保留浏览器缩放及 Ctrl/Cmd+0 恢复能力。
 onBeforeUnmount(() => {
   stopDesktopUpdateObservation();
-  window.removeEventListener("wheel", preventPageZoom, true);
-  window.removeEventListener("keydown", preventPageZoomShortcut);
 });
 
 const { currentZIndex } = useZIndex();
 watchEffect(() => document.documentElement.style.setProperty("--markdown-tooltip-z-index", String(currentZIndex.value + 1)));
 
-const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
-const systemDark = ref(systemTheme.matches);
-function updateSystemTheme(event: MediaQueryListEvent) {
-  systemDark.value = event.matches;
-}
-systemTheme.addEventListener("change", updateSystemTheme);
-onBeforeUnmount(() => systemTheme.removeEventListener("change", updateSystemTheme));
-
 watchEffect(() => {
   const { theme, primaryColor, fontScale, radius } = uiSettings.value;
-  const dark = theme === "system" ? systemDark.value : theme === "dark";
+  const dark = theme === "dark";
   const root = document.documentElement;
   root.classList.toggle("dark", dark);
   root.setAttribute("theme-mode", dark ? "dark" : "light");
@@ -231,7 +210,16 @@ input[inputmode="decimal"],
 }
 
 ::view-transition-new(root) {
-  animation: themeReveal 0.4s ease-in forwards;
+  animation: themeReveal 0.64s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-new(root) { animation: themeFade 0.2s ease-in-out forwards; }
+}
+
+@keyframes themeFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes themeReveal {

@@ -1,12 +1,17 @@
 import { nextTick, watch, type Ref } from "vue";
+import { newGenerationData } from "@/lib/creationPreferences";
 import { useVueFlow, type XYPosition } from "@vue-flow/core";
-import { useNodeEvent, useNodeToolsContext, validateConnection } from "@toonflow/nodes-scaffold/runtime";
+import { useNodeEvent } from "@toonflow/nodes-scaffold/nodeEvent";
+import { useNodeToolsContext } from "@toonflow/nodes-scaffold/nodeTools";
+import { validateConnection } from "@toonflow/nodes-scaffold/connection";
 import { canvasSchemas, type CanvasContext, type CanvasToolCall } from "@toonflow/tool-canvas/runtime";
 import { arrangeCanvas } from "./arrangeCanvas";
 import { canvasEdgeSummary, canvasNodeSummary, createCanvasQueries, isCanvasRead } from "./canvasQueries";
 
 export function useCanvasTools(options: {
   availableNodes: Ref<{ type: string; label: string }[]>;
+  nodeChoices: Ref<{ type: string; label: string }[]>;
+  loadNodes(types: string[]): Promise<void>;
   flushSave(): Promise<void>;
   menu(): {
     getCanvases(): { id: string; name: string }[];
@@ -33,7 +38,7 @@ export function useCanvasTools(options: {
     nodeRevision: () => nodeRevision,
     edgeRevision: () => edgeRevision,
     canvases: () => options.menu().getCanvases(),
-    nodeTypes: () => options.availableNodes.value,
+    nodeTypes: () => options.nodeChoices.value,
     nodeTools: getNodeTools,
   });
 
@@ -112,6 +117,9 @@ export function useCanvasTools(options: {
 
   async function execute(request: CanvasToolCall, signal: AbortSignal, canvasId: string): Promise<unknown> {
     signal.throwIfAborted();
+    await options.loadNodes([...new Set(flow.nodes.value.map(node => node.type).filter((type): type is string => options.availableNodes.value.some(node => node.type === type)))]);
+    await nextTick();
+    signal.throwIfAborted();
     if (isCanvasRead(request.name)) {
       await nextTick();
       signal.throwIfAborted();
@@ -136,9 +144,11 @@ export function useCanvasTools(options: {
       case "addNode": {
         const args = canvasSchemas.addNode.parse(request.args);
         const type = options.availableNodes.value.find(node => node.type === args.type);
-        if (!type) throw new Error("节点类型未启用或尚未加载，请先查询 getCanvas");
+        if (!type) throw new Error("节点类型未启用或加载失败，请先查询 getCanvas");
+        await options.loadNodes([type.type]);
+        signal.throwIfAborted();
         const id = crypto.randomUUID();
-        flow.addNodes({ id, type: type.type, position: nodePosition(args.position), data: { label: args.label ?? type.label } });
+        flow.addNodes({ id, type: type.type, position: nodePosition(args.position), data: { ...newGenerationData(type.type), label: args.label ?? type.label } });
         await nextTick();
         signal.throwIfAborted();
         return nodeInfo(id);
@@ -242,7 +252,8 @@ export function useCanvasTools(options: {
         await nextTick();
         signal.throwIfAborted();
         flow.updateNodeInternals(nodeIds ?? flow.getNodes.value.map(node => node.id));
-        const fitted = await flow.fitView({ nodes: nodeIds, padding: 0.2, duration: 0 });
+        const singleNode = nodeIds?.length === 1;
+        const fitted = await flow.fitView({ nodes: nodeIds, padding: singleNode ? 0.4 : 0.2, duration: 0, ...(singleNode ? { maxZoom: 1 } : {}) });
         signal.throwIfAborted();
         return { fitted, nodeIds: nodeIds?.slice(0, 100), nodeCount: nodeIds?.length ?? flow.nodes.value.length, truncated: (nodeIds?.length ?? 0) > 100, viewport: { ...flow.viewport.value } };
       }

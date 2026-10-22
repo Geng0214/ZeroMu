@@ -39,7 +39,8 @@ export function useNode<T extends NodeOutputs = NodeOutputs>(options: NodeOption
     outputs: outputs.value,
   }));
   const nodeEvent = useNodeEvent();
-  const { getWorkspaceFiles, uploadFile, removeNodeFiles, useFileUrl } = useNodeFiles();
+  const getCanvasContext = inject<(() => { id: string } | undefined) | undefined>("canvas", undefined);
+  const { getWorkspaceFiles, uploadFile, removeNodeFiles, useFileUrl, useMediaPreview } = useNodeFiles();
 
   return {
     id,
@@ -51,11 +52,15 @@ export function useNode<T extends NodeOutputs = NodeOutputs>(options: NodeOption
     outputs,
     nodeEvent,
     nodeTools,
-    ai: useNodeAi(),
+    ai: useNodeAi(() => {
+      const canvasId = getCanvasContext?.()?.id;
+      return { kind: "node", nodeId: id, ...(canvasId ? { canvasId } : {}) };
+    }, taskId => { node.data.generationTaskId = taskId; }),
     ffmpeg: useNodeFfmpeg(),
     files: {
       getWorkspaceFiles,
       useFileUrl,
+      useMediaPreview,
       uploadFile: (file: File) => uploadFile(id, file),
       removeNodeFiles: () => removeNodeFiles(id),
     },

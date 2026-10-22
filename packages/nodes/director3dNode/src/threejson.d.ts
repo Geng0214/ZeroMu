@@ -16,4 +16,6 @@ declare module "threejson/core" {
   }): Promise<SceneRuntime>;
   export function getObjectByThreeJsonId(threeJsonId: string, runtimeScope: Scene): Object3D | null;
   export function registerObject(object: Object3D, descriptor: object, options: { recursive: boolean }, runtimeScope: Scene): Object3D;
+  export function deployJsonObject(scene: Scene, descriptor: object): Object3D | null;
+  export function disposeObjectTree(object: Object3D): void;
 }

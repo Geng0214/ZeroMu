@@ -18,7 +18,10 @@ import { IconMaximize } from "@tabler/icons-vue";
 import xSender, { type AnyTagProps, type MentionItem } from "x-sender";
 import "x-sender/lib/XSender.css";
 
-const props = defineProps<{ references: (MentionItem & { value: string })[]; expandable?: boolean }>();
+const props = withDefaults(defineProps<{ references: (MentionItem & { value: string })[]; expandable?: boolean; expandedLayout?: boolean; placeholder?: string; minHeight?: number }>(), {
+  placeholder: "描述一下生成风格提示词，输入 @ 引用参考",
+  minHeight: 70,
+});
 const model = defineModel<AnyTagProps[][]>({ required: true });
 const text = defineModel<string>("text", { default: "" });
 const senderElement = ref<HTMLElement>();
@@ -183,8 +186,8 @@ watch(senderElement, (element, _previous, onCleanup) => {
   const initialModel: AnyTagProps[][] = model.value.length ? model.value : text.value.split("\n").map(text => [{ type: "Write", text }]);
   const instance = new xSender(element, {
     autoFocus: false,
-    placeholder: "描述一下生成风格提示词，输入 @ 引用参考",
-    chatStyle: { minHeight: "70px", maxHeight: "180px", fontSize: "14px", lineHeight: "1.6" },
+    placeholder: props.placeholder,
+    chatStyle: { minHeight: `${props.minHeight}px`, maxHeight: `${Math.max(180, props.minHeight)}px`, fontSize: "14px", lineHeight: "1.6" },
     getPopupContainer: () => popup,
     mentionConfig: { dialogTitle: "选择参考", callEvery: false, options: props.references },
     keyboardSendFun: () => false,
@@ -192,12 +195,15 @@ watch(senderElement, (element, _previous, onCleanup) => {
   });
   sender = instance;
   // ACT: 弹窗只移动现有编辑器，保留参考标签、光标与撤销记录。
-  const stopExpandedWatch = watch([expanded, expandedTarget], async ([visible, target]) => {
+  const stopExpandedWatch = watch([expanded, expandedTarget, () => props.expandedLayout], async ([visible, target, expandedLayout]) => {
     instance.bus.emit(xSender.EventSet.EVENT_COMMON_DIALOG_CLOSE);
-    instance.updateConfig({ chatStyle: { minHeight: visible ? "100%" : "70px", maxHeight: visible ? "100%" : "180px" } });
-    if (!visible || !target) return;
+    instance.updateConfig({ chatStyle: {
+      minHeight: visible ? "100%" : expandedLayout ? "min(42dvh, 400px)" : `${props.minHeight}px`,
+      maxHeight: visible ? "100%" : expandedLayout ? "min(42dvh, 400px)" : `${Math.max(180, props.minHeight)}px`,
+    } });
+    if (!(visible && target) && !expandedLayout) return;
     await nextTick();
-    if (sender !== instance || !expanded.value) return;
+    if (sender !== instance) return;
     popup.style.zIndex = String(nextZIndex());
   });
   const editor = instance.chatElement.richText;
@@ -369,6 +375,14 @@ function handleMentionKey(event: KeyboardEvent) {
   animation: none;
 }
 
+@media (max-width: 600px) {
+  :global(.textNodeMentions .chat-mention-dialog-wrap) {
+    left: 12px !important;
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+  }
+}
+
 .promptInput {
   display: block;
   cursor: text;
@@ -404,7 +418,7 @@ function handleMentionKey(event: KeyboardEvent) {
       height: 18px;
       flex-shrink: 0;
       object-fit: cover;
-      border-radius: 3px;
+      border-radius: calc(var(--ui-radius, 8px) * 0.375);
       pointer-events: none;
     }
   }

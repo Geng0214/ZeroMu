@@ -8,11 +8,19 @@
     "./mcp": "./src/utils/mcp/runtime.ts",
     "./agent/types": "./src/agent/runtime/types.ts",
     "./agent/mentionSources": "./src/agent/mentionSources.ts",
-    "./i18n": "./src/lib/i18n.ts"
+    "./production": "./src/utils/production/schema.ts",
+    "./production/batches": "./src/utils/production/batchSchema.ts",
+    "./production/references": "./src/utils/production/referenceState.ts",
+    "./i18n": "./src/lib/i18n.ts",
+    "./skills": "./src/utils/skills/files.ts",
+    "./studioDrafts": "./src/utils/studioDrafts/schema.ts",
+    "./promptLibrary": "./src/utils/promptLibrary/schema.ts",
+    "./productionTemplates": "./src/utils/productionTemplates/schema.ts"
   },
   "scripts": {
     "routes": "bun src/core.ts",
     "dev": "NODE_ENV=dev bun --watch src/index.ts",
+    "start:local": "NODE_ENV=dev bun src/index.ts",
     "build": "bun scripts/build.ts",
     "start": "bun ../../build/server/index.js",
     "typecheck": "tsc"
@@ -24,6 +32,7 @@
     "@earendil-works/pi-coding-agent": "^0.85.1",
     "@toonflow/ffmpeg": "workspace:*",
     "@toonflow/file": "workspace:*",
+    "@toonflow/i18n": "workspace:*",
     "@toonflow/mcp": "workspace:*",
     "@toonflow/providers": "workspace:*",
     "@toonflow/teams-scaffold": "workspace:*",
@@ -31,17 +40,15 @@
     "@toonflow/tool-media-generation": "workspace:*",
     "@toonflow/tools-scaffold": "workspace:*",
     "conf": "^15.1.0",
-    "cors": "^2.8.6",
+    "eventsource-parser": "3.1.1",
     "express": "^5.2.1",
-    "fast-glob": "^3.3.3",
     "fflate": "^0.8.3",
     "morgan": "^1.12.1",
+    "onnxruntime-node": "1.30.0",
     "wavefile": "^11.0.0",
-    "zod": "^4.6.2",
-    "@toonflow/i18n": "workspace:*"
+    "zod": "^4.6.2"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/morgan": "^1.9.10"
   }

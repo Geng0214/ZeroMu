@@ -1,26 +1,6 @@
 import { IntlMessageFormat } from "intl-messageformat";
 import { escapeMessageText } from "./messageText.ts";
 export { escapeMessageText } from "./messageText.ts";
-import zhTw from "./locales/zhTw.json";
-import en from "./locales/en.json";
-import ja from "./locales/ja.json";
-import ru from "./locales/ru.json";
-import vi from "./locales/vi.json";
-import th from "./locales/th.json";
-import ko from "./locales/ko.json";
-import hi from "./locales/hi.json";
-import id from "./locales/id.json";
-import ms from "./locales/ms.json";
-import fil from "./locales/fil.json";
-import bn from "./locales/bn.json";
-import ur from "./locales/ur.json";
-import ta from "./locales/ta.json";
-import te from "./locales/te.json";
-import mr from "./locales/mr.json";
-import pa from "./locales/pa.json";
-import ar from "./locales/ar.json";
-import fa from "./locales/fa.json";
-import tr from "./locales/tr.json";
 
 export type Locale = "zh-CN" | "zh-TW" | "en" | "ja" | "ru" | "vi" | "th" | "ko" | "hi"
   | "id" | "ms" | "fil" | "bn" | "ur" | "ta" | "te" | "mr" | "pa" | "ar" | "fa" | "tr";
@@ -35,7 +15,27 @@ export const supportedLocales: { code: Locale; name: string }[] = [
   { code: "te", name: "తెలుగు" }, { code: "mr", name: "मराठी" }, { code: "pa", name: "ਪੰਜਾਬੀ" },
   { code: "ar", name: "العربية" }, { code: "fa", name: "فارسی" }, { code: "tr", name: "Türkçe" },
 ];
-const catalogs: Record<string, Record<string, string>> = { "zh-TW": zhTw, en, ja, ru, vi, th, ko, hi, id, ms, fil, bn, ur, ta, te, mr, pa, ar, fa, tr };
+const catalogs: Record<string, Record<string, string>> = {};
+const catalogLoaders = {
+  "zh-TW": () => import("./locales/zhTw.json"), en: () => import("./locales/en.json"),
+  ja: () => import("./locales/ja.json"), ru: () => import("./locales/ru.json"), vi: () => import("./locales/vi.json"),
+  th: () => import("./locales/th.json"), ko: () => import("./locales/ko.json"), hi: () => import("./locales/hi.json"),
+  id: () => import("./locales/id.json"), ms: () => import("./locales/ms.json"), fil: () => import("./locales/fil.json"),
+  bn: () => import("./locales/bn.json"), ur: () => import("./locales/ur.json"), ta: () => import("./locales/ta.json"),
+  te: () => import("./locales/te.json"), mr: () => import("./locales/mr.json"), pa: () => import("./locales/pa.json"),
+  ar: () => import("./locales/ar.json"), fa: () => import("./locales/fa.json"), tr: () => import("./locales/tr.json"),
+};
+const loadingCatalogs = new Map<Locale, Promise<void>>();
+export function loadLocale(locale: Locale): Promise<void> {
+  if (locale === "zh-CN" || catalogs[locale]) return Promise.resolve();
+  let pending = loadingCatalogs.get(locale);
+  if (!pending) {
+    pending = catalogLoaders[locale]().then(module => { catalogs[locale] = module.default; })
+      .catch(error => { loadingCatalogs.delete(locale); throw error; });
+    loadingCatalogs.set(locale, pending);
+  }
+  return pending;
+}
 let activeLocale: Locale = "zh-CN";
 const listeners = new Set<(locale: Locale) => void>();
 const formatters = new Map<string, IntlMessageFormat>();
@@ -68,7 +68,11 @@ export function detectLocale(languages: readonly string[]): Locale {
 export function isRtlLocale(locale: Locale): boolean { return ["ar", "fa", "ur"].includes(locale); }
 
 export function getLocale(): Locale { return activeLocale; }
-export function setLocale(locale: Locale) {
+let localeRequest = 0;
+export async function setLocale(locale: Locale) {
+  const request = ++localeRequest;
+  await loadLocale(locale);
+  if (request !== localeRequest) return;
   if (locale === activeLocale) return;
   activeLocale = locale;
   for (const listener of listeners) listener(locale);

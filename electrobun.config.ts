@@ -7,9 +7,9 @@ const startupTarget = process.platform === "darwin" ? (process.arch === "x64" ? 
 export default {
   app: {
     name: "zeromu",
-    identifier: "local.toonflow.desktop",
+    identifier: "local.zeromu.desktop",
     version: appVersion,
-    urlSchemes: ["toonflow"],
+    urlSchemes: ["zeromu"],
   },
   build: {
     mainProcess: "bun",
@@ -17,12 +17,17 @@ export default {
     copy: {
       ...(process.platform === "win32" ? {
         "build/desktop/protocol/protocolLauncher.exe": "protocolLauncher.exe",
-        "build/desktop/protocol/saveFileDialog.exe": "saveFileDialog.exe",
+        "build/desktop/workers/saveFileDialogWorker.js": "saveFileDialogWorker.js",
         "build/desktop/protocol/updateHelper.exe": "updateHelper.exe",
-        "build/desktop/startup/windowsSplashWorker.js": "startup/windowsSplashWorker.js",
+        "build/desktop/workers/windowsSplashWorker.js": "startup/windowsSplashWorker.js",
       } : {}),
       "build/web": "views/mainview",
       "build/mcp": "mcp",
+      "build/server/toolConfigWorker.js": "toolConfigWorker.js",
+      "build/server/toolRuntimeWorker.js": "toolRuntimeWorker.js",
+      "build/server/providerWorker.js": "providerWorker.js",
+      "build/server/toolSyncClient.js": "toolSyncClient.js",
+      "build/server/node_modules": "node_modules",
       "build/tools": "tools",
       // ACT: 团队暂不打包，恢复时取消注释。
       // "build/agents": "agents",
@@ -47,7 +52,7 @@ export default {
   },
   release: {
     // ACT: 构建基线和补丁固定取 GitHub；客户端仅使用设置中的定制更新源。
-    baseUrl: `${process.env.GITHUB_SERVER_URL || "https://github.com"}/${process.env.GITHUB_REPOSITORY || "HBAI-Ltd/Toonflow-app"}/releases/latest/download`,
+    baseUrl: `${process.env.GITHUB_SERVER_URL || "https://github.com"}/${process.env.GITHUB_REPOSITORY || "Geng0214/ZeroMu"}/releases/latest/download`,
     // ACT: 常规构建不访问更新服务器；release:desktop 显式开启增量构建。
     generatePatch: process.env.generateUpdatePatch === "1",
   },

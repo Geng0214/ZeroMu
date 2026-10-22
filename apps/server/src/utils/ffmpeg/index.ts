@@ -3,6 +3,7 @@ import { dirname, join } from "node:path";
 import { build, createFfmpeg, downloadSources, getToolStatus, installFfmpeg, target } from "@toonflow/ffmpeg";
 import type { DownloadState, FfmpegMode, SourceId } from "@toonflow/ffmpeg";
 import conf from "@/utils/conf";
+import { assertProductionPath, assertProductionWrite } from "@/utils/production/format";
 
 export { executeRemoteFfmpeg } from "@toonflow/ffmpeg";
 
@@ -20,6 +21,7 @@ export function onRequired(listener: () => void) {
 
 export async function createWorkspaceFfmpeg(cwd: string, signal?: AbortSignal) {
   signal?.throwIfAborted();
+  await assertProductionWrite(cwd, []);
   const { tools } = await getStatus();
   signal?.throwIfAborted();
   if (!tools.ffmpeg.path || tools.ffmpeg.error || !tools.ffprobe.path || tools.ffprobe.error) {
@@ -28,7 +30,7 @@ export async function createWorkspaceFfmpeg(cwd: string, signal?: AbortSignal) {
       name: "FfmpegRequiredError", code: "FFMPEG_REQUIRED", status: 424,
     });
   }
-  const ffmpeg = createFfmpeg(cwd);
+  const ffmpeg = createFfmpeg(cwd, { validateOutput: path => assertProductionPath(cwd, [path]) });
   ffmpeg.setFfmpegPath(tools.ffmpeg.path);
   ffmpeg.setFfprobePath(tools.ffprobe.path);
   return ffmpeg;

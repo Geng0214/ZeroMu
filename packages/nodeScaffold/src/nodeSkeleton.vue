@@ -1,6 +1,7 @@
 <template>
   <div class="nodeSkeleton" @wheel.capture="zoomCanvas" @dblclick.stop="focusNode">
     <el-dropdown
+      v-if="menuReady"
       ref="menu"
       trigger="contextmenu"
       virtualTriggering
@@ -67,7 +68,7 @@
     <div
       v-if="bottomVisible && $slots.bottom && slotsVisible"
       class="floatingSlot bottomSlot nodrag nopan nowheel"
-      :style="{ width: typeof bottomWidth === 'number' ? `${bottomWidth}px` : bottomWidth }"
+      :style="bottomSlotStyle"
       @pointerdown.stop
       @mousedown.stop
       @dblclick.stop
@@ -219,6 +220,7 @@ const {
   minZoom,
   maxZoom,
   viewport,
+  dimensions,
   vueFlowRef,
   addNodes,
   addEdges,
@@ -245,6 +247,17 @@ const {
   onNodeClick,
   onSelectionStart,
 } = useVueFlow();
+const bottomSlotStyle = computed(() => {
+  if (typeof props.bottomWidth !== "number") return { width: props.bottomWidth };
+  const zoom = viewport.value.zoom;
+  const available = Math.max(0, dimensions.value.width - 32) / zoom;
+  const width = Math.min(props.bottomWidth, available || props.bottomWidth);
+  const center = node.computedPosition.x + node.dimensions.width / 2;
+  const left = (16 - viewport.value.x) / zoom + width / 2;
+  const right = (dimensions.value.width - 16 - viewport.value.x) / zoom - width / 2;
+  const offset = dimensions.value.width ? Math.max(left, Math.min(center, right)) - center : 0;
+  return { width: `${width}px`, left: `calc(50% + ${offset}px)` };
+});
 const localStartHandle = computed(() => (connectionStartHandle.value?.nodeId === nodeId ? connectionStartHandle.value : undefined));
 const localEndHandle = computed(() => (connectionEndHandle.value?.nodeId === nodeId ? connectionEndHandle.value : undefined));
 const localSelectionConnection = computed(() => (selectionConnection?.value?.nodeId === nodeId ? selectionConnection.value : undefined));
@@ -311,6 +324,7 @@ const reloadRemoteNode = inject<((type: string) => Promise<void>) | undefined>("
 const reloading = ref(false);
 const deleting = ref(false);
 const menu = ref<DropdownInstance>();
+const menuReady = ref(false);
 const menuAnchor = shallowRef({ getBoundingClientRect: () => new DOMRect() });
 onPaneClick(() => menu.value?.handleClose());
 onPaneContextMenu(() => menu.value?.handleClose());
@@ -340,6 +354,7 @@ async function openMenu(event: MouseEvent | TouchEvent) {
   const point = "changedTouches" in event ? event.changedTouches[0] : event;
   if (!point) return;
   menuAnchor.value = { getBoundingClientRect: () => new DOMRect(point.clientX, point.clientY, 0, 0) };
+  menuReady.value = true;
   await nextTick();
   menu.value?.handleOpen();
 }
@@ -651,7 +666,7 @@ watch(
 
       .handleIcon {
         pointer-events: none;
-        opacity: 0;
+        opacity: var(--node-handle-opacity, 0);
         transform: translate(var(--handleX, 0px), var(--handleY, 0px));
         transition: transform 120ms ease-out, opacity 120ms ease-out;
       }

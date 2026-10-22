@@ -6,7 +6,12 @@ export default {
   build: {
     bun: { entrypoint: "generated/src/index.ts", minify: true },
     copy: {
+      "../../build/server/node_modules": "node_modules",
       "../../build/mcp": "mcp",
+      "../../build/server/toolConfigWorker.js": "toolConfigWorker.js",
+      "../../build/server/toolRuntimeWorker.js": "toolRuntimeWorker.js",
+      "../../build/server/providerWorker.js": "providerWorker.js",
+      "../../build/server/toolSyncClient.js": "toolSyncClient.js",
       "../../build/web": "views/mainview",
       "../../build/tools": "tools",
       "../../build/nodes": "nodes",

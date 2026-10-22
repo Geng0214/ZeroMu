@@ -92,6 +92,7 @@ export function runDesktopUpdate(nextAction: NonNullable<typeof desktopUpdateAct
     if (nextAction === "read" || readFirst) {
       const snapshot = await readUpdate(source, controller.signal);
       if (nextAction === "read" || desktopUpdateKey.value !== source || snapshot.channel === "dev" || snapshot.updating
+        || (nextAction === "check" && snapshot.sourceConfigured === false)
         || snapshot.updateAvailable || snapshot.updateReady || snapshot.installFailure)
         return observeUpdate(snapshot, source, controller.signal);
     }

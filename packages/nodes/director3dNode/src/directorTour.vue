@@ -4,6 +4,7 @@
       v-for="(step, index) in steps"
       :key="step.target"
       :target="() => root?.querySelector<HTMLElement>(step.target) ?? null"
+      :placement="step.placement"
       :title="step.title"
       :description="step.description"
       :prevButtonProps="{ children: '上一步' }"
@@ -17,40 +18,49 @@ import { ref } from "vue";
 import { ElTour, ElTourStep } from "element-plus";
 
 defineProps<{ root?: HTMLElement }>();
-const storageKey = "toonflow.director3dTour";
+const storageKey = "zeromu.directorStageTour.v2";
 const open = ref(localStorage.getItem(storageKey) !== "true");
 const steps = [
   {
-    target: ".chatFooter",
-    title: "生成场景与方案",
-    description: "描述场景模型、人物动作和镜头要求，再点击“生成方案”。画布上如果有链接的文本、图片和视频，可以通过 @ 引用。",
+    target: ".addControl",
+    placement: "right",
+    title: "布置场景",
+    description: "从左侧添加人偶、基础几何体或群众阵列。在对象列表或画面中选择模型，右侧可以修改站位、颜色和姿态。",
   },
   {
-    target: ".planContent",
-    title: "查看与切换方案",
-    description: "生成的方案会出现在这里。点击方案从头预览对应动画，并查看生成时的输入提示词；也可以继续输入要求生成新方案。多个方案共用基础场景和模型。",
+    target: ".inspectorTabs",
+    placement: "left",
+    title: "属性与 AI 方案",
+    description: "属性用于手动调整对象；切换到 AI 方案后，可以描述场景、人物动作和运镜生成动画。多个方案共用基础场景。",
   },
   {
-    target: ".viewport",
-    title: "第一人称取景",
-    description: "点击三维画面后，用鼠标调整朝向。WASD 移动，空格上升，Shift 下降，滚轮调焦；左键或 Esc 退出取景。",
+    target: ".stageToolbar",
+    placement: "bottom",
+    title: "调整视角",
+    description: "导演视角：左键拖动环绕、右键拖动平移、滚轮缩放。选择对象后使用移动、旋转、缩放工具。第一人称取景模式支持拖动转向、WASD 移动与滚轮调焦，也可点击画面锁定鼠标。",
   },
   {
-    target: ".stagePanel .referenceList",
-    title: "记录关键帧",
-    description: "取景时按右键，或点击“添加关键帧”记录当前镜头。这里的关键帧可以拖动排序、点击回看或删除。再次生成方案时，AI 会参考这些取景及其顺序设计运镜。点击导出按钮可以导出关键帧图片。",
+    target: ".referenceHeader",
+    placement: "top",
+    title: "保存机位",
+    description: "点击保存机位记录当前构图、画幅与时间。机位可以命名、拖动排序和回看；截图到画布可以直接生成构图参考图片。再次生成方案时，AI 会参考这些机位。",
   },
   {
     target: ".playbackBar",
+    placement: "top",
     title: "播放与画面设置",
     description: "用播放按钮和进度条检查动画；在这里调整画面比例、网格、天空与光照，让预演画面更符合你的想法。",
   },
   {
     target: '[aria-label="导出视频节点"]',
+    placement: "top",
     title: "导出到画布",
     description: "选中方案后，点击这里导出视频节点。关键帧缩略图上的导出按钮可以生成图片节点。视频导出期间请保持窗口可见，完成后回到画布查看结果。",
   },
-];
+] as const;
+
+function openGuide() { open.value = true; }
+defineExpose({ openGuide });
 
 function complete() {
   localStorage.setItem(storageKey, "true");

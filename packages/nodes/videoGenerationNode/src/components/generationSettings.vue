@@ -2,8 +2,8 @@
   <el-popover trigger="click" placement="top-start" width="min(340px, calc(100vw - 24px))" :disabled="disabled" :showArrow="false" :popperStyle="{ padding: '14px' }">
     <template #reference>
       <el-button class="settingsButton" text size="small" :disabled="disabled" aria-label="视频生成设置">
-        <span class="ratioShape" :style="ratioStyle(ratio)" aria-hidden="true" />
-        <span>{{ [ratio, resolution, duration ? `${duration}秒` : ''].filter(Boolean).join(' · ') }}</span>
+        <span v-if="ratio" class="ratioShape" :style="ratioStyle(ratio)" aria-hidden="true" />
+        <span>{{ [ratio, resolution, duration ? `${duration}秒` : '', model?.audio !== false && generateAudio ? '有声' : ''].filter(Boolean).join(' · ') || '渠道默认' }}</span>
         <icon-chevron-up :size="14" aria-hidden="true" />
       </el-button>
     </template>
@@ -15,19 +15,20 @@
       <div v-if="durations.length || resolutions.length" class="outputOptions">
         <div v-if="durations.length" class="outputField">
           <div class="sectionLabel">时长</div>
-          <el-select v-model="duration" :disabled="disabled" :teleported="false" aria-label="视频时长">
+          <el-select v-model="duration" clearable placeholder="渠道默认" :disabled="disabled" :teleported="false" aria-label="视频时长">
             <el-option v-for="item in durations" :key="item" :value="item" :label="`${item}秒`" />
           </el-select>
         </div>
         <div v-if="resolutions.length" class="outputField">
           <div class="sectionLabel">分辨率</div>
-          <el-select v-model="resolution" :disabled="disabled" :teleported="false" aria-label="视频分辨率">
+          <el-select v-model="resolution" clearable placeholder="渠道默认" :disabled="disabled" :teleported="false" aria-label="视频分辨率">
             <el-option v-for="item in resolutions" :key="item" :value="item" :label="item" />
           </el-select>
         </div>
       </div>
-      <div class="sectionLabel">通用比例</div>
+      <div class="sectionLabel">模型比例</div>
       <div class="ratioOptions" role="group" aria-label="视频比例">
+        <el-button class="ratioButton" :disabled="disabled" :aria-pressed="!ratio" @click="ratio = ''">渠道默认</el-button>
         <el-button v-for="item in ratios" :key="item" class="ratioButton" :disabled="disabled" :aria-label="`比例 ${item}`" :aria-pressed="ratio === item" @click="ratio = item">
           <span class="ratioContent">
             <span class="ratioShape" :style="ratioStyle(item)" aria-hidden="true" />
@@ -67,7 +68,7 @@ const durations = computed(() => [...new Set(mappings.value.flatMap(item => item
 const resolutions = computed(() => resolutionsFor(duration.value));
 
 function resolutionsFor(value: number | undefined) {
-  return [...new Set(mappings.value.filter(item => value !== undefined && item.duration.includes(value)).flatMap(item => item.resolution))];
+  return [...new Set(mappings.value.filter(item => value === undefined || item.duration.includes(value)).flatMap(item => item.resolution))];
 }
 
 function ratioStyle(value: string) {
@@ -81,7 +82,7 @@ function ratioStyle(value: string) {
   display: inline-block;
   flex-shrink: 0;
   border: 1px solid currentColor;
-  border-radius: 2px;
+  border-radius: calc(var(--ui-radius, 8px) * 0.25);
   box-sizing: border-box;
 }
 

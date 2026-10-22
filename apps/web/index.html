@@ -2,14 +2,20 @@
 <html lang="zh-CN" data-theme="light">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>零幕 · ZEROMU</title>
     <meta name="application-name" content="零幕 ZEROMU" />
     <meta name="description" content="零幕：从零开始，创造第一幕。AI 影像与漫剧创作工作台。" />
     <link rel="icon" type="image/png" href="../../packages/assets/zeromuIcon.png" />
+    <style>
+      html { background: #101111; }
+      body { margin: 0; }
+      .bootState { min-height: 100dvh; display: grid; place-content: center; gap: 12px; text-align: center; color: #aaada6; background: #101111; font: 14px/1.6 system-ui, sans-serif; }
+      .bootState strong { color: #f1f1ec; font-size: 22px; font-weight: 600; }
+    </style>
   </head>
   <body>
-    <div id="app"></div>
+    <div id="app"><div class="bootState" role="status"><strong>零幕 · ZEROMU</strong><span>正在打开工作台…</span></div></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

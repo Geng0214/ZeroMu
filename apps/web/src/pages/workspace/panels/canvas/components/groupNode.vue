@@ -208,7 +208,7 @@ watch(
     height: 9px;
     padding: 0;
     border: 1px solid var(--el-color-primary);
-    border-radius: 2px;
+    border-radius: calc(var(--ui-radius, 8px) * 0.25);
     background: var(--el-bg-color);
     opacity: 0;
     touch-action: none;

@@ -43,9 +43,10 @@
 </template>
 
 <script setup lang="ts">
+import { textNodeIcon, imageNodeIcon, videoNodeIcon, audioNodeIcon } from "../nodeIcons";
 import { computed, ref, watch } from "vue";
 import { ElButton, ElImage } from "element-plus";
-import { IconX, IconFileText, IconPhoto, IconVideo, IconMusic, IconPlayerPlay } from "@tabler/icons-vue";
+import { IconX, IconPlayerPlay } from "@tabler/icons-vue";
 import { useNodeFiles } from "../workspaceFiles";
 import type { NodeInputValue } from "../values";
 
@@ -56,7 +57,7 @@ const previewError = ref("");
 const duration = ref("");
 const videoThumbnail = ref("");
 const media = computed(() => props.item.value !== undefined && (props.item.dataType === "IMAGE" || props.item.dataType === "VIDEO") ? { ...props.item.value } : undefined);
-const itemIcon = computed(() => props.item.dataType === "IMAGE" ? IconPhoto : props.item.dataType === "VIDEO" ? IconVideo : props.item.dataType === "AUDIO" ? IconMusic : IconFileText);
+const itemIcon = computed(() => props.item.dataType === "IMAGE" ? imageNodeIcon : props.item.dataType === "VIDEO" ? videoNodeIcon : props.item.dataType === "AUDIO" ? audioNodeIcon : textNodeIcon);
 const title = computed(() => {
   const content = props.item.value === undefined ? "暂无内容" : props.item.dataType === "STRING" ? props.item.value : props.item.dataType === "VIDEO" ? "视频" : props.item.dataType === "AUDIO" ? "音频" : "图片";
   return `引用 ${props.index}：${content}${previewError.value ? `（${previewError.value}）` : ""}`;
@@ -108,8 +109,8 @@ function readDuration(event: Event) {
   place-items: center;
   flex-shrink: 0;
   box-sizing: border-box;
-  width: 48px;
-  height: 48px;
+  width: var(--reference-size, 48px);
+  height: var(--reference-size, 48px);
   overflow: hidden;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: var(--el-border-radius-base, 8px);
@@ -153,7 +154,7 @@ function readDuration(event: Event) {
     left: 2px;
     min-width: 13px;
     padding: 0 2px;
-    border-radius: 3px;
+    border-radius: calc(var(--ui-radius, 8px) * 0.375);
     background: var(--el-bg-color-overlay);
     color: var(--el-text-color-primary);
     font-size: 9px;

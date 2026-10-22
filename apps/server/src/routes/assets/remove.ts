@@ -1,9 +1,11 @@
 import { lstat, rmdir, unlink } from "@toonflow/file";
+import { relative } from "node:path";
 import { Router } from "express";
 import { z } from "zod";
 import u from "@/utils";
 import { validateFields } from "@/lib/middleware";
 import { success } from "@/lib/responseFormat";
+import { relocateMetadata } from '@/utils/assets/metadata';
 
 const router = Router();
 
@@ -15,6 +17,7 @@ export default router.delete("/", validateFields({ path: z.string().min(1).max(4
   try {
     if ((await lstat(path)).isDirectory()) await rmdir(path);
     else await unlink(path);
+    await relocateMetadata(relative(root, path));
   } finally { release(); }
   res.json(success());
 });

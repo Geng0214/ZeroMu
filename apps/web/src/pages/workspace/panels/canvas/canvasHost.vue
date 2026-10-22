@@ -21,11 +21,14 @@
 <script setup lang="ts">
 import { computed, onScopeDispose, provide, shallowReactive, shallowRef, ref, watch, type ComponentPublicInstance } from "vue";
 import type { CanvasContext } from "@toonflow/tool-canvas/runtime";
+import type { ProductionSelection } from "@toonflow/server/production";
+import axios from "axios";
 import { waitForControlValue } from "@/lib/mcpControl";
 import canvasPanel from "./index.vue";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { createCanvasMention, mentionNodeOutputs, queryMentionNodes, type MentionCanvasSource } from "@toonflow/server/agent/mentionSources";
+import type { CanvasHistoryState } from "./useCanvasHistory";
 
 const props = withDefaults(defineProps<{ active?: boolean; settingsVisible?: boolean }>(), { active: true, settingsVisible: false });
 type CanvasInstance = InstanceType<typeof canvasPanel>;
@@ -37,9 +40,13 @@ const canvasId = computed(() => activeInstance.value?.canvasId ?? "");
 const canvasReady = computed(() => activeInstance.value?.canvasReady ?? false);
 const lifetime = new AbortController();
 const workspaceStore = useWorkspaceStore();
-const canvases = shallowRef<{ id: string }[]>([]);
+watch(canvasId, value => { const directory = workspaceStore.project?.directory; if (directory && value) workspaceStore.lastCanvas = { directory, canvasId: value }; });
+const canvases = shallowRef<{ id: string; flow?: unknown }[]>([]);
+const histories = new WeakMap<object, CanvasHistoryState>();
+const lastUsed = new Map<string, number>();
 provide("canvasList", canvases);
-provide("canvasAssetNodes", (id: string) => [...instances.values()].find(panel => panel.canvasId === id)?.getRetainedNodes() ?? []);
+provide("canvasAssetNodes", (id: string) => [...instances.values()].find(panel => panel.canvasId === id)?.getRetainedNodes()
+  ?? histories.get(canvases.value.find(canvas => canvas.id === id) ?? {})?.nodes ?? []);
 watch(canvases, (current, previous) => {
   const removed = new Set(previous.filter(canvas => !current.includes(canvas)).map(canvas => canvas.id));
   if (!removed.size) return;
@@ -53,6 +60,33 @@ watch(canvases, (current, previous) => {
   if (!entries.value.some(entry => entry.key === activeKey.value)) activeKey.value = entries.value[0]?.key ?? "";
 }, { flush: "sync" });
 onScopeDispose(() => lifetime.abort(new Error("工作区已关闭")));
+let releasing = false;
+async function releaseIdleCanvases() {
+  if (releasing || lifetime.signal.aborted || entries.value.length <= 4) return;
+  releasing = true;
+  try {
+    const candidates = entries.value.filter(entry => entry.key !== activeKey.value && Date.now() - (lastUsed.get(entry.key) ?? 0) >= 30000)
+      .sort((a, b) => (lastUsed.get(a.key) ?? 0) - (lastUsed.get(b.key) ?? 0));
+    for (const entry of candidates) {
+      if (entries.value.length <= 4 || lifetime.signal.aborted) break;
+      const panel = instances.get(entry.key);
+      if (!panel?.canRelease) continue;
+      await panel.flushSave();
+      if (entry.key === activeKey.value || !panel.canRelease || lifetime.signal.aborted) continue;
+      const canvas = canvases.value.find(canvas => canvas.id === panel.canvasId);
+      if (!canvas) continue;
+      histories.set(canvas, panel.exportHistory());
+      delete canvas.flow;
+      // ACT: 保留轻量撤销数据，只释放闲置渲染实例；未声明可卸载状态的旧插件继续保留。
+      panel.cancelSave();
+      entries.value = entries.value.filter(item => item !== entry);
+      lastUsed.delete(entry.key);
+    }
+  } catch (error) { console.warn("空闲画布暂未释放", error); }
+  finally { releasing = false; }
+}
+const releaseTimer = setInterval(() => void releaseIdleCanvases(), 30000);
+onScopeDispose(() => clearInterval(releaseTimer));
 
 function setInstance(key: string, value: Element | ComponentPublicInstance | null) {
   if (value) instances.set(key, value as CanvasInstance);
@@ -65,11 +99,19 @@ async function activateCanvas(fileName: string, signal?: AbortSignal) {
   const previousKey = activeKey.value;
   let entry = entries.value.find(item => instances.get(item.key)?.canvasId === fileName || (!instances.get(item.key)?.canvasId && item.fileName === fileName));
   if (!entry) {
-    // ACT: 已打开的画布保留至退出工作区，避免卸载后台节点任务；大量画布时可按任务引用回收空闲实例。
+    // 初始实例正在载入路由画布时先等它完成，避免同一文件被两个实例分别初始化，覆盖刚设置的选择与视口。
+    const initializing = entries.value.find(item => !item.fileName && !instances.get(item.key)?.canvasId && !instances.get(item.key)?.loadError);
+    if (initializing) {
+      await waitForControlValue(() => { const panel = instances.get(initializing.key); return panel?.canvasReady || panel?.loadError ? panel : undefined; }, callSignal);
+      entry = entries.value.find(item => instances.get(item.key)?.canvasId === fileName);
+    }
+  }
+  if (!entry) {
     entry = { key: crypto.randomUUID(), fileName };
     entries.value = [...entries.value, entry];
   }
   activeKey.value = entry.key;
+  lastUsed.set(entry.key, Date.now());
   const key = entry.key;
   try {
     const panel = await waitForControlValue(() => {
@@ -77,6 +119,9 @@ async function activateCanvas(fileName: string, signal?: AbortSignal) {
       return instance?.canvasReady || instance?.loadError ? instance : undefined;
     }, callSignal);
     if (panel.loadError) throw new Error(panel.loadError);
+    const canvas = canvases.value.find(canvas => canvas.id === fileName);
+    const history = canvas && histories.get(canvas);
+    if (history) { panel.importHistory(history); histories.delete(canvas!); }
   } catch (error) {
     if (activeKey.value === key) activeKey.value = previousKey;
     if (!instances.get(key)?.canvasId) entries.value = entries.value.filter(item => item.key !== key);
@@ -156,7 +201,39 @@ const mentionSource: MentionCanvasSource = {
   },
 };
 
-defineExpose({ canvasId, canvasReady, getCanvasContext, readDocumentNode, saveDocumentNode, flushSave, cancelSave,
+async function locateTask(id: string, nodeId?: string) {
+  await activateCanvas(id);
+  if (!nodeId) return;
+  const context = getCanvasContext();
+  if (!context) throw new Error("画布仍未加载完成，请重新定位");
+  await context.call({ name: "selectNodes", args: { nodeIds: [nodeId] } });
+  await context.call({ name: "fitCanvas", args: { nodeIds: [nodeId] } });
+}
+async function applyProductionSelection(shotId: string, directory: string) {
+  if (directory !== workspaceStore.project?.directory) throw new Error("项目已切换，请重新同步采用结果");
+  const { data } = await axios.get<{ data: ProductionSelection }>("/api/production/selection", { params: { directory, shotId }, headers: { "x-toonflow-workspace": "1" }, signal: lifetime.signal });
+  if (directory !== workspaceStore.project?.directory) throw new Error("项目已切换，采用记录保留在原项目");
+  const selection = data.data;
+  if (!selection.canvasId || !selection.nodeId) return selection;
+  await activateCanvas(selection.canvasId, lifetime.signal);
+  const panel = [...instances.values()].find(panel => panel.canvasId === selection.canvasId);
+  if (!panel) throw new Error("绑定画布暂无法打开，请重新同步");
+  await panel.applyProductionSelection(selection, directory);
+  return selection;
+}
+async function openDirectorSource(captureId: string) {
+  const directory = workspaceStore.project?.directory;
+  if (!directory) throw new Error("请先打开项目");
+  const { data } = await axios.get<{ data: import("@toonflow/nodes-scaffold/directorProduction").DirectorCapture }>("/api/production/director/capture", { params: { directory, captureId }, headers: { "x-toonflow-workspace": "1" }, signal: lifetime.signal });
+  if (directory !== workspaceStore.project?.directory || !data.data.canvasId) throw new Error("机位所属项目已切换或缺少画布位置");
+  await activateCanvas(data.data.canvasId, lifetime.signal);
+  const panel = [...instances.values()].find(panel => panel.canvasId === data.data.canvasId);
+  if (!panel) throw new Error("机位所属画布尚未打开，请重试");
+  await panel.openDirectorSource(data.data);
+}
+function hasProductionSelection(canvasId: string, nodeId: string, candidateId: string) { return [...instances.values()].find(panel => panel.canvasId === canvasId)?.hasProductionSelection(nodeId, candidateId) || false; }
+defineExpose({ canvasId, canvasReady, getCanvasContext, readDocumentNode, saveDocumentNode, flushSave, cancelSave, locateTask,
+  applyProductionSelection, hasProductionSelection, openDirectorSource,
   mentionSource,
   get saveBusy() { return [...instances.values()].some(panel => panel.saveBusy); },
 });

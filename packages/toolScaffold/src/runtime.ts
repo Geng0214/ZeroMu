@@ -3,6 +3,7 @@ import type { Rule } from "@form-create/element-ui";
 import type { FfmpegFactory } from "@toonflow/ffmpeg/types";
 import type { Stats } from "@toonflow/file";
 import { z } from "zod";
+export { getMediaCapabilityError, getMediaReferenceLimits, supportsImageSize } from "@toonflow/providers/mediaCapabilities";
 
 export type { ToolDefinition } from "@earendil-works/pi-coding-agent";
 export type { FfmpegFactory, FfmpegCommand, FfprobeData } from "@toonflow/ffmpeg/types";
@@ -79,10 +80,17 @@ export interface MediaModel {
   type: "image" | "video" | "audio";
   mode?: unknown;
   imageSizes?: string[];
+  imageSizeRange?: import("@toonflow/providers/mediaCapabilities").ImageSizeRange;
   imageRatios?: string[];
+  videoRatios?: string[];
+  maxImageCount?: number;
+  imageReferenceLimit?: number;
+  imageQualities?: ("low" | "medium" | "high")[];
   durationResolutionMap?: { duration: number[]; resolution: string[] }[];
   audio?: boolean | "optional";
   voices?: { title: string; voice: string }[];
+  audioFormats?: string[];
+  audioSpeedRange?: { min: number; max: number };
 }
 
 export interface MediaReference {
@@ -102,6 +110,10 @@ export interface MediaGenerationRequest {
   lastFrame?: MediaReference;
   ratio?: string;
   size?: string;
+  quality?: string;
+  n?: number;
+  /** 服务端在创建任务时冻结的图片传输设置；提交接口不接受客户端覆盖。 */
+  imageTransport?: { streamImages: boolean; codexCli: boolean; returnBase64?: boolean };
   resolution?: string;
   duration?: number;
   generateAudio?: boolean;
@@ -115,16 +127,55 @@ export interface MediaGenerationRequest {
 }
 
 export interface GeneratedMedia {
+  taskId?: string;
+  contentHash?: string;
+  warning?: string;
   path: string;
   mimeType: string;
   mediaType: "image" | "video" | "audio";
 }
 
+export interface MediaTaskSource {
+  kind: "studio" | "node" | "agent" | "legacy" | "batch";
+  batchId?: string;
+  batchItemId?: string;
+  projectId?: string;
+  canvasId?: string;
+  nodeId?: string;
+  shotId?: string;
+  directorShotId?: string;
+  imageEdit?: { contextId: string; sourceCandidateId: string };
+  toolCallId?: string;
+  referenceVersions?: { assetId: string; versionId: string; role?: string }[];
+  shotReferenceVersions?: { assetId: string; versionId: string; role?: string }[];
+}
+
+export interface MediaTaskRecord {
+  cost?: import("@toonflow/providers/mediaCosts").MediaTaskCost;
+  archived?: boolean;
+  id: string;
+  directory: string;
+  mediaType: "image" | "video" | "audio";
+  source: MediaTaskSource;
+  request: MediaGenerationRequest;
+  createdAt: number;
+  updatedAt: number;
+  status: "queued" | "submitting" | "running" | "downloading" | "unknown" | "interrupted" | "completed" | "partial" | "failed" | "cancelled";
+  phase: "validation" | "submission" | "generation" | "download";
+  providerTaskId?: string;
+  canResume: boolean;
+  collectionError?: string;
+  collectionPending?: boolean;
+  canCancel: boolean;
+  error?: string;
+  results: GeneratedMedia[];
+}
+
 export interface MediaContext {
   listModels(): Promise<MediaModel[]>;
-  generateImage(request: MediaGenerationRequest, signal?: AbortSignal): Promise<GeneratedMedia[]>;
-  generateVideo(request: MediaGenerationRequest, signal?: AbortSignal): Promise<GeneratedMedia[]>;
-  generateAudio(request: MediaGenerationRequest, signal?: AbortSignal): Promise<GeneratedMedia[]>;
+  generateImage(request: MediaGenerationRequest, signal?: AbortSignal, source?: Partial<MediaTaskSource>): Promise<GeneratedMedia[]>;
+  generateVideo(request: MediaGenerationRequest, signal?: AbortSignal, source?: Partial<MediaTaskSource>): Promise<GeneratedMedia[]>;
+  generateAudio(request: MediaGenerationRequest, signal?: AbortSignal, source?: Partial<MediaTaskSource>): Promise<GeneratedMedia[]>;
 }
 
 export interface QuestionField {

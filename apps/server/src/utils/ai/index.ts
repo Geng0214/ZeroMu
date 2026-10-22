@@ -2,14 +2,16 @@ import { openAICompletionsApi } from "@earendil-works/pi-ai/api/openai-completio
 import { openAIResponsesApi } from "@earendil-works/pi-ai/api/openai-responses.lazy";
 import { anthropicMessagesApi } from "@earendil-works/pi-ai/api/anthropic-messages.lazy";
 import { getBuiltinModels, getBuiltinProviders } from "@earendil-works/pi-ai/providers/all";
-import type { Context, Model } from "@earendil-works/pi-ai";
+import type { Context, Model, SimpleStreamOptions } from "@earendil-works/pi-ai";
 import { z } from "zod";
 import conf from "@/utils/conf";
 import { orderByDefaultModel } from "@/utils/modelDefaults";
 import { readReference } from "@/utils/media/generation";
 import modelContextLimits from "@/utils/ai/modelContextLimits";
+import { assertApiUrl } from "@/utils/conf/credentialSettings";
+import { credentialFetch } from "@/utils/conf/credentialFetch";
 
-export { fetchProviderModels } from "@/utils/ai/models";
+export { fetchProviderModels, providerModelCredentials } from "@/utils/ai/models";
 
 export const providerSchema = z.object({
   apiUrl: z.url({ protocol: /^https?$/ }),
@@ -48,6 +50,7 @@ export function getConfiguredModel(providerId: string, modelId: string) {
   const parsed = providerSchema.safeParse(Array.isArray(providers) ? providers.find(item => item?.id === providerId) : undefined);
   if (!parsed.success) throw Object.assign(new Error("请先在设置中配置模型供应商"), { status: 400 });
   const provider = parsed.data;
+  assertApiUrl(provider.apiUrl);
   const model = provider.models.find(item => item.id === modelId);
   if (!model) throw Object.assign(new Error("所选模型不存在，请重新选择"), { status: 400 });
   const baseUrl = new URL(provider.apiUrl);
@@ -61,7 +64,7 @@ export function listAiModels() {
   if (!Array.isArray(providers)) return [];
   return orderByDefaultModel(providers.flatMap(item => {
     const parsed = providerSchema.extend({ id: z.string().min(1), label: z.string() }).safeParse(item);
-    if (!parsed.success) return [];
+    if (!parsed.success || !parsed.data.apiKey.trim()) return [];
     const provider = parsed.data;
     return provider.models.filter(model => model.id.trim()).map(model => {
       const limits = getModelLimits(provider.id, model);
@@ -78,6 +81,12 @@ const aiApis = {
   "openai-responses": openAIResponsesApi(),
   "anthropic-messages": anthropicMessagesApi(),
 };
+
+export function streamWithCredentials(provider: z.infer<typeof providerSchema>, model: Model<any>, context: Context, options?: SimpleStreamOptions) {
+  return aiApis[provider.protocol].streamSimple(model, context, {
+    ...options, apiKey: provider.apiKey, fetch: credentialFetch(provider.apiUrl, provider.apiKey), transport: "sse",
+  });
+}
 
 export const aiReferenceSchema = z.discriminatedUnion("dataType", [
   z.object({ dataType: z.literal("STRING"), value: z.string().max(1000000) }),
@@ -135,8 +144,7 @@ export function streamAi(
     maxTokens: configuredModel.maxOutputTokens,
   };
   // ACT: 不按模型名预判附件能力；按供应商协议传递，是否支持由上游接口决定。
-  return aiApis[provider.protocol].streamSimple(model, context, {
-    apiKey: provider.apiKey,
+  return streamWithCredentials(provider, model, context, {
     signal,
     onPayload: references.length ? (payload) => {
       const body = payload as Record<string, unknown>;

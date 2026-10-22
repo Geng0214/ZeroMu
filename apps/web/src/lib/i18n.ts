@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance } from "axios";
+import { ElMessage } from "element-plus";
 import { computed, watch } from "vue";
-import { detectLocale, isRtlLocale } from "@toonflow/i18n";
+import { isRtlLocale } from "@toonflow/i18n";
 import { locale, setLocale, translate } from "@toonflow/i18n/vue";
 import { uiSettings } from "@/stores/settings";
 import type { LocaleConfig } from "vue-stream-markdown";
@@ -36,19 +37,17 @@ export function registerApiLanguage(client: AxiosInstance) {
 }
 
 export function registerLanguage() {
-  const applyLanguage = () => setLocale(uiSettings.value.language === "system" ? detectLocale(navigator.languages) : uiSettings.value.language);
+  const applyLanguage = () => { void setLocale(uiSettings.value.language).catch(() => ElMessage.error("语言包加载失败，请检查连接后重新选择语言")); };
   const stopSettings = watch(() => uiSettings.value.language, applyLanguage, { immediate: true, flush: "sync" });
   const stopDocument = watch(locale, value => {
     document.documentElement.lang = value;
     document.documentElement.dir = isRtlLocale(value) ? "rtl" : "ltr";
   }, { immediate: true });
   const stopRequests = registerApiLanguage(axios);
-  window.addEventListener("languagechange", applyLanguage);
   return () => {
     stopSettings();
     stopDocument();
     stopRequests();
-    window.removeEventListener("languagechange", applyLanguage);
   };
 }
 

@@ -21,6 +21,7 @@ export type updateSnapshot = {
   updateReady: boolean;
   updating: boolean;
   canUpdate: boolean;
+  sourceConfigured?: boolean;
   installFailure?: {
     attemptId: string;
     targetVersion: string;

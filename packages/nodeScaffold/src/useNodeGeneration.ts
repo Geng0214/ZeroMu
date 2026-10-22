@@ -16,7 +16,7 @@ export function useNodeGeneration(outputs: Readonly<Ref<NodeOutputs>>, cancel: (
   });
   nodeTools.register({
     name: "cancelGeneration",
-    description: "请求停止当前后台生成；cancellationRequested 表示已发出停止请求，随后用 getGenerationStatus 查询终止状态。不会删除已有输出，不能保证供应商撤销任务或费用",
+    description: "停止本节点等待生成；cancellationRequested 表示已停止等待，已提交任务会继续在任务中心记录。此操作不终止远端生成或停止计费",
     parameters: z.strictObject({}),
     execute() {
       const cancellationRequested = generating.value;
@@ -36,7 +36,7 @@ export function useNodeGeneration(outputs: Readonly<Ref<NodeOutputs>>, cancel: (
     } catch (failure) {
       status.value = "failed";
       const message = (failure as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      error.value = failure instanceof Error && failure.name === "AbortError" ? "生成已取消"
+      error.value = failure instanceof Error && failure.name === "AbortError" ? "已停止等待，请在任务中心查看后台任务；远端生成与计费可能继续"
         : message || (failure instanceof Error ? failure.message : "生成失败");
       throw failure;
     }

@@ -4,6 +4,7 @@ import { useVueFlow, type Node, type Edge } from "@vue-flow/core";
 import { useNodeEvent } from "@toonflow/nodes-scaffold/nodeEvent";
 
 type CanvasSnapshot = { nodes: Node[]; edges: Edge[]; key: string };
+export type CanvasHistoryState = { snapshots: CanvasSnapshot[]; cursor: number; nodes: { id: string; data: Node["data"] }[]; edges: { id: string; data: Edge["data"] }[] };
 
 export function useCanvasHistory(flow: ReturnType<typeof useVueFlow>, binding: () => string) {
   const snapshots = shallowRef<CanvasSnapshot[]>([]);
@@ -176,5 +177,20 @@ export function useCanvasHistory(flow: ReturnType<typeof useVueFlow>, binding: (
   onScopeDispose(() => { revision++; record.cancel(); });
 
   const getRetainedNodes = () => [...nodeReferences.values(), ...flow.getNodes.value];
-  return { canUndo, canRedo, record, commit, undo, redo, batch, getRetainedNodes };
+  function exportState(): CanvasHistoryState {
+    record.flush();
+    return JSON.parse(JSON.stringify({ snapshots: snapshots.value, cursor: cursor.value,
+      nodes: [...nodeReferences.values()].map(({ id, data }) => ({ id, data })),
+      edges: [...edgeReferences.values()].map(({ id, data }) => ({ id, data })),
+    }));
+  }
+  function importState(state: CanvasHistoryState) {
+    record.cancel();
+    snapshots.value = state.snapshots; cursor.value = state.cursor;
+    nodeReferences.clear(); edgeReferences.clear();
+    state.nodes.forEach(node => nodeReferences.set(node.id, node as Node));
+    state.edges.forEach(edge => edgeReferences.set(edge.id, edge as Edge));
+  }
+  return { canUndo, canRedo, record, commit, undo, redo, batch, getRetainedNodes, exportState, importState,
+    canUnload: () => !applying.value && !grouping.value && !dragging };
 }

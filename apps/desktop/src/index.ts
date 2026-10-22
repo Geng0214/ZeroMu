@@ -13,7 +13,7 @@ import { showNativeSplash } from "@toonflow/startup";
 import Electrobun, { ApplicationMenu, BrowserWindow, PATHS, Screen, Utils, Updater } from "electrobun/main";
 import { parseInstallUrl } from "./protocol";
 import saveFile, { selectSaveFile } from "./saveFile";
-import createWindowsUpdater, { confirmWindowsUpdateStartup } from "./update/windowsUpdater";
+import createWindowsUpdater, { confirmWindowsUpdateStartup, waitForWindowsUpdateCommit } from "./update/windowsUpdater";
 
 const execFileAsync = promisify(execFile);
 const pendingInstalls: PluginInstallRequest[] = [];
@@ -39,19 +39,29 @@ async function restoreInstallRegistration(installDirectory: string) {
   if (process.platform === "win32" && existsSync(uninstaller)) {
     try {
       // SDK 启动和更新会重写卸载入口；安装了 NSIS 时统一交给它处理数据保留选项。
-      const { identifier, channel } = await file(resolve(PATHS.RESOURCES_FOLDER, "version.json")).json();
+      const { identifier, channel, version } = await file(resolve(PATHS.RESOURCES_FOLDER, "version.json")).json();
+      if (identifier !== "local.zeromu.desktop" || !["stable", "canary"].includes(channel) || typeof version !== "string" || !/^\d+\.\d+\.\d+$/.test(version)) {
+        throw new Error("桌面安装标识无效，未修改安装登记");
+      }
+      const windowsDirectory = process.env.SystemRoot ?? process.env.windir ?? process.env.WINDIR;
+      if (!windowsDirectory) throw new Error("无法定位 Windows 注册表工具，未修改安装登记");
+      const registryExecutable = resolve(windowsDirectory, "System32/reg.exe");
       const registryKey = `HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${identifier}.${channel}`;
-      for (const [name, command] of [["UninstallString", `"${uninstaller}"`], ["QuietUninstallString", `"${uninstaller}" /S`]]) {
-        await execFileAsync("reg.exe", ["add", registryKey, "/v", name, "/t", "REG_SZ", "/d", command, "/f"], { windowsHide: true });
+      const { stdout } = await execFileAsync(registryExecutable, ["query", registryKey, "/v", "toonflowInstallDirectory"], { windowsHide: true });
+      const registeredDirectory = /^\s*toonflowInstallDirectory\s+REG_SZ\s+(.+)$/im.exec(stdout)?.[1]?.trim();
+      // ACT: SDK 会重写应用登记；只恢复本安装拥有的记录，其他安装的登记保持不动。
+      if (!registeredDirectory || resolve(registeredDirectory).toLowerCase() !== resolve(installDirectory).toLowerCase()) return;
+      for (const [name, command] of [["DisplayVersion", version], ["InstallLocation", installDirectory], ["UninstallString", `"${uninstaller}"`], ["QuietUninstallString", `"${uninstaller}" /S`]]) {
+        await execFileAsync(registryExecutable, ["add", registryKey, "/v", name, "/t", "REG_SZ", "/d", command, "/f"], { windowsHide: true });
       }
       const protocolLauncher = resolve(PATHS.RESOURCES_FOLDER, "app/protocolLauncher.exe");
       if (existsSync(protocolLauncher)) {
-        const protocolKey = "HKCU\\Software\\Classes\\toonflow";
+        const protocolKey = "HKCU\\Software\\Classes\\zeromu";
         const commandKey = `${protocolKey}\\shell\\open\\command`;
         const command = `"${protocolLauncher}" "%1"`;
         let protocolExists = true;
         try {
-          await execFileAsync("reg.exe", ["query", protocolKey], { windowsHide: true });
+          await execFileAsync(registryExecutable, ["query", protocolKey], { windowsHide: true });
         } catch (error) {
           if ((error as { code?: number }).code !== 1) throw error;
           protocolExists = false;
@@ -59,9 +69,9 @@ async function restoreInstallRegistration(installDirectory: string) {
         // ACT: 自动更新不经过 NSIS；仅补全缺失协议，已有注册（包括其他安装）保持不动。
         if (!protocolExists) {
           for (const [key, value] of [[protocolKey, "URL:ZEROMU Protocol"], [`${protocolKey}\\DefaultIcon`, `"${resolve(PATHS.RESOURCES_FOLDER, "app.ico")}",0`], [commandKey, command]]) {
-            await execFileAsync("reg.exe", ["add", key, "/ve", "/t", "REG_SZ", "/d", value, "/f"], { windowsHide: true });
+            await execFileAsync(registryExecutable, ["add", key, "/ve", "/t", "REG_SZ", "/d", value, "/f"], { windowsHide: true });
           }
-          await execFileAsync("reg.exe", ["add", protocolKey, "/v", "URL Protocol", "/t", "REG_SZ", "/d", "", "/f"], { windowsHide: true });
+          await execFileAsync(registryExecutable, ["add", protocolKey, "/v", "URL Protocol", "/t", "REG_SZ", "/d", "", "/f"], { windowsHide: true });
         }
       }
     } catch (error) {
@@ -131,8 +141,8 @@ async function start() {
       webRoot: resolve(PATHS.VIEWS_FOLDER, "mainview"),
       dataDirectory,
       toolsRoot: resolve(PATHS.VIEWS_FOLDER, "../tools"),
+      toolConfigWorkerPath: resolve(PATHS.VIEWS_FOLDER, "../toolConfigWorker.js"),
       nodesRoot: resolve(PATHS.VIEWS_FOLDER, "../nodes"),
-      providersRoot: resolve(PATHS.VIEWS_FOLDER, "../providers"),
       skillsRoot: resolve(PATHS.VIEWS_FOLDER, "../skills"),
       // ACT: 暂不安装内置团队，随团队打包一同恢复。
       // agentsRoot: resolve(PATHS.VIEWS_FOLDER, "../agents"),
@@ -154,6 +164,21 @@ async function start() {
     const mainWindow = new BrowserWindow({
       title: "零幕 · ZEROMU",
       url: `http://127.0.0.1:${address.port}/?desktop=1`,
+      // 页面原生能力通过受限本机接口提供，关闭页面直接调用宿主 RPC 的入口。
+      sandbox: true,
+      // Windows SDK 在子页面也保留通道引用；子页面不需要原生事件入口。
+      preload: process.platform === "win32" ? `
+        const disabledBridges = ["__electrobunInternalBridge", "__electrobunHostBridge", "__electrobunBunBridge"];
+        if (window !== window.top) disabledBridges.push("__electrobunEventBridge");
+        for (const name of disabledBridges) {
+          const bridge = window[name];
+          window[name] = undefined;
+          if (bridge) Promise.resolve(bridge).catch(error => {
+            const message = String(error?.parameters?.error ?? error?.message ?? error).toLowerCase();
+            if (!message.includes("0x80070490")) console.error("已禁用的原生通道清理失败", error);
+          });
+        }
+      ` : null,
       hidden: Boolean(splash),
       frame: {
         width,
@@ -176,11 +201,12 @@ async function start() {
     // 页面重载时监听器随旧页面销毁，安装请求等新页面 ready 后再投递。
     Electrobun.events.on(`will-navigate-${mainWindow.webview.id}`, () => { deliverInstall = undefined; });
     let isShowing = false;
+    let finishStartup: Promise<void> | undefined;
     app.locals.desktop = {
       openUrl,
       readClipboardText: Utils.clipboardReadText,
       writeClipboardText: Utils.clipboardWriteText,
-      selectSaveFile,
+      selectSaveFile: fileName => selectSaveFile(fileName, mainWindow.ptr),
       saveFile,
       async selectProviderFile() {
         const [path] = await Utils.openFileDialog({ allowedFileTypes: "ts", canChooseFiles: true, canChooseDirectory: false, allowsMultipleSelection: false });
@@ -201,8 +227,8 @@ async function start() {
             splash = undefined;
           }
           isShowing = true;
-          // ACT: 安装器已完成注册；更新后的修复仅首次展示时执行，不阻塞主窗口。
-          void restoreInstallRegistration(installDirectory);
+          // ACT: 窗口已展示；登记恢复结束后才确认更新交接，避免助手退出时仍有登记任务在途。
+          await restoreInstallRegistration(installDirectory);
         }
         if (failed) {
           if (process.platform === "win32") confirmWindowsUpdateStartup(PATHS.RESOURCES_FOLDER, true);
@@ -220,8 +246,15 @@ async function start() {
           deliverInstall(pendingInstalls[0]!);
           pendingInstalls.shift();
         }
-        if (process.platform === "win32") confirmWindowsUpdateStartup(PATHS.RESOURCES_FOLDER);
-        else await (Updater as DesktopRuntime["updater"]).confirmStartup?.();
+        finishStartup ??= (async () => {
+          if (process.platform === "win32") {
+            const confirmation = confirmWindowsUpdateStartup(PATHS.RESOURCES_FOLDER);
+            if (confirmation) await waitForWindowsUpdateCommit(PATHS.RESOURCES_FOLDER, confirmation);
+          } else await (Updater as DesktopRuntime["updater"]).confirmStartup?.();
+          // 自动回退尚未结束时不改旧技能；正常安装在首个成功界面就绪后迁移。
+          if (!isClosing) await (await import("@toonflow/server/skills")).migrateBundledSkills(resolve(PATHS.VIEWS_FOLDER, "../skills"));
+        })();
+        await finishStartup;
       },
       openDevTools() { mainWindow.webview.openDevTools(); },
       // ACT: Windows 使用两阶段退出；Intel Mac 由兼容入口适配 1.18.1 更新器。

@@ -135,7 +135,7 @@ function commitInput() {
           min-width: 22px;
           padding: 1px 5px;
           border: 1px solid var(--el-border-color-lighter);
-          border-radius: 5px;
+          border-radius: calc(var(--ui-radius, 8px) * 0.625);
           background: var(--el-fill-color-blank);
           font: inherit;
           font-size: 12px;

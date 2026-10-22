@@ -14,11 +14,10 @@ const app = await createApp({
   nodesRoot: resolve(appDirectory, "build/nodes"),
   // ACT: 暂不安装内置团队，随团队打包一同恢复。
   // agentsRoot: resolve(appDirectory, "build/agents"),
-  providersRoot: resolve(appDirectory, fromSource ? "packages/providers/src" : "build/providers"),
   skillsRoot: resolve(appDirectory, fromSource ? "packages/skills" : "build/skills"),
 });
 const { initializeMcpRuntime } = await import("./utils/mcp/runtime");
-app.listen(realPort, async () => {
+app.listen(realPort, "127.0.0.1", async () => {
   await initializeMcpRuntime(app, `http://127.0.0.1:${realPort}`, resolve(appDirectory, fromSource ? "packages/mcp/src/stdio.ts" : "build/mcp/stdio.js"));
   console.log(`[服务启动成功]: http://localhost:${realPort}`);
   console.log(`[启动耗时]: ${(Date.now() - startTime).toFixed(2)}ms`);

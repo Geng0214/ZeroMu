@@ -1,5 +1,5 @@
 <template>
-  <el-dropdown ref="menu" trigger="contextmenu" virtualTriggering :virtualRef="menuAnchor" placement="bottom-start" :showArrow="false" :hideOnClick="false" popperClass="assetActionMenu" @command="handleCommand" @visibleChange="(opened: boolean) => { if (!opened) moveVisible = false; }">
+  <el-dropdown ref="menu" trigger="contextmenu" virtualTriggering :virtualRef="menuAnchor" placement="bottom-start" :showArrow="false" :hideOnClick="false" popperClass="assetActionMenu" @command="handleCommand" @visibleChange="(opened: boolean) => { visible = opened; if (!opened) moveVisible = false; }">
     <template #dropdown>
       <el-dropdown-menu v-if="activeEntry">
         <el-dropdown-item command="move" :disabled="busy">
@@ -38,6 +38,7 @@ const menu = ref<DropdownInstance>();
 const menuAnchor = shallowRef({ getBoundingClientRect: () => new DOMRect() });
 const activeEntry = shallowRef<AssetEntry>();
 const moveVisible = ref(false);
+const visible = ref(false);
 const busy = ref(false);
 const parentPath = computed(() => activeEntry.value?.path.split("/").slice(0, -1).join("/") || ".");
 const moveFolders = computed(() => {
@@ -155,7 +156,7 @@ async function handleCommand(command: string) {
   }
 }
 
-defineExpose({ openMenu });
+defineExpose({ openMenu, visible });
 </script>
 
 <style lang="scss" scoped>

@@ -26,35 +26,23 @@
         tabindex="0"
         @pointerdown.stop="startInteraction($event, handle.edge)"
         @keydown="resizeWithKeyboard($event, handle.edge)" />
-      <agent v-model="visible">
-        <template #menuActions>
-          <el-button
-            text
-            circle
-            :aria-label="docked ? '切换为悬浮' : '停靠到右侧'"
-            :title="docked ? '切换为悬浮' : '停靠到右侧'"
-            @click="docked = !docked">
-            <icon-app-window-bottom-right v-if="docked" :size="17" aria-hidden="true" />
-            <icon-layout-sidebar-right v-else :size="17" aria-hidden="true" />
-          </el-button>
-        </template>
-      </agent>
+      <agent v-model="visible" />
     </aside>
   </teleport>
 </template>
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from "vue";
-import { IconLayoutSidebarRight, IconAppWindowBottomRight } from "@tabler/icons-vue";
 import agent from "@/components/agent/index.vue";
 
 const visible = defineModel<boolean>({ default: false });
 const emit = defineEmits<{ resize: [width: number] }>();
-const docked = ref(false);
+const docked = ref(true);
 const viewport = reactive({ width: window.innerWidth, height: window.innerHeight });
 const gap = computed(() => Math.min(15, viewport.width / 2, viewport.height / 2));
-const maxWidth = computed(() => Math.max(0, viewport.width - (docked.value ? 0 : gap.value * 2)));
-const preferredWidth = ref(420);
+const overlay = computed(() => viewport.width < 960);
+const maxWidth = computed(() => Math.max(0, docked.value && !overlay.value ? viewport.width - 480 : viewport.width - (docked.value ? 0 : gap.value * 2)));
+const preferredWidth = ref(460);
 const width = computed(() => Math.min(preferredWidth.value, maxWidth.value));
 const preferredHeight = ref<number>();
 const height = computed(() =>
@@ -183,7 +171,7 @@ watch(
   { flush: "sync" }
 );
 watch(
-  () => (visible.value && docked.value ? width.value : 0),
+  () => (visible.value && docked.value && !overlay.value ? width.value : 0),
   (value) => emit("resize", value),
   { immediate: true }
 );
@@ -201,16 +189,16 @@ onBeforeUnmount(() => {
   box-sizing: border-box;
   max-width: 100vw;
   max-height: 100dvh;
+  min-height: 0;
   border: 1px solid var(--el-border-color-light);
   border-radius: var(--ui-radius-large, 12px);
-  background: color-mix(in srgb, var(--el-bg-color-overlay) 70%, transparent);
-  backdrop-filter: blur(6px);
+  background: var(--el-bg-color);
   box-shadow: var(--el-box-shadow-light);
 
   &.docked {
     border-width: 0 0 0 1px;
     border-radius: 0;
-    background: var(--el-bg-color-overlay);
+    background: var(--el-bg-color);
     box-shadow: none;
   }
 

@@ -2,18 +2,21 @@
   <el-popover trigger="click" placement="top-start" width="min(340px, calc(100vw - 24px))" :disabled="disabled" :showArrow="false" :popperStyle="{ padding: '14px' }">
     <template #reference>
       <el-button class="settingsButton" text size="small" :disabled="disabled" aria-label="图片生成设置">
-        <span class="ratioShape" :style="ratioStyle(ratio)" aria-hidden="true" />
-        <span>{{ ratio }} · {{ size }} · 1张</span>
+        <span v-if="ratio" class="ratioShape" :style="ratioStyle(ratio)" aria-hidden="true" />
+        <span>{{ [ratio, size, `${count}张`, qualityLabels[quality || '']].filter(Boolean).join(' · ') }}</span>
         <icon-chevron-up :size="14" aria-hidden="true" />
       </el-button>
     </template>
     <div class="generationSettings nodrag nopan nowheel" @pointerdown.stop @mousedown.stop @dblclick.stop @keydown.stop @wheel.stop>
       <div class="sectionLabel">分辨率</div>
       <el-radio-group v-model="size" class="sizeOptions" :disabled="disabled" aria-label="图片分辨率">
+        <el-radio-button value="">渠道默认</el-radio-button>
         <el-radio-button v-for="item in sizes" :key="item" :value="item">{{ item }}</el-radio-button>
       </el-radio-group>
+      <label v-if="model?.imageSizeRange" class="customSize">自定义尺寸<el-input v-model="size" aria-label="自定义图片尺寸" placeholder="宽x高" :disabled="disabled" /><small>{{ model.imageSizeRange.min }}–{{ model.imageSizeRange.max }} 像素，且为 {{ model.imageSizeRange.step }} 的倍数；也可使用已声明档位。</small></label>
       <div class="sectionLabel">比例</div>
       <div class="ratioOptions" role="group" aria-label="图片比例">
+        <el-button class="ratioButton" :disabled="disabled" :aria-pressed="!ratio" @click="ratio = ''">渠道默认</el-button>
         <el-button
           v-for="item in ratios"
           :key="item"
@@ -28,17 +31,31 @@
           </span>
         </el-button>
       </div>
+      <div class="outputOptions">
+        <div class="outputField"><span class="sectionLabel">质量</span>
+          <el-select v-model="quality" aria-label="图片质量" :emptyValues="[null, undefined]" :disabled="disabled || !model?.imageQualities?.length" :teleported="false">
+            <el-option label="渠道默认" value="" /><el-option v-for="value in model?.imageQualities ?? []" :key="value" :label="qualityLabels[value]" :value="value" />
+          </el-select>
+        </div>
+        <div class="outputField"><span class="sectionLabel">数量</span>
+          <el-input-number v-model="count" :min="1" :max="model?.maxImageCount ?? 1" :precision="0" controlsPosition="right" aria-label="生成张数" :disabled="disabled" />
+        </div>
+      </div>
     </div>
   </el-popover>
 </template>
 
 <script setup lang="ts">
-import { ElButton, ElPopover, ElRadioGroup, ElRadioButton } from "element-plus";
+import { ElButton, ElPopover, ElRadioGroup, ElRadioButton, ElSelect, ElOption, ElInputNumber, ElInput } from "element-plus";
+import type { NodeMediaModel } from "@toonflow/nodes-scaffold/runtime";
 import { IconChevronUp } from "@tabler/icons-vue";
 
-defineProps<{ sizes: string[]; ratios: string[]; disabled?: boolean }>();
+defineProps<{ sizes: string[]; ratios: string[]; model?: NodeMediaModel; disabled?: boolean }>();
 const size = defineModel<string>("size", { required: true });
 const ratio = defineModel<string>("ratio", { required: true });
+const count = defineModel<number>("count", { required: true });
+const quality = defineModel<string>("quality", { default: "" });
+const qualityLabels: Record<string, string> = { "": "渠道默认", high: "高质量", medium: "中质量", low: "低质量" };
 
 function ratioStyle(value: string) {
   const [width = 1, height = 1] = value.split(":").map(Number);
@@ -51,7 +68,7 @@ function ratioStyle(value: string) {
   display: inline-block;
   flex-shrink: 0;
   border: 1px solid currentColor;
-  border-radius: 2px;
+  border-radius: calc(var(--ui-radius, 8px) * 0.25);
   box-sizing: border-box;
 }
 
@@ -62,6 +79,15 @@ function ratioStyle(value: string) {
 
 .generationSettings {
   text-align: left;
+  .customSize { display: grid; gap: 8px; margin: 14px 0; font-size: 12px; small { color: var(--el-text-color-secondary); line-height: 1.6; } }
+  .outputOptions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+    .outputField { flex: 1; min-width: 0; }
+    .sectionLabel { display: block; }
+    :deep(.el-input-number) { width: 100%; }
+  }
   .sectionLabel {
     margin-bottom: 8px;
     color: var(--el-text-color-secondary);

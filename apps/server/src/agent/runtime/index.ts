@@ -114,6 +114,7 @@ export async function run(
   let unregister = () => {};
   let mentionFiles: string[] = [];
   let messageAccepted = false;
+  let tools: Awaited<ReturnType<typeof createAgentTools>> | undefined;
   try {
     const history = newHistory ?? SessionManager.open(sessionPath!, sessionsDir, cwd);
     const file = basename(history.getSessionFile()!);
@@ -135,7 +136,7 @@ export async function run(
       abort: () => { controller.abort(); onCancel?.(); return finished.promise; },
     };
     unregister = registerAgentSession(history.getSessionFile()!, active);
-    const tools = await createAgentTools(cwd, canvas, question);
+    tools = await createAgentTools(cwd, canvas, question, signal);
     if (isMemoryEnabled()) {
       const memoryTool = createMemoryTool();
       if (tools.some(tool => tool.name === memoryTool.name)) throw new Error("工具名称 memory 已被内置全局记忆工具占用");
@@ -415,6 +416,7 @@ export async function run(
       }
     }
   } finally {
+    await tools?.dispose();
     unregister();
     release();
     finished.resolve();

@@ -55,7 +55,7 @@ function getInstallFailure(local: Awaited<ReturnType<DesktopRuntime["updater"]["
     currentVersion: local.version,
     currentHash: local.hash,
     message,
-    downloadUrl: "https://github.com/HBAI-Ltd/Toonflow-app/releases/latest",
+    downloadUrl: "https://github.com/Geng0214/ZeroMu/releases",
   };
 }
 
@@ -73,13 +73,15 @@ interface DesktopState {
 export function isValidUpdateUrl(value: unknown): value is string {
   if (typeof value !== "string" || !value || value.length > 2048 || value.trim() !== value || !URL.canParse(value)) return false;
   const url = new URL(value);
-  return (url.protocol === "http:" || url.protocol === "https:") && !url.username && !url.password && !url.search && !url.hash;
+  const local = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
+  return (url.protocol === "https:" || url.protocol === "http:" && local) && !url.username && !url.password && !url.search && !url.hash;
 }
 
-function getUpdateBaseUrl(): string {
+function getUpdateBaseUrl(required = true): string {
   const settings = conf.get("settings", {});
   if (settings.desktopUpdateSource === "custom" && isValidUpdateUrl(settings.desktopUpdateCustomUrl)) return settings.desktopUpdateCustomUrl;
-  throw new Error("零幕是本地定制版，请先在开发者设置中配置零幕专用更新源，再选择自定义源。");
+  if (!required) return "";
+  throw Object.assign(new Error("尚未配置零幕更新源，请在关于页的更新源设置中填写专用 HTTPS 更新地址。"), { status: 400 });
 }
 
 async function withUpdateSource<T>(updater: DesktopRuntime["updater"], updateBaseUrl: string, run: () => Promise<T>) {
@@ -136,8 +138,8 @@ export async function getDesktopUpdate(req: Request): Promise<updateSnapshot> {
   const { version, channel, hash } = local;
   // ACT: Intel 1.18.1 首次检查前没有状态，旧清单也可能缺少状态字段。
   const update = updater.updateInfo();
-  const updateBaseUrl = getUpdateBaseUrl();
-  const validUpdate = state.checkedBaseUrl === updateBaseUrl;
+  const updateBaseUrl = getUpdateBaseUrl(false);
+  const validUpdate = !!updateBaseUrl && state.checkedBaseUrl === updateBaseUrl;
   const applyError = state.applyingUpdate && state.updateHandoffComplete ? update?.error : undefined;
   const installFailure = getInstallFailure(local, applyError);
   if (applyError) state.applyingUpdate = false;
@@ -152,7 +154,8 @@ export async function getDesktopUpdate(req: Request): Promise<updateSnapshot> {
     updateAvailable: !installFailure && validUpdate && (update?.updateAvailable ?? false),
     updateReady: !installFailure && validUpdate && (update?.updateReady ?? false),
     updating: state.downloadingUpdate || state.applyingUpdate,
-    canUpdate: typeof updater.downloadUpdate === "function" && typeof updater.applyUpdate === "function",
+    sourceConfigured: !!updateBaseUrl,
+    canUpdate: !!updateBaseUrl && typeof updater.downloadUpdate === "function" && typeof updater.applyUpdate === "function",
   };
 }
 
@@ -161,9 +164,9 @@ export async function checkDesktopUpdate(req: Request): Promise<void> {
   const state = getDesktopState(req);
   if (state.checkingUpdate || state.downloadingUpdate || state.applyingUpdate)
     throw Object.assign(new Error("更新操作正在执行，请稍后再试。"), { status: 409 });
+  const updateBaseUrl = getUpdateBaseUrl();
   state.checkingUpdate = true;
   state.updateError = "";
-  const updateBaseUrl = getUpdateBaseUrl();
   state.checkedBaseUrl = undefined;
   state.lastBaseUrl = updateBaseUrl;
   try {

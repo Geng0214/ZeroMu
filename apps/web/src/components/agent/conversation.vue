@@ -2,28 +2,15 @@
   <div class="agentConversation">
     <div class="messageViewport t-chat t-chat--normal">
       <div ref="messageList" class="messageList t-chat__list" role="region" aria-label="对话消息" tabindex="0">
-        <chat-item v-if="!messages.length && !disabled" role="assistant" variant="text">
+        <chatBubble v-if="!messages.length && !disabled" role="assistant">
           <template #content>
             <section class="welcomeMessage" aria-label="开始新对话">
-              <div class="welcomeHeader">
-                <span class="welcomeIcon" aria-hidden="true"><span class="welcomeLogo" :style="{ maskImage: `url(${logoUrl})` }" /></span>
-                <div>
-                  <p class="welcomeLabel">你好，我是 零幕 助手</p>
-                  <h3>从一个想法开始</h3>
-                </div>
-              </div>
-              <p class="welcomeDescription">聊聊你的故事、画面或镜头，让我们一起把想法落到画布上。</p>
-              <div class="welcomeSuggestions">
-                <el-button v-for="item in welcomeSuggestions" :key="item.label" class="welcomeSuggestion" text bg :disabled="locked" :aria-label="`填入提示：${item.label}`" @click="fillPrompt(item.prompt)">
-                  <component :is="item.icon" :size="19" aria-hidden="true" />
-                  <span class="suggestionContent"><strong>{{ item.label }}</strong><span>{{ item.description }}</span></span>
-                  <icon-arrow-up-right class="suggestionArrow" :size="15" aria-hidden="true" />
-                </el-button>
-              </div>
-              <p class="welcomeHint">点击填入提示，也可以直接输入，或粘贴图片、视频。</p>
+              <span class="welcomeIcon" aria-hidden="true"><icon-sparkles :size="25" :strokeWidth="1.6" /></span>
+              <h3>从一个想法开始</h3>
+              <p class="welcomeDescription">描述故事、画面或现有素材，Agent 会与你沟通，并直接操作当前画布。</p>
             </section>
           </template>
-        </chat-item>
+        </chatBubble>
         <div class="messageSpace" :style="{ height: `${messageVirtualizer.getTotalSize()}px` }">
           <div
             v-for="{ item, row } in visibleMessages"
@@ -34,12 +21,13 @@
             class="messageRow"
             :style="{ transform: `translateY(${row.start}px)` }"
             :class="{ userMessage: item.role === 'user', editingMessage: editingId === item.id }">
-            <chat-item :role="item.role" :variant="item.role === 'user' ? 'base' : 'text'" :textLoading="!!item.streaming && !compacting && !item.parts?.some(part => part.type === 'tool' || part.content)" animation="moving">
+            <chatBubble :role="item.role" :textLoading="!!item.streaming && !compacting && !item.parts?.some(part => part.type === 'tool' || part.content)">
               <template #content>
                 <div class="messageContent">
+                  <div v-if="item.role === 'assistant'" class="assistantLabel"><agentIcon :size="14" :strokeWidth="1.6" /><span>Agent</span></div>
                   <div v-if="item.report" class="reportHeader"><icon-users-group :size="14" />{{ item.report.name }} 上报</div>
                   <template v-for="part in item.parts" :key="part.id">
-                    <chat-reasoning v-if="part.type === 'thinking' && part.content" class="messageReasoning" :collapsed="part.collapsed ?? true" expandIconPlacement="left" @update:collapsed="part.collapsed = $event">
+                    <chat-reasoning v-if="part.type === 'thinking' && part.content && item.streaming" class="messageReasoning" :collapsed="part.collapsed ?? true" expandIconPlacement="left" @update:collapsed="part.collapsed = $event">
                       <template #header>
                         <span class="reasoningHeader">
                           <icon-atom :size="14" />
@@ -57,7 +45,7 @@
                   <div v-if="item.error" class="messageError" role="alert">{{ item.error }}</div>
                 </div>
               </template>
-            </chat-item>
+            </chatBubble>
             <div v-if="!item.streaming" class="messageActions">
               <template v-if="editingId === item.id">
                 <el-button text size="small" :disabled="busy || deletingId !== undefined" @click="cancelEdit"><icon-x :size="14" />取消</el-button>
@@ -65,10 +53,7 @@
               </template>
               <template v-else>
                 <el-button v-if="item.content" class="messageAction" text circle aria-label="复制消息" title="复制消息" @click="copyMessage(mentionPlainText(item.content, item.mentions))"><icon-copy :size="14" /></el-button>
-                <template v-if="item.role === 'user'">
-                  <el-button class="messageAction" text circle :disabled="locked || remoteRunning" aria-label="编辑消息" title="编辑消息" @click="editMessage(item)"><icon-pencil :size="14" /></el-button>
-                </template>
-                <el-button v-if="!item.report" class="messageAction" text circle :loading="deletingId === item.id" :disabled="locked || remoteRunning" aria-label="删除消息" title="删除消息" @click="deleteMessage(item)"><icon-trash v-if="deletingId !== item.id" :size="14" /></el-button>
+                <el-button v-if="item.role === 'assistant' && !item.report && item === lastAssistant" class="messageAction" text circle :disabled="locked || remoteRunning" aria-label="重新生成回复" title="重新生成" @click="retryMessage(item)"><icon-restore :size="14" :strokeWidth="1.6" /></el-button>
               </template>
             </div>
           </div>
@@ -107,39 +92,6 @@
       <div class="senderActions">
         <modelPopover v-model="selectedModel" v-model:reasoningEffort="reasoningEffort" :active="active" :disabled="disabled" />
         <mentionMenu ref="mentionMenuRef" :directory="directory" :active="active" :disabled="locked || !directory" :query="mentionQuery" :editor="senderElement" :currentCanvasId="createCanvasContext?.()?.id" @open="captureMentionPosition" @select="insertMentions" @dismiss="mentionQuery = undefined" />
-        <skillMenu ref="skillMenuRef" :directory="directory" :active="active" :disabled="locked || !directory" :query="skillQuery" :editor="senderElement" @select="selectSkill" @dismiss="skillQuery = undefined" />
-        <el-popover
-          v-model:visible="contextMenuVisible"
-          trigger="click"
-          placement="top"
-          :width="280"
-          :offset="10"
-          :showArrow="false"
-          popperClass="agentContextPopover">
-          <template #reference>
-            <el-button class="contextButton" text circle aria-label="查看上下文用量" title="查看上下文用量">
-              <icon-circle-dashed :size="14" />
-            </el-button>
-          </template>
-          <div class="contextUsage">
-            <div class="contextHeader"><span>上下文用量</span><span class="contextHint">估算</span></div>
-            <template v-if="contextUsage?.tokens != null">
-              <div class="contextTokens">
-                <span>{{ contextUsage.tokens.toLocaleString() }} / {{ contextWindow.toLocaleString() }} tok</span>
-                <span>{{ contextPercent.toFixed(1) }}%</span>
-              </div>
-              <el-progress :percentage="Math.min(100, contextPercent)" :showText="false" />
-            </template>
-            <span v-else class="contextHint">{{ contextUsage ? "等待下一次回复更新用量" : "尚无用量数据" }}</span>
-            <div v-if="stats" class="contextStats">
-              <div class="contextHeader">对话累计用量</div>
-              <div class="contextTokens"><span>输入</span><span>{{ inputTokens.toLocaleString() }} tok</span></div>
-              <div class="contextTokens"><span>输出</span><span>{{ stats.tokens.output.toLocaleString() }} tok</span></div>
-              <div v-if="inputTokens > 0" class="contextTokens"><span>缓存命中</span><span>{{ (stats.tokens.cacheRead / inputTokens * 100).toFixed(1) }}%</span></div>
-              <div v-if="stats.tokensPerSecond !== undefined" class="contextTokens"><span>生成速度</span><span>{{ stats.tokensPerSecond.toFixed(1) }} tok/s</span></div>
-            </div>
-          </div>
-        </el-popover>
         <el-button class="sendButton" type="primary" circle :disabled="!busy && locked" :aria-label="busy ? '停止生成' : editingId ? '重发消息' : '发送消息'" :title="busy ? '停止生成' : editingId ? '重发消息' : '发送消息'" @click="busy ? stopMessage() : submitMessage()">
           <icon-player-stop-filled v-if="busy" :size="14" />
           <icon-arrow-up v-else :size="16" />
@@ -150,19 +102,18 @@
 </template>
 
 <script setup lang="ts">
+import agentIcon from "@/components/agent/agentIcon.vue";
 import { locale, t, translate } from "@toonflow/i18n/vue";
 import { computed, inject, nextTick, reactive, ref, shallowRef, watch, type ComponentPublicInstance } from "vue";
 import { defaultRangeExtractor, observeElementRect, useVirtualizer } from "@tanstack/vue-virtual";
 import axios from "axios";
 import {
   IconArrowUp, IconArrowDown, IconAtom, IconCopy,
-  IconCircleDashed, IconPencil, IconPlayerStopFilled, IconX, IconLoader2,
-  IconTrash, IconLayoutGrid, IconMovie, IconPhoto, IconArrowUpRight, IconUsersGroup,
+  IconPencil, IconPlayerStopFilled, IconX, IconLoader2,
+  IconTrash, IconPhoto, IconUsersGroup, IconSparkles, IconRestore,
 } from "@tabler/icons-vue";
 import { ElMessage } from "element-plus";
-import logoUrl from "@toonflow/assets/zeromuIcon.png";
 import modelPopover from "@/components/modelPopover.vue";
-import skillMenu from "./skillMenu.vue";
 import mentionMenu from "./mentionMenu.vue";
 import mentionContent from "./mentionContent.vue";
 import mentionThumbnail from "./mentionThumbnail.vue";
@@ -172,14 +123,13 @@ import attachmentList from "./attachmentList.vue";
 import { createPastedTextFile, readTextAttachment } from "./textAttachments";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import { writeClipboardText } from "@/lib/clipboard";
-import anonymousData from "@/lib/anonymousData";
-import { modelChoices } from "@/stores/settings";
+import { modelChoices, agentPreferences } from "@/stores/settings";
 import { useWorkspaceStore } from "@/stores/workspace";
 import type { AgentAttachment, AgentConversation, AgentMessage } from "./types";
 import type { AgentEvent, AgentMention } from "@toonflow/server/agent/types";
 import { createConversationStream, readAgentEvents } from "./replyStream";
 import type { CanvasContext } from "@toonflow/tool-canvas/runtime";
-import chatItem from "@tdesign-vue-next/chat/es/chat-item";
+import chatBubble from "./chatBubble.vue";
 import chatReasoning from "@tdesign-vue-next/chat/es/chat-reasoning";
 import messageMarkdown from "@/components/messageMarkdown.vue";
 import xSender, { type AnyTagProps } from "x-sender";
@@ -194,10 +144,9 @@ const directory = workspaceStore.project?.directory;
 const draftAttachments = ref<AgentAttachment[]>([]);
 const createCanvasContext = inject<(() => CanvasContext | undefined) | undefined>("canvas", undefined);
 const messages = ref<AgentMessage[]>((props.initialSession?.messages ?? []).map(message => ({ ...message })));
-const stream = createConversationStream(messages);
+const stream = createConversationStream(messages, () => agentPreferences.value.streamResponses);
+const lastAssistant = computed(() => messages.value.findLast(item => item.role === "assistant" && !item.report));
 const remoteRunning = ref(props.initialSession?.running ?? false);
-const stats = ref(props.initialSession?.stats);
-const contextUsage = ref(props.initialSession?.contextUsage);
 const busy = ref(false);
 const compacting = ref(false);
 const deletingId = ref<string>();
@@ -256,7 +205,7 @@ watch([() => props.active, messageList], async ([active, element]) => {
 let sender: xSender | undefined;
 watch(locale, () => {
   if (!sender) return;
-  sender.updateConfig({ placeholder: translate("输入消息，@ 提及节点输出或全局素材…") });
+  sender.updateConfig({ placeholder: translate("描述创作目标，或让我继续操作画布") });
   sender.chatElement.richText.setAttribute("aria-label", translate("消息"));
   for (const line of sender.chatEditor.NODES) for (const tag of line.children) {
     if (tag.type === "Mention") tag.$el.setAttribute("aria-label", t`预览 ${tag.name}`);
@@ -264,8 +213,6 @@ watch(locale, () => {
 });
 let controller: AbortController | undefined;
 const senderElement = ref<HTMLElement>();
-const skillMenuRef = ref<InstanceType<typeof skillMenu>>();
-const skillQuery = ref<string>();
 const mentionMenuRef = ref<InstanceType<typeof mentionMenu>>();
 const mentionQuery = ref<string>();
 let mentionPosition: { node: ReturnType<xSender["getCurrentNode"]>; remove: number } | undefined;
@@ -276,23 +223,11 @@ let senderResize: { pointerId: number; y: number; height: number } | undefined;
 const pendingMessage = props.initialSession?.parentFile ? undefined : workspaceStore.pendingAgentMessage;
 const selectedModel = ref(pendingMessage?.model ?? (props.initialSession?.providerId && props.initialSession.modelId
   ? JSON.stringify([props.initialSession.providerId, props.initialSession.modelId]) : ""));
-const contextMenuVisible = ref(false);
 const reasoningEffort = ref(pendingMessage?.reasoningEffort ?? (props.initialSession?.thinkingLevel === "off" ? "" : props.initialSession?.thinkingLevel ?? ""));
 const selectedModelChoice = computed(() => modelChoices.value.find(item => item.value === selectedModel.value));
-const contextWindow = computed(() => contextUsage.value?.contextWindow ?? selectedModelChoice.value?.contextWindow ?? 262144);
-const contextPercent = computed(() => (contextUsage.value?.tokens ?? 0) / contextWindow.value * 100);
-const inputTokens = computed(() => stats.value ? stats.value.tokens.input + stats.value.tokens.cacheRead + stats.value.tokens.cacheWrite : 0);
-const welcomeSuggestions = [
-  { label: "搭建创作画布", description: "把创意串成清晰的节点流程", icon: IconLayoutGrid, prompt: "帮我搭建一个创作画布，先和我确认需要的节点与流程。" },
-  { label: "梳理故事分镜", description: "拆解故事，安排画面与镜头", icon: IconMovie, prompt: "帮我把故事整理成分镜，先和我确认故事内容、时长和画面风格。" },
-  { label: "生成图片素材", description: "为角色和场景寻找视觉方向", icon: IconPhoto, prompt: "帮我生成图片素材，先和我确认画面内容、风格和使用的模型。" },
-];
 watch([locked, () => props.active], ([locked, active]) => {
   if (!active || locked) sender?.disable();
   else sender?.enable();
-});
-watch(() => props.active, active => {
-  if (!active) contextMenuVisible.value = false;
 });
 
 function applyEvent(event: AgentEvent) {
@@ -308,7 +243,7 @@ function applyEvent(event: AgentEvent) {
       break;
     case "compaction": compacting.value = event.active; break;
     case "session": emit("session", event.file); break;
-    case "stats": stats.value = event.stats; contextUsage.value = event.contextUsage; break;
+    case "stats": break;
     default: stream.receive(event);
   }
 }
@@ -334,7 +269,6 @@ function getDraftContent() {
 function captureMentionPosition() {
   const node = sender?.getCurrentNode();
   mentionPosition = node?.instance?.$el.isConnected ? { node: { ...node }, remove: mentionQuery.value === undefined ? 0 : mentionQuery.value.length + 1 } : undefined;
-  skillQuery.value = undefined;
 }
 
 function updateMentionQuery() {
@@ -354,7 +288,6 @@ function handleSenderKeydown(event: KeyboardEvent) {
     return;
   }
   if (mentionMenuRef.value?.handleKeydown(event)) return;
-  skillMenuRef.value?.handleKeydown(event);
 }
 
 async function insertMentions(mentions: AgentMention[]) {
@@ -389,20 +322,6 @@ function submitMessage() {
   return sendMessage(editingId.value ? messages.value.find(item => item.id === editingId.value) : undefined);
 }
 
-async function selectSkill(name: string) {
-  const instance = sender;
-  if (!instance || locked.value) return;
-  const model = instance.getModel();
-  const first = model[0]?.[0];
-  if (first?.type === "Write") first.text = `/skill:${name} ${first.text.replace(skillQuery.value !== undefined ? /^\/\S*/ : /^\s*\/skill:\S+(?:\s+|$)/, "")}`;
-  if (!model.length) model.push([]);
-  if (first?.type !== "Write") model[0]!.unshift({ type: "Write", text: `/skill:${name} ` });
-  skillQuery.value = undefined;
-  mentionMenuRef.value?.closeMenu();
-  await instance.reset({ clearHistory: false, chatNode: model });
-  if (sender === instance) instance.focus("last");
-}
-
 async function fillPrompt(prompt: string) {
   const instance = sender;
   if (!instance || locked.value) return;
@@ -418,6 +337,15 @@ async function copyMessage(content: string) {
   } catch {
     ElMessage.error("复制失败，请重试");
   }
+}
+
+async function retryMessage(item: AgentMessage) {
+  if (locked.value || remoteRunning.value || !sender) return;
+  const index = messages.value.indexOf(item);
+  const source = messages.value.slice(0, index).findLast(message => message.role === "user" && (!item.replyTo || message.entryId === item.replyTo));
+  if (!source) return ElMessage.warning("找不到对应的提问，请重新输入");
+  editDraft = { model: sender.getModel(), mentions: [...draftMentions.value], attachments: [...draftAttachments.value] };
+  await sendMessage(source);
 }
 
 async function editMessage(item: AgentMessage) {
@@ -462,8 +390,6 @@ async function deleteMessage(item: AgentMessage) {
         headers: { "x-toonflow-workspace": "1" },
       });
       if (data.code !== 200) throw new Error(data.message || "删除消息失败");
-      stats.value = data.data.stats;
-      contextUsage.value = data.data.contextUsage;
     }
     messages.value = messages.value.filter(message => message.id !== item.id);
   } catch (error) {
@@ -586,7 +512,6 @@ async function sendMessage(source?: AgentMessage) {
   const handledCanvasCalls = new Set<string>();
   const pendingQuestions = new Map<string, string>();
   const activeChildFiles = new Set<string>();
-  const finishStats = anonymousData.startAgent();
   try {
     if (!source) await instance.reset();
     requestController.signal.throwIfAborted();
@@ -632,8 +557,6 @@ async function sendMessage(source?: AgentMessage) {
           reply.replyTo = event.id;
           if (source && !accepted) {
             messages.value.splice(resendIndex, messages.value.length - resendIndex, userMessage, reply);
-            stats.value = undefined;
-            contextUsage.value = undefined;
             await restoreEditingDraft();
           }
           accepted = true;
@@ -648,10 +571,8 @@ async function sendMessage(source?: AgentMessage) {
       }
     }
     if (source && !accepted) throw new Error("服务端未确认重发，请重新打开对话后重试");
-    finishStats("success");
     emit("sent", mentionPlainText(prompt, mentions) || attachments[0]?.name || "新对话");
   } catch (error) {
-    finishStats(requestController.signal.aborted ? "cancelled" : "failed");
     const responseMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
     const message = requestController.signal.aborted ? "已停止生成" : responseMessage || (error instanceof Error ? error.message : "发送失败，请重试");
     if ((source && !accepted) || !ownsStream) { userMessage.error = message; ElMessage.error(message); }
@@ -735,7 +656,7 @@ watch(senderElement, (element, _previous, onCleanup) => {
   if (!element) return;
   const instance = new xSender(element, {
     autoFocus: props.active,
-    placeholder: translate("输入消息，@ 提及节点输出或全局素材…"),
+    placeholder: translate("描述创作目标，或让我继续操作画布"),
     chatStyle: { minHeight: "44px", maxHeight: "50vh", fontSize: "14px", lineHeight: "24px" },
     keyboardSendFun: event => event.key === "Enter" && !event.shiftKey && !event.isComposing,
     keyboardWrapFun: event => event.key === "Enter" && event.shiftKey && !event.isComposing,
@@ -744,7 +665,6 @@ watch(senderElement, (element, _previous, onCleanup) => {
   if (!props.active || locked.value) instance.disable();
   instance.bus.on("agentConversation", xSender.EventSet.EVENT_COMMON_SEND, () => void submitMessage());
   instance.bus.on("agentConversation", xSender.EventSet.EVENT_COMMON_CHANGE, () => {
-    skillQuery.value = /^\/([^\s/]*)$/.exec(instance.getText())?.[1];
     const targets: typeof draftMentionTargets.value = [];
     for (const line of instance.chatEditor.NODES) for (const tag of line.children) {
       if (tag.type !== "Mention") continue;
@@ -818,7 +738,8 @@ watch(() => !props.initialSession?.parentFile && !!workspaceStore.pendingAgentMe
 
     .messageList {
       overflow-anchor: none;
-      scrollbar-gutter: stable;
+      scrollbar-gutter: auto;
+      padding-top: 8px;
     }
 
     .messageSpace {
@@ -836,70 +757,16 @@ watch(() => !props.initialSession?.parentFile && !!workspaceStore.pendingAgentMe
     .welcomeMessage {
       display: flex;
       flex-direction: column;
-      gap: 18px;
-      padding: 28px 16px 16px;
+      align-items: center;
+      gap: 12px;
+      max-width: 280px;
+      margin: clamp(28px, 10vh, 88px) auto 24px;
+      padding: 0 16px;
+      text-align: center;
       color: var(--el-text-color-primary);
-
-      .welcomeHeader {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .welcomeIcon {
-          display: grid;
-          place-items: center;
-          flex-shrink: 0;
-          width: 42px;
-          height: 42px;
-          border-radius: var(--ui-radius-large);
-          background: var(--el-color-primary-light-9);
-          color: var(--el-color-primary);
-
-          .welcomeLogo {
-            width: 28px;
-            height: 28px;
-            background: currentColor;
-            mask-size: contain;
-            mask-position: center;
-            mask-repeat: no-repeat;
-          }
-        }
-
-        .welcomeLabel { margin: 0 0 4px; font-size: 12px; color: var(--el-text-color-secondary); }
-        h3 { margin: 0; font-size: 18px; font-weight: 600; line-height: 1.4; }
-      }
-
-      .welcomeDescription { margin: 0; font-size: 13px; line-height: 1.7; color: var(--el-text-color-regular); }
-
-      .welcomeSuggestions {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-
-        .welcomeSuggestion {
-          height: auto;
-          margin: 0;
-          padding: 12px;
-          text-align: left;
-          white-space: normal;
-          line-height: 1.5;
-
-          > span { display: flex; align-items: center; gap: 12px; width: 100%; min-width: 0; }
-          svg { flex-shrink: 0; color: var(--el-text-color-secondary); }
-          .suggestionContent {
-            display: flex;
-            flex: 1;
-            flex-direction: column;
-            gap: 2px;
-            min-width: 0;
-            strong { font-size: 13px; font-weight: 500; }
-            span { font-size: 12px; color: var(--el-text-color-secondary); }
-          }
-          .suggestionArrow { color: var(--el-text-color-placeholder); }
-        }
-      }
-
-      .welcomeHint { margin: 0; font-size: 12px; line-height: 1.6; color: var(--el-text-color-secondary); }
+      .welcomeIcon { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 6px; border-radius: calc(var(--ui-radius, 8px) * 1.75); background: var(--el-fill-color); }
+      h3 { margin: 0; font-size: 17px; font-weight: 600; line-height: 1.5; }
+      .welcomeDescription { margin: 0; font-size: 13px; line-height: 1.85; color: var(--el-text-color-regular); text-wrap: pretty; }
     }
 
     .messageRow {
@@ -908,13 +775,13 @@ watch(() => !props.initialSession?.parentFile && !!workspaceStore.pendingAgentMe
       left: 0;
       width: 100%;
       box-sizing: border-box;
-      padding: 0 12px 12px;
+      padding: 0 12px 16px 18px;
 
       .messageActions {
         display: flex;
         align-items: center;
         gap: 4px;
-        margin-top: 4px;
+        margin-top: 8px;
 
         .el-button {
           margin: 0;
@@ -928,15 +795,19 @@ watch(() => !props.initialSession?.parentFile && !!workspaceStore.pendingAgentMe
           width: 24px;
           height: 24px;
           padding: 0;
-          color: var(--el-text-color-secondary);
+          color: var(--agentMuted);
+          border: 1px solid var(--agentBorder);
+          background: var(--agentSurface);
         }
       }
+
+      &:not(.userMessage) .chatContent { width: 100%; max-width: calc(100% - 50px); }
 
       &.userMessage .messageActions {
         justify-content: flex-end;
       }
 
-      &.editingMessage .t-chat__inner.user .t-chat__content .t-chat__detail {
+      &.editingMessage .chatItem.user .chatContent .chatDetail {
         width: 100%;
         max-width: 100%;
         padding: 0;
@@ -944,26 +815,30 @@ watch(() => !props.initialSession?.parentFile && !!workspaceStore.pendingAgentMe
       }
     }
 
-    .t-chat__inner {
+    .chatItem {
       margin-bottom: 0;
 
-      .t-chat__content {
+      .chatContent {
         min-width: 0;
         padding-top: 0;
 
-        .t-chat__detail {
+        .chatDetail {
           width: 100%;
           max-width: 100%;
-          padding: 0;
+          padding: 10px 12px 16px;
+          border-radius: calc(var(--ui-radius, 8px) * 2.5);
+          background: var(--agentBubble);
         }
       }
 
-      &.user .t-chat__content .t-chat__detail {
+      .chatDetail:has(.welcomeMessage) { background: transparent; padding: 0; }
+
+      &.user .chatContent .chatDetail {
         width: auto;
         max-width: 80%;
-        padding: 6px 10px;
-        border-radius: calc(var(--ui-radius) * 1.25);
-        background: color-mix(in srgb, var(--el-text-color-secondary) 12%, var(--el-bg-color));
+        padding: 9px 12px;
+        border-radius: calc(var(--ui-radius, 8px) * 2.75);
+        background: var(--agentUserBubble);
       }
     }
 
@@ -973,7 +848,11 @@ watch(() => !props.initialSession?.parentFile && !!workspaceStore.pendingAgentMe
       gap: 4px;
       min-width: 0;
       overflow-wrap: anywhere;
-      color: var(--el-text-color-primary);
+      color: var(--agentText);
+      font-size: 13px;
+      line-height: 1.85;
+      .assistantLabel { display: flex; align-items: center; gap: 6px; color: var(--agentMuted); font-size: 12px; line-height: 18px; }
+      .messageMarkdown { color: inherit; font-size: inherit; line-height: 1.85; }
 
       .messageReasoning {
         padding-top: 0;
@@ -1064,17 +943,18 @@ watch(() => !props.initialSession?.parentFile && !!workspaceStore.pendingAgentMe
   }
 
   .messageInput {
-    --chat-text: var(--el-text-color-primary);
-    --chat-text-placeholder: var(--el-text-color-placeholder);
+    --chat-text: var(--agentText);
+    --chat-text-placeholder: var(--agentMuted);
     --chat-rect-padding: 12px;
     --chat-mention-text: var(--el-color-primary);
     position: relative;
     flex-shrink: 0;
-    margin: 0 12px 8px;
-    border: 1px solid var(--el-border-color-light);
-    border-radius: calc(var(--ui-radius) * 2.75);
-    background: var(--el-bg-color);
-    box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
+    margin: 0 10px 10px;
+    border: 1px solid var(--agentBorder);
+    border-radius: calc(var(--ui-radius, 8px) * 2.5);
+    background: var(--agentSurface);
+    .senderEditor { min-height: 68px; }
+
 
     &:focus-within {
       border-color: var(--el-color-primary-light-5);
@@ -1087,7 +967,7 @@ watch(() => !props.initialSession?.parentFile && !!workspaceStore.pendingAgentMe
       right: 12px;
       left: 12px;
       height: 8px;
-      border-radius: 4px;
+      border-radius: var(--ui-radius-small, 4px);
       cursor: ns-resize;
       touch-action: none;
       user-select: none;
@@ -1135,7 +1015,7 @@ watch(() => !props.initialSession?.parentFile && !!workspaceStore.pendingAgentMe
         display: inline-flex;
         flex-shrink: 0;
 
-        .mentionThumbnail { width: 24px; height: 24px; border-radius: 3px; }
+        .mentionThumbnail { width: 24px; height: 24px; border-radius: calc(var(--ui-radius, 8px) * 0.375); }
       }
       .agentMentionLabel { min-width: 0; }
     }
@@ -1156,17 +1036,6 @@ watch(() => !props.initialSession?.parentFile && !!workspaceStore.pendingAgentMe
         margin-right: auto;
       }
 
-      .contextButton {
-        width: 24px;
-        height: 24px;
-        margin: 0;
-        padding: 0;
-
-        &.is-text {
-          background-color: transparent;
-        }
-      }
-
       .sendButton {
         width: 34px;
         height: 34px;
@@ -1176,39 +1045,5 @@ watch(() => !props.initialSession?.parentFile && !!workspaceStore.pendingAgentMe
     }
   }
 
-}
-.agentContextPopover {
-  .contextUsage {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-
-    .contextStats {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .contextHeader,
-    .contextTokens {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .contextHeader {
-      color: var(--el-text-color-primary);
-    }
-
-    .contextTokens {
-      font-size: 12px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .contextHint {
-      color: var(--el-text-color-secondary);
-      font-size: 12px;
-    }
-  }
 }
 </style>

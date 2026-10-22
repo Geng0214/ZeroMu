@@ -1,7 +1,7 @@
 import { z } from "@toonflow/nodes-scaffold/runtime";
 import { AnimationClip, AnimationMixer, Euler, LoopOnce, Quaternion, QuaternionKeyframeTrack, VectorKeyframeTrack } from "three";
 import { getObjectByThreeJsonId, type SceneRuntime } from "threejson/core";
-import { sceneSchema, updateSunShadow } from "./scene";
+import { sceneSchema, updateSunShadow, type SceneDocument } from "./scene";
 import { cameraFramesSchema } from "./motion";
 import { mannequinJoints } from "./mannequin";
 
@@ -46,6 +46,32 @@ export const directorPlanSchema = z.strictObject({
 export type DirectorPlan = z.infer<typeof directorPlanSchema>;
 export type DirectorPlanItem = DirectorPlan & { id: string; instruction?: string };
 export type DirectorGeneration = { id: string; instruction: string; error?: string };
+
+// 手动改变布景基准时，保留动画的相对位移、转角与缩放，撤销快照同时包含这些轨道。
+export function rebaseScenePlans(plans: DirectorPlanItem[], previous: SceneDocument, next: SceneDocument): DirectorPlanItem[] {
+  return plans.map(plan => ({ ...plan, tracks: plan.tracks.flatMap(track => {
+    const before = previous.objectList.find(object => object.threeJsonId === track.objectId);
+    const after = next.objectList.find(object => object.threeJsonId === track.objectId);
+    if (!after) return [];
+    if (!before) return [track];
+    const axes = ["x", "y", "z"] as const;
+    const oldRotation = track.joint ? before.pose?.[track.joint] : { x: before.rotation?.rotationX ?? 0, y: before.rotation?.rotationY ?? 0, z: before.rotation?.rotationZ ?? 0 };
+    const newRotation = track.joint ? after.pose?.[track.joint] : { x: after.rotation?.rotationX ?? 0, y: after.rotation?.rotationY ?? 0, z: after.rotation?.rotationZ ?? 0 };
+    return [{ ...track, frames: track.frames.map(frame => {
+      const rotation = { ...frame.rotation };
+      for (const axis of axes) rotation[axis] += (newRotation?.[axis] ?? 0) - (oldRotation?.[axis] ?? 0);
+      if (track.joint) return { ...frame, rotation };
+      const position = frame.position && { ...frame.position };
+      const scale = frame.scale && { ...frame.scale };
+      for (const axis of axes) {
+        if (position) position[axis] += after.position[axis] - before.position[axis];
+        const field = `scale${axis.toUpperCase()}` as "scaleX" | "scaleY" | "scaleZ";
+        if (scale) scale[axis] *= (after.scale?.[field] ?? 1) / (before.scale?.[field] || 1);
+      }
+      return { ...frame, rotation, ...(position && { position }), ...(scale && { scale }) };
+    }) }];
+  }) }));
+}
 
 export function prepareSceneAnimation(runtime: SceneRuntime, value: DirectorPlan) {
   const { name, duration, tracks: sourceTracks, cameraFrames } = value;
