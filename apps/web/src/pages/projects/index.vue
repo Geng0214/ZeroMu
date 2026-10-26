@@ -97,11 +97,11 @@ async function rename(item: Project) {
   });
 }
 async function deleteProject(item: Project) {
-  await run("正在删除项目…", async () => {
-    const confirmed = await ElMessageBox.confirm(`确定永久删除项目“${item.name}”？这会删除整个项目文件夹及其中的画布、素材和备份：\n${item.directory}\n此操作无法撤销。`, "删除项目", { confirmButtonText: "永久删除", cancelButtonText: "保留项目", type: "warning", closeOnClickModal: false }).then(() => true, () => false);
+  await run("正在移入回收目录…", async () => {
+    const confirmed = await ElMessageBox.confirm(`确定删除项目“${item.name}”？整个项目文件夹会移入工作空间的 zeromuTrash 目录，画布、素材和备份一并保留，可按目录名从磁盘取回：\n${item.directory}`, "删除项目", { confirmButtonText: "移入回收目录", cancelButtonText: "保留项目", type: "warning", closeOnClickModal: false }).then(() => true, () => false);
     if (!confirmed) return;
     await workspace.deleteProject(item.directory, item.projectId);
-    ElMessage.success("项目文件夹及其中内容已删除");
+    ElMessage.success("项目文件夹已移入工作空间的 zeromuTrash 目录");
   });
 }
 async function importFolder() {

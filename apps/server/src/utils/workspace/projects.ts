@@ -1,4 +1,4 @@
-import { lstat, mkdir, mkdirSync, open, readFile, readdir, realpath, rm, rmdir, writeAtomic, withFileAccess } from "@toonflow/file";
+import { lstat, mkdir, mkdirSync, open, readFile, readdir, realpath, rename, rm, rmdir, writeAtomic, withFileAccess } from "@toonflow/file";
 import { basename, dirname, isAbsolute, join } from "node:path";
 import { z } from "zod";
 import conf from "@/utils/conf";
@@ -8,6 +8,8 @@ import { projectCanvasFolder, projectLayoutVersion } from "./projectLayout";
 import { isWithin, lockWorkspaceFiles, renameWorkspaceFile } from "./files";
 
 const workspaceFile = "zeromuWorkspace.json";
+// 删除项目改为移入工作空间内的回收目录，避免一次误点造成不可恢复的原件丢失。
+export const workspaceTrashFolder = "zeromuTrash";
 const workspaceSchema = z.strictObject({ zeromuWorkspace: z.literal(true), schemaVersion: z.literal(1), workspaceId: z.uuid(), name: z.string().min(1), createdAt: z.number(), lastProject: z.string().optional() });
 const storedProjectSchema = z.object({ directory: z.string().min(1).max(4096), name: z.string().optional(), projectId: z.string().optional(), lastOpenedAt: z.number().optional(), canvasCount: z.number().optional(), updatedAt: z.number().optional() });
 export const projectNameSchema = z.string().trim().min(1).max(100).refine(value => !/[<>:"/\\|?*\x00-\x1f]/.test(value) && !/[. ]$/.test(value) && !/^(\.{1,2}|con|prn|aux|nul|com\d|lpt\d)(\.|$)/i.test(value), "请输入有效的项目名称");
@@ -20,6 +22,14 @@ async function ensureFolder(path: string) {
     if (parent === dirname(parent)) break;
   }
   await mkdir(path, { recursive: true });
+}
+async function nextTrashEntry(trashDirectory: string, name: string) {
+  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "");
+  for (let index = 0; index < 100; index += 1) {
+    const candidate = join(trashDirectory, `${name}-${stamp}${index ? `-${index}` : ""}`);
+    if (!(await info(candidate))) return candidate;
+  }
+  fail("回收目录中同名条目过多，请先清理 zeromuTrash", 409);
 }
 export function selectedWorkspace() {
   const directory = conf.get("workspaceDirectory", "") || join(dirname(conf.path), "workspaces");
@@ -244,7 +254,11 @@ export async function deleteWorkspaceProject(directory: string, projectId?: stri
     if ((projectId && latestProject.projectId !== projectId) || (listed.projectId && latestProject.projectId !== listed.projectId)) {
       fail("项目已变更，请刷新项目列表后重试", 409);
     }
-    await rm(projectDirectory, { recursive: true });
+    // ACT: 移入工作空间内的回收目录，而不是递归删除；改名失败即报错，不降级为删除，避免误点造成不可恢复的原件丢失。
+    const trashDirectory = join(root, workspaceTrashFolder);
+    if (isWithin(projectDirectory, trashDirectory)) fail("回收目录位于项目文件夹内部，请先检查工作空间结构", 409);
+    await ensureFolder(trashDirectory);
+    await rename(projectDirectory, await nextTrashEntry(trashDirectory, basename(projectDirectory)));
   } finally { release(); }
   return workspaceState(root);
 }

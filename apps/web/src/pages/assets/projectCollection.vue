@@ -1,7 +1,7 @@
 <template>
     <section class="projectList" aria-labelledby="projectListTitle"><div class="sectionHeader"><div><h2 id="projectListTitle">项目 <span>{{ projectList.length }}</span></h2><p>画布与创作文件，按项目整理。</p></div><div class="projectToolbar"><el-input v-model="projectQuery" class="projectSearch" :prefixIcon="IconSearch" placeholder="搜索项目" aria-label="搜索项目" clearable /><el-button :icon="iconFolderOpen" :disabled="creating || opening" @click="openProject()">导入</el-button><el-button :icon="IconFolderPlus" :disabled="creating || opening" @click="createProject()">新建项目</el-button><el-button circle :icon="sortDescending ? IconSortDescending : IconSortAscending" :aria-label="sortDescending ? '按时间降序' : '按时间升序'" @click="sortDescending = !sortDescending" /><el-button circle :icon="viewMode === 'grid' ? IconList : IconLayoutGrid" :aria-label="viewMode === 'grid' ? '切换列表视图' : '切换网格视图'" @click="viewMode = viewMode === 'grid' ? 'list' : 'grid'" /></div></div>
       <div v-if="!sortedProjects.length" class="emptyProjects"><icon-folder :size="30" /><h3>{{ projectQuery ? '没有找到匹配的项目' : '你的第一部作品，从这里开始' }}</h3><p>{{ projectQuery ? '试试其他名称或文件夹路径。' : '新建画布，或导入已有项目。你的文件保存在本地。' }}</p><button v-if="!projectQuery" class="textAction" :disabled="creating || opening" @click="createProject()">创建第一个项目<icon-arrow-right :size="16" /></button></div>
-      <div v-else class="projectItems" :class="{ listView: viewMode === 'list' }"><article v-for="item in sortedProjects" :key="item.directory" class="projectCard"><button class="projectEntry" :disabled="creating || opening" :aria-label="'打开项目 ' + item.name" @click="openProject(item)"><icon-folder class="projectIcon" :size="28" /><span class="projectInfo"><strong class="projectName" :title="item.name">{{ item.name }}</strong><span class="projectPath" :title="item.directory">{{ item.directory }}</span><span class="projectTime">最近打开 {{ new Date(item.lastOpenedAt).toLocaleString(locale, { hour12: false }) }}</span></span></button><div class="projectActions"><el-button text :icon="IconEdit" :disabled="creating || opening" :aria-label="'重命名项目 ' + item.name" @click="renameProject(item)" /><el-button text :icon="IconTrash" :disabled="creating || opening" :aria-label="'删除项目 ' + item.name" title="永久删除项目文件夹及其中内容" @click="deleteProject(item)" /></div></article></div>
+      <div v-else class="projectItems" :class="{ listView: viewMode === 'list' }"><article v-for="item in sortedProjects" :key="item.directory" class="projectCard"><button class="projectEntry" :disabled="creating || opening" :aria-label="'打开项目 ' + item.name" @click="openProject(item)"><icon-folder class="projectIcon" :size="28" /><span class="projectInfo"><strong class="projectName" :title="item.name">{{ item.name }}</strong><span class="projectPath" :title="item.directory">{{ item.directory }}</span><span class="projectTime">最近打开 {{ new Date(item.lastOpenedAt).toLocaleString(locale, { hour12: false }) }}</span></span></button><div class="projectActions"><el-button text :icon="IconEdit" :disabled="creating || opening" :aria-label="'重命名项目 ' + item.name" @click="renameProject(item)" /><el-button text :icon="IconTrash" :disabled="creating || opening" :aria-label="'删除项目 ' + item.name" title="移入工作空间的 zeromuTrash 目录，可从磁盘取回" @click="deleteProject(item)" /></div></article></div>
     </section>
 <workspacePicker ref="relocationPicker" hideTrigger />
 </template>
@@ -64,14 +64,14 @@ async function renameProject(project: Project) {
 
 async function deleteProject(project: Project) {
   if (creating.value || opening.value) return;
-  const confirmed = await ElMessageBox.confirm(`确定永久删除项目“${project.name}”？这会删除整个项目文件夹及其中的画布、素材和备份：\n${project.directory}\n此操作无法撤销。`, "删除项目", {
-    confirmButtonText: "永久删除", cancelButtonText: "保留项目", type: "warning", closeOnClickModal: false,
+  const confirmed = await ElMessageBox.confirm(`确定删除项目“${project.name}”？整个项目文件夹会移入工作空间的 zeromuTrash 目录，画布、素材和备份一并保留，可按目录名从磁盘取回：\n${project.directory}`, "删除项目", {
+    confirmButtonText: "移入回收目录", cancelButtonText: "保留项目", type: "warning", closeOnClickModal: false,
   }).then(() => true, () => false);
   if (!confirmed) return;
   opening.value = true;
   try {
     await workspaceStore.deleteProject(project.directory, project.projectId);
-    ElMessage.success("项目文件夹及其中内容已删除");
+    ElMessage.success("项目文件夹已移入工作空间的 zeromuTrash 目录");
   } catch (cause) {
     ElMessage.error(axios.isAxiosError(cause) ? cause.response?.data?.message || cause.message : cause instanceof Error ? cause.message : "删除项目失败");
   } finally { opening.value = false; }
