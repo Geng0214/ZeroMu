@@ -316,7 +316,14 @@ export async function importPackage(directory: string, path: string, targetParen
 async function readJob(jobId: string, directory: string, optional = false): Promise<PackageJob | null> {
   z.uuid().parse(jobId); const active = live.get(jobId); const job = active?.job ?? await readFile(join(jobsDirectory(), `${jobId}.json`), "utf8").then(value => JSON.parse(value) as PackageJob).catch((error: NodeJS.ErrnoException) => { if (optional && error.code === "ENOENT") return null; throw error; });
   if (!job) return null; if (job.directory !== directory) invalid("归集操作不属于此项目", 403);
-  if (job.status === "running" && !active) { job.status = "failed"; job.error = "服务已重启，归集或导入中断；原项目保留，请重新操作，已创建的目录需先核对"; await saveJob(job); }
+  // ACT: live 为空说明任务已随进程重启终止。导入的暂存目录只是指向同一份数据的硬链接副本，
+  // 删除它不会丢失目标目录里已链接的内容，因此在此回收，避免隐藏副本长期占盘；
+  // 中断目录的 projectImportState.json 保持 importing 为真，readProject 继续按 423 要求重新导入，不放宽成可打开的半成品项目。
+  if (job.status === "running" && !active) {
+    job.status = "failed"; job.error = "服务已重启，归集或导入中断；原项目保留，请重新操作，已创建的目录需先核对";
+    if (job.kind === "import" && !job.resultDirectory && job.targetParent) await safeRemoveStage(job.targetParent, join(job.targetParent, `.projectImport${job.jobId}`), job.jobId).catch(() => {});
+    await saveJob(job);
+  }
   return job;
 }
 export async function packageJobs(directory: string) { const names = await readdir(jobsDirectory()).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return []; throw error; }); const result = []; for (const name of names) if (z.uuid().safeParse(name.replace(/\.json$/, "")).success) { const saved = JSON.parse(await readFile(join(jobsDirectory(), name), "utf8")) as PackageJob; if (saved.directory === directory) result.push(await readJob(saved.jobId, directory)); } return result; }
