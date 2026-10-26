@@ -86,6 +86,8 @@ bun run package:desktop
 
 市场服务、协议安装与各子包格式属于各自接口；原完整说明保留在 [历史扩展指南](archive/previousDevelopment.md)。外部市场不作为零幕自有服务，可信安装不等于已建立操作系统沙箱。
 
+当前应用内**没有**插件安装入口：设置里的插件市场面板与本地文件安装入口已移除，安装只保留 `zeromu://install` 协议一条路径——由外部页面发起，桌面端确认类型、文件名与下载地址后调用 `/api/desktop/plugins/install` 写入 `data/` 对应目录。协议链路与 `utils/plugins/install.ts` 的实现、体积限制和同版本覆盖规则不变，见上方历史扩展指南。另有两处已知残留暂不清理：桌面与 Web 之间的安装事件名仍为 `toonflow:install-plugin` 与 `toonflow:plugin-installed`（纯品牌改名，需两端同批修改），`pluginMarketApiKey` 的加解密与脱敏分支保留（历史配置里该字段可能仍是密文信封，移除白名单会让它失去脱敏）。
+
 ## GitHub 与发布
 
 日常提交推送到自己的 `origin`；上游 `upstream` 仅用于同步开源基础。提交前查看差异，排除 `data/`、`work/`、`build/`、凭据、私有素材及证书。当前远程为 `Geng0214/ZeroMu`，本次文档整理不自动提交或推送。

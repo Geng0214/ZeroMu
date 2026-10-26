@@ -190,7 +190,13 @@ R2 的原生蒙版适配可依赖 R3 的 ComfyUI 路径，届时先交付蒙版�
 
 1. 自动化回归与仓库禁令冲突【已裁决：严格执行禁令】。原 `AGENTS.md` 禁止新增测试文件与自动检查入口，但仓库跟踪了 `apps/web/src/lib/nodeFrameFiles.test.ts`、`packages/nodeScaffold/src/workspaceFiles.test.ts` 和根 `package.json` 的 `test:node-isolation`。2026-10-26 按决定删除这两个文件与脚本入口：删除前确认除自身外无任何代码引用，被测模块 `nodeFrameFiles.ts`、`workspaceFiles.ts` 仍被隔离视图与多个节点组件正常使用。代价要记清——隔离文件桥与上传范围的 6 项 24 断言自动化证据自此失效，该两处修复只剩类型检查、构建与浏览器手工核查支撑，历史结果在进度与验收记录中保留为当时证据。
 2. 插件安装路径【已裁决：仅协议安装，文档写明】。设置里的插件市场面板与本地文件安装入口已删除，`zeromu://install` 协议注册、`/api/desktop/plugins/install` 与 `utils/plugins/install.ts` 全链路保留可用，即当前安装方式只有外部链接唤起桌面确认。`pluginMarketApiKey` 暂不清除：历史 `settings.json` 里该字段已是密文信封，`credentialStorage` 的解密分支不依赖白名单，但 `credentialSettings` 的脱敏依赖它；移除白名单会让这个仍可能存在的凭据失去脱敏，收益只有整洁。跨桌面与 Web 五个文件、14 处的 `toonflow:install-plugin` 与 `toonflow:plugin-installed` 事件名同样保留，属纯品牌改名，需两端同批修改，单独排期。
-3. 公开历史中的本机标识【执行中】。工作树已在 `2cbc218` 清理，但历史提交内容与七个提交元数据仍含本机绝对路径、Windows 用户名、机器名与个人邮箱。按决定执行历史重写：先做全量 bundle 备份，用 `git-filter-repo` 以 blob 回调只改写命中的三个文档、以 mailmap 只替换本人邮箱（不动上游贡献者身份），验证全历史无残留后重挂 origin/upstream 并强推 main。重写后所有提交号变化，旧的工作副本需重新 clone，不能直接 pull。
+3. 公开历史中的本机标识【已完成：历史已重写并强推】。工作树此前已在 `2cbc218` 清理，但历史提交内容与提交元数据仍含本机绝对路径、Windows 用户名、机器名与个人邮箱。2026-10-26 按决定完成重写：先 `git bundle create --all` 做全量备份，再从备份克隆出干净副本改写，只动命中的 markdown 文档与本人邮箱，上游贡献者身份与提交内容保持不变。
+
+   过程要留痕，因为它是工具陷阱：`git-filter-repo` 在本机对这批 blob 反复替换不完整——`--replace-text` 里含反斜杠的路径模式（`C:\Users\...`）无论单反斜杠还是双反斜杠都不生效，`--blob-callback` 则无论纯 ASCII 还是含中文都在第一个 blob 处崩（fast-import broken pipe，报错指向的 AGENTS.md 本身并不含目标串），迭代四轮命中数固定在 2+4 处不再下降。最终改用 `git filter-branch --tree-filter`，并把改写严格限定在 `docs` 下的 `.md`（先确认 `bun.lock` 等文件不含 `本机用户名`，避免数字串误伤完整性哈希），用 `--commit-filter` 只替换本人邮箱。
+
+   结果与验证：62 个提交全部保留，`refs/heads/main` 全历史检索 `本机用户名`、`本机机器名`、`本人邮箱账号名` 均为 0 处，提交作者与提交者邮箱只剩 noreply 与上游贡献者；改写后 HEAD 与改写前 HEAD 的树 `git diff` 为空，即最新代码内容一字未变，只有历史被改写。干净历史已强推，GitHub `main` 为 `6b8e711`，本地工作副本已 `fetch + reset --hard` 对齐并设置跟踪。
+
+   两个未收回项：GitHub 服务端对旧对象按其自身 GC 策略回收，改写前的 commit SHA 在被回收前仍可能被直接访问；本地 `refs/codex/turn-diffs/checkpoints/*` 是会话工具留下的检查点引用，仍钉着含旧内容的对象，属本机磁盘范围、不对外可见，需要时可删除后 `git gc --prune=now`。备份 bundle 与重写副本暂留在桌面，确认无误后可自行删除。今后提交请用 `git config --local user.email 183216540+Geng0214@users.noreply.github.com`，避免邮箱再次进入历史。
 
 ## 复用与实现边界
 
