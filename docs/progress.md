@@ -1,5 +1,22 @@
 # 当前开发进度
 
+## 2026-10-26 公开仓库对外状态与版本链核查
+
+本轮不改功能，只核对「源码 / 构建 / 安装 / 运行」四类状态是否可分辨，并修掉公开仓库里面向外说错的东西。
+
+| 状态 | 实测值 | 证据 |
+| --- | --- | --- |
+| 源码 | Git `2cbc218`，默认版本 `2.0.36` | `appVersion.ts` |
+| 构建 | `2.0.36` / `2tmmzxy324ups`，stable-win-x64 | `build/desktop/artifacts/stable-win-x64-update.json`，同目录 `stable-win-x64-zeromu.tar.zst` 72,933,234 字节与 `win-x64-zeromu-Setup.zip` 73,352,768 字节 |
+| 安装 | `2.0.36` / `2tmmzxy324ups` | `work/native228/app/Resources/version.json`；同日 `appBackup-20261026172333` 与 `appBackup-20261026182000` 仍为 `2.0.28`，是替换前的原件备份 |
+| 运行 | 未运行 | 无 `zeromu.exe` 与 `launcher.exe` 进程，MCP 端口 10588 无监听 |
+
+结论修正：源码、构建、安装三者版本一致，G18 的四态口径在数值上已对齐；此前的差异只存在于**文档**——本页与验收清单一直停在 2.0.28 轮次，`2.0.36` 与 `2tmmzxy324ups` 在 docs 里此前没有任何记录。本条目即为补齐该缺口的当前真值，历史条目按原样保留，不改写既有轮次的结论。
+
+同日对外整改：公开仓库的 `docs/` 曾带有机本绝对路径、Windows 用户名与机器名，已改为不含身份信息的写法；仅本机留存的 `work/` 验证记录由相对链接改成本机路径标注，消除公开面 404，这些产物本身含大量 `path` 字段与本机路径，不随仓库分发；`package.json`、贡献指南与行为准则的自我指涉由上游 Toonflow 改回零幕，`LICENSE` 与关于面板的上游署名保留；发布工作流去掉打 tag 即自动触发，macOS 产物校验中残留的 `toonflow.app` 更正为 `zeromu.app`。提交 `2cbc218` 已推送，GitHub 侧 `commits/main` 与本地一致。
+
+删除本地遗留 tag `v2.0.3`：它是指向上游提交 `f37b772`（即零幕分叉点）的上游 annotated tag，随仓库复制而来。公开仓库此前 tags 与 releases 均为 0，风险只在本地——一旦误推，发布工作流会把它建成 `make_latest: true` 的 Release，使 `electrobun.config.ts` 中取 `releases/latest/download` 的构建基线与增量补丁以纯上游代码为参照。恢复方式：`git fetch upstream --tags`。运行时更新不受影响，因为 `getUpdateBaseUrl` 仅在设置中显式配置专用 HTTPS 更新源时才生效，未配置即报错。
+
 ## 2026-10-26 Ku 功能借鉴：图片拆分与镜头参数
 
 调研 Ku 中 Toonflow、basketikun 无限画布和 tigerowo 无限画布后，选择对零幕现有创作链路有直接帮助的两项能力独立实现：图片网格拆分，以及图片/视频镜头参数。沿用工作区文件入口、节点上传、批量历史和主题，没有引入新依赖，没有复制 AGPL 项目源码或文案。
@@ -112,7 +129,7 @@ Web、Server、桌面及节点脚手架相关类型检查和构建通过；既�
 
 2026-10-23 安装记录：当时源码修复后的 2.0.28 安装器以静默方式安装成功（退出码 0），目录为 `work/native228`；其中 `app/Resources/version.json` 为 2.0.28 / `kcvq2irtj53j`。当时安装包 `build/desktop/artifacts/zeromu-2.0.28-Setup.exe` 为 69,817,832 字节，SHA-256 为 `93ed1bda981759c023d3d0c98e07efebb7821c0225f07d205f5bd26e8089b61c`。当时稳定版卸载项、安装目录和 `zeromu://` 指向此候选；隔离页面 JS chunk 为 1,581,605 字节，安装副本与当时 `build/web` 输出摘要一致，八种节点 UMD 同样吻合且包含 `canGenerate` 门。完整历史安装核对见 `installSummary228.json`（本机 `work/nodeFramePilotData/installSummary228.json`，验证记录仅本机留存，未随仓库分发）。该轮候选 launcher 未运行，原 2.0.27 launcher 继续运行；原生观感与文件选择器留给用户最终试用，未调用付费生成。R0 复核时，上述 `.exe` 已不在产物目录，当前构建输出和进程状态均已变化，以本页版本表为准。
 
-为避免本机后续无显式环境变量时误打成仓库初始默认 `2.0.0`，`appVersion.ts` 的默认版本现已与当前计划候选对齐为 `2.0.28`；打包后仍需核对 manifest 与安装资源版本。
+为避免本机后续无显式环境变量时误打成仓库初始默认 `2.0.0`，该轮把 `appVersion.ts` 的默认版本对齐到当时的计划候选 `2.0.28`；打包后仍需核对 manifest 与安装资源版本。当前默认版本已随后续轮次推进到 `2.0.36`，四类状态真值见本页顶部「公开仓库对外状态与版本链核查」。
 
 后续静态界面复核发现图片、音频、视频生成节点的“替换媒体”按钮在上传中仍保持可点击，而文件输入已禁用，造成点击无响应。三处现已将上传中状态加入按钮禁用条件；全仓 `bun run typecheck`、隔离桥 6 项自动化回归（24 个断言）、完整 `bun run package:desktop` 均退出 0。又发现宿主没有向隔离节点提供主题变量，现新增共享外观快照和单一 DOM 观察器，向节点同步深浅主题、字号及 `--el-*` / `--ui-*` CSS 变量；子页面主题变化时会应用新变量并清理旧值。Web 类型检查和生产构建通过。导演引导页对 sandbox opaque origin 的 `localStorage` 异常增加内存回退，导演节点类型检查通过。上述修复已重打并安装进当前 2.0.28 候选；八种节点 UMD 与隔离 JS chunk 均逐字节匹配构建输出。原生观感与文件选择器 UI 由用户在最终试用阶段检查，本轮不做。
 
