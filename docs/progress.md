@@ -10,6 +10,8 @@
 
 验证：`bun run --filter '@toonflow/server' --filter '@toonflow/web' typecheck` 均退出 0。用独立 `TOONFLOW_DATA_DIR` + `NODE_ENV=dev` 实例端到端跑完整生命周期——新建并在项目内写入哨兵文件、删除后回收目录出现条目且哨兵文件在条目内、还原后项目列表恢复且目录内容（`keep.txt`、`projectData`、`zeromuProject.json`、`无限画布1.json`）完整、再次删除并彻底删除后条目归零且磁盘目录消失；连做三轮「删除→还原」目录名稳定回到原名；`../../escape` 作为条目名返回 400，不存在条目返回 409。临时数据目录与测试进程已清理，3000 端口已释放。界面观感与真实项目的删除还原由用户最终试用。
 
+对当日两项能力做了独立复核（不依赖当日记录，直接跑代码）：图片网格拆分的纯函数 `imageTiles` 在 1000×1000 3×3、1024×576 2×2、**997×503 3×3（不能整除）**、800×600 1×8、1000×1000 8×8、1500×1000 4×6 六组参数下均满足格内面积合计等于原图像素、行列齐全唯一、不越界、同行首尾无缝相接；`inset=12` 时每格宽高各减 24、原点向内偏移 12；整数行列、8192 边长、3355 万总像素、至少 2 张、行列 1–8、裁边 0–256 与裁边过小共 7 类非法输入全部按预期拒绝。镜头参数为景别 5、视角 4、等效焦距 5、景深 3、运镜 6 五个维度加 6 条中文拍摄预设，且 `imageGenerationNode` 在生成调用处以 `appendCameraPrompt` 拼接，节点保存的 `prompt` 保持原文，重试不累积镜头描述，与该轮记录的说法一致。
+
 ## 2026-10-26 移除自动化回归入口与本轮对外整改
 
 按仓库禁令执行：删除 `apps/web/src/lib/nodeFrameFiles.test.ts`、`packages/nodeScaffold/src/workspaceFiles.test.ts` 与根 `package.json` 的 `test:node-isolation`。删除前确认这两个文件除自身外没有任何引用，被测模块 `nodeFrameFiles.ts` 与 `workspaceFiles.ts` 仍被隔离节点视图、媒体历史、参考卡与视频播放器正常使用，功能不受影响。
