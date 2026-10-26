@@ -10,7 +10,7 @@
   <sceneEditor v-if="editing" v-model:anchors="anchors" v-model:prompt="prompt" v-model:model="model" v-model:lighting="lighting" v-model:sceneSettings="sceneSettings" v-model:aspectRatio="aspectRatio" v-model:lastView="lastView"
     :scene="scene" :result="selectedPlan" :models="models" :modelsLoading="modelsLoading" :sceneSaving="sceneSaving"
     :plans="plans" :selectedPlanId="data.selectedPlanId ?? ''" :tasks="tasks" :readOnlyReference="!!data.productionReferenceSource" :referenceMediaType="data.productionReferenceMediaType"
-    :exportingVideo="exportingVideo" :exportingImage="exportingImage" :exportProgress="exportProgress"
+    :exportingVideo="exportingVideo" :exportingImage="exportingImage" :exportProgress="exportProgress" :generationEnabled="ai.canGenerate"
     @exportVideo="exportVideo" @exportImage="exportImage" :saveScene="saveScene" :restoreScene="restoreScene" :canUndo="undoScenes.length > 0" :canRedo="redoScenes.length > 0"
     @selectPlan="!data.productionReferenceSource && (data.selectedPlanId = $event)" @loadModels="loadModels" @generate="generate" @editInstruction="setPrompt" @close="editing = false">
     <template #input>

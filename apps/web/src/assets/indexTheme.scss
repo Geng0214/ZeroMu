@@ -1,0 +1,59 @@
+html:root.indexInterface {
+  --indexBg: #e5e2dc;
+  --indexSurface: #eeebe5;
+  --indexRaised: #dcd8d0;
+  --indexText: #292827;
+  --indexMuted: #69645d;
+  --indexLine: #c7c1b7;
+
+  &.dark {
+    --indexBg: #20201e;
+    --indexSurface: #292824;
+    --indexRaised: #35332e;
+    --indexText: #e6e1d7;
+    --indexMuted: #b6afa3;
+    --indexLine: #49453e;
+  }
+
+  .libraryShell, .el-dialog, .el-message-box, .el-popper {
+    --el-bg-color: var(--indexSurface);
+    --el-bg-color-overlay: var(--indexSurface);
+    --el-fill-color-blank: var(--indexSurface);
+    --el-fill-color-light: var(--indexRaised);
+    --el-text-color-primary: var(--indexText);
+    --el-text-color-regular: var(--indexText);
+    --el-text-color-secondary: var(--indexMuted);
+    --el-text-color-placeholder: var(--indexMuted);
+    --el-border-color: var(--indexLine);
+    --el-border-color-light: var(--indexLine);
+    --el-color-primary: var(--indexText);
+    --el-color-primary-light-3: color-mix(in srgb, var(--indexText) 75%, var(--indexBg));
+    --el-color-primary-light-9: var(--indexRaised);
+    --el-color-primary-dark-2: var(--indexText);
+    @for $level from 1 through 9 {
+      --el-color-primary-light-#{$level}: color-mix(in srgb, var(--indexText) #{100 - $level * 10}%, var(--indexBg));
+    }
+    --el-border-radius-base: 4px;
+    --el-dialog-border-radius: 6px;
+    --el-popper-border-radius: 6px;
+  }
+
+  .el-button--primary {
+    --el-button-text-color: var(--indexBg);
+    --el-button-hover-text-color: var(--indexBg);
+    --el-button-active-text-color: var(--indexBg);
+    --el-button-bg-color: var(--indexText);
+    --el-button-hover-bg-color: color-mix(in srgb, var(--indexText) 85%, var(--indexBg));
+    --el-button-active-bg-color: var(--indexText);
+    --el-button-border-color: var(--indexText);
+    --el-button-hover-border-color: var(--indexText);
+    --el-button-active-border-color: var(--indexText);
+  }
+
+  .el-input__wrapper, .el-select__wrapper, .el-textarea__inner {
+    --el-input-bg-color: var(--indexSurface);
+    --el-fill-color-blank: var(--indexSurface);
+    --el-input-border-color: var(--indexLine);
+    --el-input-focus-border-color: var(--indexText);
+  }
+}

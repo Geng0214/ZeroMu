@@ -26,7 +26,7 @@ export async function createWorkspaceFfmpeg(cwd: string, signal?: AbortSignal) {
   signal?.throwIfAborted();
   if (!tools.ffmpeg.path || tools.ffmpeg.error || !tools.ffprobe.path || tools.ffprobe.error) {
     for (const listener of requiredListeners) listener();
-    throw Object.assign(new Error("当前操作需要 FFmpeg，请在插件市场下载安装或配置可用版本后重试。"), {
+    throw Object.assign(new Error("当前操作需要 FFmpeg 和 ffprobe，未检测到可用版本。"), {
       name: "FfmpegRequiredError", code: "FFMPEG_REQUIRED", status: 424,
     });
   }

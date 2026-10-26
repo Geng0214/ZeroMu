@@ -524,7 +524,7 @@ watch(
 <style scoped>
 .nodeSkeleton {
   position: relative;
-  width: 220px;
+  width: var(--nodeWidth, 220px);
   color: var(--el-text-color-primary);
   text-align: left;
 
@@ -617,12 +617,19 @@ watch(
   .cardContainer {
     position: relative;
 
+    .contentCard {
+      box-sizing: border-box;
+      height: var(--nodeCardHeight, auto);
+      :deep(.el-card__body) { box-sizing: border-box; height: 100%; }
+    }
+
     .contentCard.selected {
       border-color: color-mix(in srgb, var(--el-color-primary) 50%, var(--el-border-color-light));
     }
 
     .contentCard .loadingContent {
       display: flex;
+      height: 100%;
       min-height: 84px;
       align-items: center;
       justify-content: center;

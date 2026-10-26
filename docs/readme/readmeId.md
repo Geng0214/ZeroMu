@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">Unduh</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">Panduan Pengguna</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">Marketplace Plugin</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">Dokumentasi Pengembang</a> ·
   <a href="https://api.toonflow.net/">Platform Model Resmi</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow adalah platform kreasi AI sumber terbuka untuk drama pendek, komik anim
 | 🏠 **Penerapan lokal** | Simpan proyek dan aset di perangkat atau server Anda sendiri, dengan pilihan penerapan desktop, Docker, dan server. |
 | 🖼️ **Kanvas tanpa batas** | Tata naskah, karakter, adegan, dan klip video di kanvas yang sama. |
 | 🔌 **MCP** | Hubungkan alat dan layanan eksternal melalui MCP. |
-| 🧩 **Marketplace plugin** | Tambahkan node, alat, dan kemampuan kreatif melalui [Marketplace Plugin](https://api.toonflow.net/console/plugIn). |
 | 🤖 **Agent terbuka** | Akses terbuka ke prompt, alat, dan A2A untuk menyesuaikan perilaku Agent serta berkolaborasi dengan Agent eksternal. |
 | 🔧 **Integrasi model yang fleksibel** | Konfigurasikan API pihak ketiga atau hubungkan instans ComfyUI dan LLM lokal. |
 | 🌐 **Dukungan multibahasa** | Mendukung 21 bahasa antarmuka. |
@@ -220,7 +218,6 @@ Bahasa yang didukung: 简体中文, 繁體中文, English, 日本語, Русск
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Menu node dan operasi pengelompokan Toonflow" width="80%" /></a><br /><sub>Menu node dan operasi pengelompokan</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Marketplace Plugin Toonflow" width="80%" /></a><br /><sub>Marketplace Plugin</sub>
 
 </div>
 

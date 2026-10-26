@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">تنزيل</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">دليل المستخدم</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">سوق الإضافات</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">وثائق المطورين</a> ·
   <a href="https://api.toonflow.net/">المنصة الرسمية للنماذج</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow منصة إبداع بالذكاء الاصطناعي مفتوحة ال
 | 🏠 **تشغيل محلي** | احتفظ بالمشروعات والأصول على جهازك أو خادمك، مع خيارات لتطبيق سطح المكتب وDocker والتشغيل على الخادم. |
 | 🖼️ **لوحة لا نهائية** | نظّم السيناريوهات والشخصيات والمشاهد ومقاطع الفيديو على اللوحة نفسها. |
 | 🔌 **MCP** | اربط الأدوات والخدمات الخارجية عبر MCP. |
-| 🧩 **سوق الإضافات** | وسّع العقد والأدوات والإمكانات الإبداعية من خلال [سوق الإضافات](https://api.toonflow.net/console/plugIn). |
 | 🤖 **Agent مفتوح** | وصول مفتوح إلى الموجّهات والأدوات وA2A لتخصيص سلوك Agent والتعاون مع وكلاء خارجيين. |
 | 🔧 **ربط مرن للنماذج** | اضبط واجهات API خارجية، أو اربط نُسخ ComfyUI ونماذج اللغة الكبيرة المحلية. |
 | 🌐 **دعم لغات متعددة** | تدعم الواجهة 21 لغة. |
@@ -220,7 +218,6 @@ Toonflow منصة إبداع بالذكاء الاصطناعي مفتوحة ال
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow · قائمة العقد وعمليات التجميع" width="80%" /></a><br /><sub>قائمة العقد وعمليات التجميع</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow · سوق الإضافات" width="80%" /></a><br /><sub>سوق الإضافات</sub>
 
 </div>
 

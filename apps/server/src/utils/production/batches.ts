@@ -1,3 +1,4 @@
+import { projectPath } from "@/utils/workspace/projectLayout";
 import { lstat, mkdir, readFile, readdir, withFileAccess, writeAtomic } from "@toonflow/file";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
@@ -20,7 +21,7 @@ const activeStatuses = new Set(["queued", "submitting", "running", "downloading"
 const slots = ["images", "videos", "audios", "firstFrame", "lastFrame"] as const;
 const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value, (_key, item) => item && typeof item === "object" && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a.localeCompare(b))) : item)).digest("hex");
 const keyFor = (directory: string, id: string) => `${directory}\0${id}`;
-const batchPath = (directory: string, id: string) => join(directory, "productionBatches", `${id}.json`);
+const batchPath = (directory: string, id: string) => join(directory, projectPath(directory, "productionBatches"), `${id}.json`);
 function fail(message: string, status = 409): never { throw Object.assign(new Error(message), { status }); }
 function references(request: MediaGenerationRequest) { return slots.flatMap(slot => { const value = request[slot]; return Array.isArray(value) ? value : value ? [value] : []; }); }
 function owned(batch: BatchRecord, directory: string) { if (batch.archived || batch.directory !== directory) fail("这是迁移或其他目录中的批次历史，仅可查看；重新生成须建立新批次", 403); }
@@ -28,7 +29,7 @@ export function hasRunningBatch(directory: string) { return [...live.keys()].som
 
 export async function readBatch(directory: string, id: string) {
   batchInputSchema.shape.batchId.parse(id);
-  const target = await resolveWorkspacePath(directory, `productionBatches/${id}.json`, true);
+  const target = await resolveWorkspacePath(directory, projectPath(directory, `productionBatches/${id}.json`), true);
   const info = await lstat(target.path).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return null; throw cause; });
   if (!info) return null;
   if (!info.isFile() || info.isSymbolicLink() || info.size > 16 * 1024 ** 2) fail("批次记录须为不超过 16 MB 的普通文件", 422);
@@ -44,7 +45,7 @@ export async function readBatch(directory: string, id: string) {
 async function saveBatch(directory: string, batch: BatchRecord, exclusive = false) {
   batch.updatedAt = Date.now(); const value = JSON.stringify(batchSchema.parse(batch), null, 2);
   if (Buffer.byteLength(value) > 16 * 1024 ** 2) fail("批次超过 16 MB，请减少镜头或提示词长度", 413);
-  const target = await resolveWorkspacePath(directory, "productionBatches", true); await mkdir(target.path, { recursive: true });
+  const target = await resolveWorkspacePath(directory, projectPath(directory, "productionBatches"), true); await mkdir(target.path, { recursive: true });
   await writeAtomic(batchPath(directory, batch.batchId), value, { exclusive, mode: 0o600 });
 }
 async function childTask(item: BatchItem, directory: string) {
@@ -154,7 +155,7 @@ export async function batchView(directory: string, batch: BatchRecord): Promise<
   return { ...record, state: batch.archived || batch.directory !== directory ? "archived" : state === "running" && !live.has(keyFor(directory, batch.batchId)) ? "interrupted" : state, items, counts, costSummary };
 }
 export async function listBatches(directory: string) {
-  const folder = await resolveWorkspacePath(directory, "productionBatches", true);
+  const folder = await resolveWorkspacePath(directory, projectPath(directory, "productionBatches"), true);
   const names = await readdir(folder.path).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return []; throw cause; });
   const result: BatchView[] = [];
   for (const name of names) if (/^[a-f0-9-]{36}\.json$/i.test(name)) { const batch = await readBatch(directory, name.slice(0, -5)); if (batch) result.push(await batchView(directory, batch)); }

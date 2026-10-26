@@ -4,7 +4,7 @@ import { z } from "zod";
 import u from "@/utils";
 import { validateFields } from "@/lib/middleware";
 import { success } from "@/lib/responseFormat";
-import { relocateMetadata } from '@/utils/assets/metadata';
+import { metadataFile, relocateMetadata } from '@/utils/assets/metadata';
 
 const router = Router();
 
@@ -16,7 +16,7 @@ export default router.post("/", validateFields({ path: z.string().min(1).max(409
   u.workspaceFile.protectWorkspaceRoot(target.directory, target.path);
   target.path = resolve(dirname(target.path), basename(resolve(root, req.body.target)));
   const release = u.workspaceFile.lockWorkspaceFiles([source.path, target.path]);
-  try { await u.workspaceFile.renameWorkspaceFile(source.path, target.path); await relocateMetadata(relative(root, source.path), relative(root, target.path)); }
+  try { await u.workspaceFile.renameWorkspaceFile(source.path, target.path); await relocateMetadata(relative(root, source.path), relative(root, target.path), metadataFile(root)); }
   finally { release(); }
   res.json(success());
 });

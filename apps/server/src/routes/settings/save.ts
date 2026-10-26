@@ -3,8 +3,6 @@ import { Router } from "express";
 import { z } from "zod";
 import { validateFields } from "@/lib/middleware";
 import { success } from "@/lib/responseFormat";
-import { maxSystemPromptLength } from "@/agent/runtime/prompt";
-import { t } from "@/lib/i18n";
 import { isDeepStrictEqual } from "node:util";
 
 const router = Router();
@@ -32,7 +30,6 @@ const settingsSchema = z.record(z.string(), z.json()).and(z.object({
     textProtocol: z.enum(["provider", "openai-completions", "openai-responses"]),
     streamResponses: z.boolean(), autoGenerateMedia: z.boolean(),
   }).optional(),
-  agentSystemPrompt: z.string().max(maxSystemPromptLength, { error: () => t`系统提示词不能超过 ${maxSystemPromptLength} 个字符` }).optional(),
   mediaCreationPreferences: z.object({
     imageCount: z.number().int().min(1).max(10), voice: z.string().trim().min(1).max(256),
     format: z.enum(["mp3", "wav", "flac", "aac", "opus"]), speed: z.number().min(0.25).max(4),

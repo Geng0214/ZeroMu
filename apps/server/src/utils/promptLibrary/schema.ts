@@ -49,7 +49,8 @@ export function fillPrompt(definition: PromptDefinition, values: Record<string, 
 }
 
 const promptRecordSchema = z.strictObject({ id: z.uuid(), definition: promptDefinitionSchema, createdAt: z.number().finite().nonnegative(), updatedAt: z.number().finite().nonnegative(), archivedAt: z.number().finite().nonnegative().optional() });
-export const promptLibrarySchema = z.strictObject({ zeromuPromptLibrary: z.literal(true), format: z.literal(1), revision: z.number().int().nonnegative().safe(), entries: z.array(promptRecordSchema).max(2000), favorites: z.array(z.string().min(1).max(100)).max(2100) }).superRefine((value, context) => {
+// 兼容旧版对内置示例的收藏；个人记录及其收藏不受影响。
+export const promptLibrarySchema = z.strictObject({ zeromuPromptLibrary: z.literal(true), format: z.literal(1), revision: z.number().int().nonnegative().safe(), entries: z.array(promptRecordSchema).max(2000), favorites: z.array(z.string().min(1).max(100)).max(2100).transform(ids => ids.filter(id => !/^builtin(?:Creation|Planning)[0-5]$/.test(id))) }).superRefine((value, context) => {
   const ids = new Set(value.entries.map(entry => entry.id));
   if (ids.size !== value.entries.length) context.addIssue({ code: "custom", message: "提示词编号重复" });
   if (new Set(value.favorites).size !== value.favorites.length || value.favorites.some(id => !ids.has(id) && !builtinPrompts.some(entry => entry.id === id))) context.addIssue({ code: "custom", message: "收藏引用无效" });

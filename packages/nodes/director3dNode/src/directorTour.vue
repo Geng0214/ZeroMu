@@ -19,7 +19,11 @@ import { ElTour, ElTourStep } from "element-plus";
 
 defineProps<{ root?: HTMLElement }>();
 const storageKey = "zeromu.directorStageTour.v2";
-const open = ref(localStorage.getItem(storageKey) !== "true");
+function wasCompleted() {
+  try { return localStorage.getItem(storageKey) === "true"; }
+  catch { return false; }
+}
+const open = ref(!wasCompleted());
 const steps = [
   {
     target: ".addControl",
@@ -63,6 +67,7 @@ function openGuide() { open.value = true; }
 defineExpose({ openGuide });
 
 function complete() {
-  localStorage.setItem(storageKey, "true");
+  try { localStorage.setItem(storageKey, "true"); }
+  catch { /* Opaque sandbox origins can display the tour without persistent storage. */ }
 }
 </script>

@@ -9,7 +9,7 @@ export const draftSchema = z.object({
   references: z.array(z.object({
     id: z.uuid(), kind: scopeSchema.shape.kind, name: z.string().max(512), fileHash: fileHashSchema,
     mimeType: z.string().max(200), size: z.number().int().positive().max(100 * 1024 ** 2),
-    paths: z.record(z.string().max(4096), z.string().regex(/^studioReferences\/[a-f0-9-]{36}$/i)).optional(),
+    paths: z.record(z.string().max(4096), z.string().regex(/^(?:studioReferences|references\/studio)\/[a-f0-9-]{36}$/i)).optional(),
   }).refine(value => value.mimeType.startsWith(`${value.kind}/`) && (value.kind !== "audio" || value.size <= 15 * 1024 ** 2), "草稿参考的类型或大小无效")).max(192),
   savedAt: z.number().int().nonnegative(),
 });

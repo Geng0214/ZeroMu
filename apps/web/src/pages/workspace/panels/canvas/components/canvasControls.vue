@@ -26,6 +26,7 @@
       <span class="toolDivider"></span>
       <button v-for="item in quickNodes" :key="item.type" :aria-label="item.label" :title="item.label" :disabled="!canvasId || !remoteNodes.some(node => node.type === item.type)" @click="emit('addNode', item.type)"><component :is="item.icon" :size="18" /></button>
       <button aria-label="导演台" title="添加导演台" :disabled="!canvasId || !remoteNodes.some(node => node.type === 'remote-director3dNode')" @click="emit('addNode', 'remote-director3dNode')"><component :is="IconCube3dSphere" :size="18" /></button>
+      <button aria-label="拆分图片" :title="canSplitImage ? '拆分选中的图片' : '选中一张图片后拆分'" :disabled="!canSplitImage" @click="emit('splitImage')"><icon-scissors :size="18" /></button>
       <span class="toolDivider"></span>
       <el-popover v-for="library in libraries" :key="library.id" :visible="libraryVisible === library.id" trigger="click" placement="top-end" :width="340" :showArrow="false" :persistent="true" popperClass="canvasLibraryPopover"
         :popperOptions="{ strategy: 'fixed', modifiers: [{ name: 'preventOverflow', options: { rootBoundary: 'viewport', tether: false, altAxis: true, padding: 12 } }] }"
@@ -46,7 +47,7 @@ import { textNodeIcon, imageNodeIcon, videoNodeIcon, audioNodeIcon } from "@toon
 import { computed, onBeforeUnmount, reactive, ref, watch } from "vue";
 import { Panel, useVueFlow } from "@vue-flow/core";
 import { MiniMap } from "@vue-flow/minimap";
-import { IconMap2, IconMagnet, IconLayoutGrid, IconPointer, IconHandStop, IconArrowBackUp, IconArrowForwardUp, IconCube3dSphere, IconRoute, IconFolders, IconBook, IconX } from "@tabler/icons-vue";
+import { IconMap2, IconMagnet, IconLayoutGrid, IconPointer, IconHandStop, IconArrowBackUp, IconArrowForwardUp, IconCube3dSphere, IconRoute, IconFolders, IconBook, IconX, IconScissors } from "@tabler/icons-vue";
 import { ElMessage } from "element-plus";
 import { arrangeCanvas } from "../arrangeCanvas";
 import canvasAppearance from "./canvasAppearance.vue";
@@ -56,11 +57,12 @@ const props = defineProps<{
   remoteNodes: { type: string; label: string }[];
   canUndo: boolean;
   canRedo: boolean;
+  canSplitImage?: boolean;
   assetsInteractionActive?: boolean;
   directory: string | undefined;
   batchHistory: (action: () => Promise<void>) => Promise<void>;
 }>();
-const emit = defineEmits<{ undo: []; redo: []; addNode: [type: string] }>();
+const emit = defineEmits<{ undo: []; redo: []; addNode: [type: string]; splitImage: [] }>();
 const selectedTool = defineModel<'move' | 'hand'>('selectedTool', { default: 'move' });
 const libraryVisible = defineModel<"assets" | "prompts" | "">("libraryVisible", { default: "" });
 const libraries = [{ id: "assets", label: "资产库", icon: IconFolders }, { id: "prompts", label: "提示词库", icon: IconBook }] as const;

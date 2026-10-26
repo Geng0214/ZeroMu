@@ -10,13 +10,22 @@
   },
   "files": {
     "icon": "../../packages/assets/zeromuIcon.png",
-    "lockup": "../../packages/assets/zeromuLogo.png"
+    "lockup": "../../packages/assets/zeromuLogo.png",
+    "desktopVector": "../../packages/assets/zeromuApp.svg",
+    "startupVector": "../../packages/assets/zeromuLogo.svg",
+    "desktopIcon": "../../packages/assets/logo.ico"
   },
-  "format": "AI 生成的透明 PNG；已应用于零幕。桌面 ICO、iconset 与启动画面由此导出。",
+  "format": "原有 AI 生成的透明 PNG 保留；2026-10-24 桌面图标与启动画面改用手工矢量轮廓，ICO、iconset 与 Lottie 由 SVG 源稿导出。",
   "generation": {
     "mode": "built-in image_gen",
     "symbolPrompt": "Use case: logo-brand. Create one original professional app logo SYMBOL ONLY for 零幕 / ZEROMU, a personal AI filmmaking and visual storyboard canvas application. Concept: from zero to the first scene. Design a distinctive geometric abstract Z formed from two offset cinematic rectangular frame segments connected by one bold diagonal ribbon; the open negative spaces suggest framing a shot and moving a story forward. It must read as one cohesive sophisticated mark, not a stack of unrelated icons. Flat vector-like construction, meticulously consistent geometry, subtle controlled rounded corners, broad strong silhouette, optically balanced, crisp edges, clear at small app-icon sizes. Use deep ink teal #12343B as the main color with a restrained vivid mint #29D7B0 accent on one terminal/frame segment. A compact nearly square symbol centered with generous transparent padding, occupying about 68% of the square image. Transparent background, no backdrop tile, no white panel, no shadows, no gradients, no 3D, no texture, no mockup, no lens details, no film perforations, no play-button triangle, no sparkles, no robot, no letters or wordmark or text other than the abstract shape of Z. Render one single final symbol, no variants, no brand presentation sheet.",
     "lockupPrompt": "Use case: logo-brand. Create a production-ready horizontal transparent logo lockup for the AI visual storytelling application named 零幕, English name ZEROMU. Image 1 is the approved logo symbol: preserve its exact silhouette, proportions, dark ink teal and mint color placement, rounded corners, and recognizable abstract Z. Place that same symbol at left, then the Chinese wordmark 零幕 on the right in substantial beautifully spaced contemporary simplified Chinese sans-serif typography, with the English wordmark ZEROMU in smaller uppercase sans-serif under the Chinese text, tracking slightly expanded. Exact text, and only text: \"零幕\" and \"ZEROMU\". Chinese spelling must be exact. Chinese name is dominant; English baseline is aligned to the Chinese name's left edge. Keep clear space between symbol and lettering, optical balance, logo symbol height equal to the entire two-line wordmark block. Colors: symbol as reference; all lettering solid deep ink teal #12343B. Flat crisp vector-like identity artwork. Transparent background. Wide horizontal image around 2:1, composition centered with safe margins on all four sides, the full lockup occupies 80% of image width. No slogan, no website, no secondary examples, no presentation board, no business card or wall mockups, no drop shadow, no 3D, no decorative elements. Preserve real alpha transparency.",
     "cleanupPrompt": "Use case: logo-brand, precise cleanup of the supplied logo lockup. Preserve the EXACT Chinese text 零幕 and English text ZEROMU, symbol silhouette, relative layout, typography and spacing. Clean up the artwork into flawless flat solid shapes: remove ALL stray mint/cyan speckles and ragged pixels inside the lower rectangular transparent counter and outside every edge. All empty counters must be completely empty and fully transparent. Solid flat ink teal #12343B and solid flat mint #29D7B0, no shading, no gradient, no texture, no color noise. Crisp smooth antialiased edges. Keep all margins and layout. Real transparent background. Return only this cleaned single horizontal logo, no extra elements."
+  },
+  "desktopPalette": {
+    "background": "#F3F3F3",
+    "foreground": "#242424",
+    "startupBackground": "#FAFAFA",
+    "waiting": "#737373"
   }
 }

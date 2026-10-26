@@ -212,9 +212,9 @@ tarReady:
   WriteRegStr HKCU "Software\Classes\zeromu\DefaultIcon" "" '$\"$INSTDIR\app\Resources\app.ico$\",0'
   WriteRegStr HKCU "Software\Classes\zeromu\shell\open\command" "" '$\"$INSTDIR\app\Resources\app\protocolLauncher.exe$\" $\"%1$\"'
   IfErrors installFailed
-  CreateShortCut "$DESKTOP\${appName}.lnk" "$INSTDIR\app\bin\launcher.exe" "" "$INSTDIR\app\Resources\app.ico"
+  CreateShortCut "$DESKTOP\${appName}.lnk" "$INSTDIR\app\bin\launcher.exe" "" "$INSTDIR\app\Resources\app\zeromuMinimalIcon.ico"
   IfErrors shortcutsFailed
-  CreateShortCut "$SMPROGRAMS\${appName}.lnk" "$INSTDIR\app\bin\launcher.exe" "" "$INSTDIR\app\Resources\app.ico"
+  CreateShortCut "$SMPROGRAMS\${appName}.lnk" "$INSTDIR\app\bin\launcher.exe" "" "$INSTDIR\app\Resources\app\zeromuMinimalIcon.ico"
   IfErrors 0 installDone
 shortcutsFailed:
   ; ACT: 快捷方式不影响程序使用，失败时保留成功安装结果并告知手动启动路径。

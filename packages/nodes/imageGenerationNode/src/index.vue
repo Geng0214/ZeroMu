@@ -2,17 +2,10 @@
   <nodeSkeleton class="mediaNode"
     v-bind="nodeProps"
     v-model:bottomVisible="node.selected"
-    :topVisible="node.selected"
-    topWidth="max-content"
     :downloadUrl="originalUrl"
     :downloadName="outputFile?.url.split(/[\\/]/).at(-1)"
     @fullscreen="previewVisible = true"
-    :bottomWidth="720"
-    :style="{ width: previewUrl && imageWidth ? `${imageWidth + 18}px` : undefined }">
-    <template #topActions>
-      <mediaHistory mediaType="image" :current="outputFile" :disabled="generating || deleting || uploading" @select="outputs.image = { dataType: 'IMAGE', value: $event }" />
-      <el-button :icon="IconTransfer" :loading="uploading" :disabled="generating || deleting" text title="替换图片" aria-label="替换图片" @click.stop="fileInput?.click()" />
-    </template>
+    :bottomWidth="720">
     <input ref="fileInput" type="file" accept="image/*" hidden aria-label="选择图片" :disabled="generating || deleting || uploading" @change="replaceOutput" />
     <div v-loading="generating || uploading" class="imageContent nopan" :aria-busy="generating || uploading">
       <img
@@ -21,10 +14,22 @@
         :src="previewUrl"
         draggable="false"
         alt="图片"
+        role="button"
+        tabindex="0"
+        aria-label="放大图片"
         @load="resizeImage"
-        @error="showNodeError('无法预览该图片', '图片预览失败')" />
+        @click.stop="previewVisible = true"
+        @keydown.enter.stop="previewVisible = true"
+        @keydown.space.stop.prevent="previewVisible = true"
+        @error="handlePreviewError" />
       <span v-if="previewUrl && imageDimensions" class="imageInfo">{{ imageDimensions }}<template v-if="imageFileSize"> · {{ imageFileSize }}</template></span>
-      <div v-else-if="outputFile" class="mediaEmpty"><el-button class="nodrag" text :disabled="!originalUrl" @click.stop="previewVisible = true">查看原图</el-button><span class="emptyHint">{{ previewInfo?.message || '正在准备缩略图…' }}</span></div>
+      <div v-else-if="outputFile" class="mediaEmpty">
+        <template v-if="previewFailed && originalUrl">
+          <el-button class="nodrag" text @click.stop="previewFailed = false">重新加载</el-button>
+          <el-button class="nodrag" text :disabled="!originalUrl" @click.stop="previewVisible = true">查看原图</el-button>
+        </template>
+        <span class="emptyHint">{{ previewFailed ? (originalUrl ? '图片无法加载，请重试' : '原图无法读取，请重新上传图片') : '正在加载图片…' }}</span>
+      </div>
       <div v-else class="mediaEmpty">
         <el-button class="uploadButton nodrag" text :disabled="generating || deleting || uploading" aria-label="上传图片" @dblclick.stop @click.stop="fileInput?.click()">
           <span class="uploadPrompt"><icon-upload :size="32" stroke="1.5" aria-hidden="true" /><span>上传图片</span></span>
@@ -75,13 +80,15 @@
             :ratios="ratioOptions"
             :model="selectedModel"
             :disabled="generating || deleting || !selectedModel" />
+          <cameraControl v-model="data.camera" :disabled="generating || deleting || uploading" />
           <el-button
             class="sendButton"
             :icon="generating ? IconPlayerStop : IconArrowUp"
-            :disabled="deleting || uploading || (!generating && (!generationPrompt || !selectedModel || !!referenceHint || !!capabilityError))"
-            :title="generating ? '停止生成' : '生成图片'"
+            :disabled="deleting || uploading || (!generating && (!ai.canGenerate || !generationPrompt || !selectedModel || !!referenceHint || !!capabilityError))"
+            :title="generating ? '停止生成' : ai.canGenerate ? '生成图片' : '隔离试运行暂未开放生成'"
             :aria-label="generating ? '停止生成' : '生成图片'"
             @click="generating ? generationController?.abort() : startGeneration().catch((error) => showNodeError(error, '图片生成失败'))" />
+          <p v-if="!ai.canGenerate" class="generationUnavailable" role="status">隔离试运行暂未开放生成。</p>
         </template>
       </nodeComposer>
     </template>
@@ -97,11 +104,10 @@
 import { imageNodeIcon } from "@toonflow/nodes-scaffold/nodeIcons";
 import { computed, nextTick, onMounted, onScopeDispose, ref, watch } from "vue";
 import { ElButton, ElSelect, ElOption, ElOptionGroup, ElLoading, ElImageViewer } from "element-plus";
-import { IconUpload, IconSparkles, IconArrowUp, IconPlayerStop, IconTransfer } from "@tabler/icons-vue";
-import { getMediaCapabilityError, supportsImageSize, groupNodeModels, nodeSkeleton, nodeComposer, nodeTools, showNodeError, useNode, useNodeGeneration, useNodeReferences, z, type NodeMediaModel, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
+import { IconUpload, IconSparkles, IconArrowUp, IconPlayerStop } from "@tabler/icons-vue";
+import { appendCameraPrompt, cameraControl, cameraSettingsSchema, readCameraSettings, getMediaCapabilityError, supportsImageSize, groupNodeModels, nodeSkeleton, nodeComposer, nodeTools, showNodeError, useNode, useNodeGeneration, useNodeReferences, z, type CameraSettings, type NodeMediaModel, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import promptInput from "@toonflow/nodes-scaffold/promptInput";
 import referenceItem from "@toonflow/nodes-scaffold/referenceItem";
-import mediaHistory from "@toonflow/nodes-scaffold/mediaHistory";
 import generationSettings from "./components/generationSettings.vue";
 
 defineOptions({
@@ -119,7 +125,7 @@ const { id, node, nodeProps, nodeEvent, outputs, files, ai, updateNodeInternals 
 // ACT: 保留旧类型、节点 ID 和文件引用，只统一内置默认标题。
 if (["图片素材", "图片生成"].includes(String(node.data.label))) node.data.label = "图片";
 type PromptModel = NonNullable<InstanceType<typeof promptInput>["$props"]["modelValue"]>;
-const data = computed(() => node.data as { prompt: string; promptModel: PromptModel; model: string; size: string; ratio: string; n: number; quality?: string });
+const data = computed(() => node.data as { prompt: string; promptModel: PromptModel; model: string; size: string; ratio: string; n: number; quality?: string; camera?: CameraSettings });
 data.value.n ??= 1;
 data.value.quality ??= "";
 data.value.prompt ??= "";
@@ -137,7 +143,6 @@ const fileInput = ref<HTMLInputElement>();
 let disposed = false;
 const deleting = ref(false);
 const previewVisible = ref(false);
-const imageWidth = ref(0);
 const imageDimensions = ref("");
 const imageBytes = ref<number>();
 const imageFileSize = computed(() => {
@@ -179,9 +184,22 @@ const generationPrompt = computed(() =>
 );
 const outputFile = computed(() => outputs.value.image?.dataType === "IMAGE" ? outputs.value.image.value : undefined);
 const previewInfo = files.useMediaPreview(outputFile);
-const previewUrl = computed(() => previewInfo.value?.thumbnailUrl || "");
+const thumbnailFailed = ref(false);
+const previewFailed = ref(false);
+// ACT: 优先使用缩略图；未安装 FFmpeg 或缩略图加载失败时，直接在节点内显示原图。
+const previewUrl = computed(() => previewFailed.value ? "" : (!thumbnailFailed.value && previewInfo.value?.thumbnailUrl) || originalUrl.value);
 const originalUrl = computed(() => previewInfo.value?.originalUrl || "");
-watch(previewInfo, info => { imageBytes.value = info?.bytes; imageDimensions.value = info?.width && info.height ? `${info.width} × ${info.height}` : ""; });
+watch(previewInfo, info => {
+  thumbnailFailed.value = false;
+  previewFailed.value = !!info && !info.thumbnailUrl && !info.originalUrl;
+  imageBytes.value = info?.bytes;
+  imageDimensions.value = info?.width && info.height ? `${info.width} × ${info.height}` : "";
+});
+
+function handlePreviewError() {
+  if (!thumbnailFailed.value && previewInfo.value?.thumbnailUrl && previewInfo.value.thumbnailUrl !== originalUrl.value) thumbnailFailed.value = true;
+  else previewFailed.value = true;
+}
 
 onMounted(() => loadModels().catch((error) => showNodeError(error, "模型读取失败")));
 onScopeDispose(() => {
@@ -241,7 +259,7 @@ async function startGeneration() {
   const input = {
     providerId: choice.providerId,
     modelId: choice.modelId,
-    prompt: generationPrompt.value,
+    prompt: appendCameraPrompt(generationPrompt.value, data.value.camera),
     size: data.value.size || undefined,
     ratio: data.value.ratio || undefined,
     n: data.value.n,
@@ -290,7 +308,6 @@ async function resizeImage(event: Event) {
   const image = event.currentTarget as HTMLImageElement;
   if (!image.naturalWidth || !image.naturalHeight) return;
   imageDimensions.value = `${previewInfo.value?.width || image.naturalWidth} × ${previewInfo.value?.height || image.naturalHeight}`;
-  imageWidth.value = (240 * image.naturalWidth) / image.naturalHeight;
   await nextTick();
   updateNodeInternals();
 }
@@ -327,7 +344,8 @@ function getConfig() {
       size: data.value.size,
       ratio: data.value.ratio,
       n: data.value.n,
-    quality: data.value.quality || undefined,
+      quality: data.value.quality || undefined,
+      camera: readCameraSettings(data.value.camera),
     },
     models: models.value,
   };
@@ -354,6 +372,7 @@ nodeTools.register({
     size: z.string().max(64).optional(),
     ratio: z.string().max(64).optional(),
     n: z.number().int().min(1).max(10).optional(),
+    camera: cameraSettingsSchema.optional(),
   }).refine((args) => (args.providerId === undefined) === (args.modelId === undefined), "providerId 与 modelId 必须同时提供"),
   async execute(args, { signal }) {
     signal?.throwIfAborted();
@@ -371,6 +390,7 @@ nodeTools.register({
     if (args.size !== undefined) data.value.size = args.size;
     if (args.ratio !== undefined) data.value.ratio = args.ratio;
     if (args.n !== undefined) data.value.n = args.n;
+    if (args.camera !== undefined) data.value.camera = args.camera;
     return getConfig();
   },
 });
@@ -399,13 +419,15 @@ nodeTools.register({
 </script>
 
 <style scoped lang="scss">
-.mediaNode { --node-handle-opacity: 1; }
+.mediaNode { --node-handle-opacity: 1; --nodeWidth: 320px; --nodeCardHeight: 240px; }
+.generationUnavailable { color: var(--el-text-color-secondary); font-size: 12px; }
 .mediaEmpty {
   display: grid;
   place-content: center;
   justify-items: center;
   gap: 4px;
-  min-height: 144px;
+  min-height: 0;
+  height: 100%;
   .uploadButton {
     height: auto;
     min-height: 76px;
@@ -421,7 +443,8 @@ nodeTools.register({
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 144px;
+  min-height: 0;
+  height: 100%;
   overflow: hidden;
   border-radius: var(--el-border-radius-base);
 
@@ -441,7 +464,9 @@ nodeTools.register({
   .imagePreview {
     display: block;
     width: 100%;
-    max-height: 240px;
+    height: 100%;
+    min-height: 0;
+    max-height: 100%;
     object-fit: contain;
     border-radius: var(--el-border-radius-base);
   }

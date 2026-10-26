@@ -1,1 +1,1 @@
-export const appVersion = process.env.appVersion ?? "2.0.0";
+export const appVersion = process.env.appVersion ?? "2.0.36";

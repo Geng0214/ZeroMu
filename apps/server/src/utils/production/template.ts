@@ -34,7 +34,7 @@ export async function applyTemplate(directory: string, project: ProjectRecord, o
   for (const asset of rendered.example.assets) {
     for (const version of asset.versions) {
       const text = version.text || version.description || "参考资料待补充";
-      const stagedText = `${templateFolder(input.applicationId)}/text${asset.key}.${version.key}.md`;
+      const stagedText = `${templateFolder(directory, input.applicationId)}/text${asset.key}.${version.key}.md`;
       await writeFrozenFile(directory, stagedText, text);
       const media = rendered.mediaInputs.filter(item => item.assetKey === asset.key && item.versionKey === version.key).flatMap(item => preview.media.filter(file => file.key === item.key));
       const created = await createVersion(directory, { type: "createAssetVersion", assetId: assetId(asset.key), parentVersionId: version.parentKey ? versionId(asset.key, version.parentKey) : undefined, files: [{ path: stagedText, mimeType: "text/markdown", view: "文字资料" }, ...media.map(file => ({ path: file.stagedPath, mimeType: file.mimeType }))], text: version.text, description: version.description, details: {}, source: "import" }, { versionId: versionId(asset.key, version.key), createdAt: input.createdAt });

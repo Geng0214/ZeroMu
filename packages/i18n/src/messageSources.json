@@ -79,16 +79,15 @@
     "apps/web/src/components/agent/conversation.vue",
     "apps/web/src/components/agent/menu.vue",
     "apps/web/src/components/agent/settingsDialog.vue",
+    "apps/web/src/components/productionTemplateEditor.vue",
+    "apps/web/src/components/promptEditor.vue",
     "apps/web/src/components/settings/panels/languageModel/addCustomProviderDialog.vue",
     "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue",
     "apps/web/src/components/settings/panels/languageModel/index.vue",
     "apps/web/src/components/settings/panels/mediaChannel/index.vue",
+    "apps/web/src/components/settings/panels/mediaChannel/modelCapabilitiesDialog.vue",
     "apps/web/src/components/settings/panels/mediaChannel/modelPickerDialog.vue",
     "apps/web/src/components/settings/panels/personalization.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/pluginConfigDialog.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue",
     "apps/web/src/lib/desktopProtocol.ts",
     "apps/web/src/lib/i18n.ts",
     "apps/web/src/pages/assets/materialCollection.vue",
@@ -97,6 +96,11 @@
     "apps/web/src/pages/home/workspacePicker.vue",
     "apps/web/src/pages/studio/index.vue",
     "apps/web/src/pages/studio/useStudio.ts",
+    "apps/web/src/pages/workspace/components/filmPanel.vue",
+    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue",
+    "apps/web/src/pages/workspace/components/productionAssets.vue",
+    "apps/web/src/pages/workspace/components/productionPanel.vue",
+    "apps/web/src/pages/workspace/components/storyboardPanel.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
@@ -393,7 +397,10 @@
   ],
   "画布": [
     "apps/web/src/components/agent/mentionMenu.vue",
-    "apps/web/src/components/settings/panels/mcp/index.vue"
+    "apps/web/src/components/taskCenter.vue",
+    "apps/web/src/pages/canvasLibrary/index.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
+    "apps/server/src/utils/production/schema.ts"
   ],
   "数据": [
     "apps/web/src/components/agent/mentionMenu.vue"
@@ -403,7 +410,6 @@
   ],
   "节点": [
     "apps/web/src/components/agent/mentionMenu.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue",
     "apps/web/src/lib/desktopProtocol.ts",
     "apps/server/src/utils/plugins/install.ts"
   ],
@@ -535,7 +541,8 @@
   ],
   "已取消": [
     "apps/web/src/components/agent/menu.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue",
+    "apps/web/src/components/settings/panels/mediaChannel/index.vue",
+    "apps/web/src/pages/studio/index.vue",
     "apps/server/src/utils/media/channelRuntime.ts"
   ],
   "等待补充": [
@@ -547,10 +554,7 @@
   ],
   "保存": [
     "apps/web/src/components/agent/menu.vue",
-    "apps/web/src/components/settings/panels/mcp/index.vue",
     "apps/web/src/components/settings/panels/personalization.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/pluginConfigDialog.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue",
     "apps/web/src/pages/assets/projectCollection.vue",
     "apps/web/src/pages/canvasLibrary/index.vue",
     "apps/web/src/pages/home/workspacePicker.vue",
@@ -737,8 +741,12 @@
   ],
   "关闭": [
     "apps/web/src/components/languageSelect.vue",
+    "apps/web/src/components/libraryImportDialog.vue",
+    "apps/web/src/components/productionTemplateApply.vue",
     "apps/web/src/components/settings/panels/about.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
+    "apps/web/src/components/taskCenter.vue",
+    "apps/web/src/pages/studio/transferDialog.vue",
+    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
   ],
   "模型与推理设置": [
     "apps/web/src/components/modelPopover.vue"
@@ -769,22 +777,6 @@
   "高": [
     "apps/web/src/components/modelPopover.vue"
   ],
-  "安装完成后，请重新发起刚才的操作。": [
-    "apps/web/src/components/settings/ffmpegRequired.vue"
-  ],
-  "当前操作需要 FFmpeg，但尚未检测到可用版本。是否下载并安装？": [
-    "apps/web/src/components/settings/ffmpegRequired.vue"
-  ],
-  "需要 FFmpeg": [
-    "apps/web/src/components/settings/ffmpegRequired.vue"
-  ],
-  "下载并安装": [
-    "apps/web/src/components/settings/ffmpegRequired.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "暂不下载": [
-    "apps/web/src/components/settings/ffmpegRequired.vue"
-  ],
   "设置分类": [
     "apps/web/src/components/settings/index.vue",
     "apps/web/src/pages/assets/materialCollection.vue"
@@ -801,9 +793,6 @@
   "创作偏好": [
     "apps/web/src/components/settings/index.vue"
   ],
-  "扩展管理": [
-    "apps/web/src/components/settings/index.vue"
-  ],
   "关于零幕": [
     "apps/web/src/components/settings/index.vue",
     "apps/web/src/pages/home/index.vue"
@@ -811,15 +800,8 @@
   "设置内容显示失败": [
     "apps/web/src/components/settings/index.vue"
   ],
-  "请选择非空且不超过 20 MB 的插件文件": [
-    "apps/web/src/components/settings/installPluginFile.ts"
-  ],
   "安装插件失败": [
-    "apps/web/src/components/settings/installPluginFile.ts",
     "apps/web/src/lib/desktopProtocol.ts"
-  ],
-  "安装接口未返回有效的插件名称": [
-    "apps/web/src/components/settings/installPluginFile.ts"
   ],
   "零幕徽标": [
     "apps/web/src/components/settings/panels/about.vue"
@@ -1187,8 +1169,7 @@
   ],
   "保存失败，请重试；当前填写的内容已保留": [
     "apps/web/src/components/settings/panels/languageModel/addCustomProviderDialog.vue",
-    "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/pluginConfigDialog.vue"
+    "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue"
   ],
   "添加供应商": [
     "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue",
@@ -1198,8 +1179,7 @@
     "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue"
   ],
   "连接配置": [
-    "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue",
-    "apps/web/src/components/settings/panels/mcp/index.vue"
+    "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue"
   ],
   "正在获取…": [
     "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue"
@@ -1220,13 +1200,16 @@
     "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue"
   ],
   "{0} 个模型": [
-    "apps/web/src/components/settings/panels/languageModel/index.vue"
+    "apps/web/src/components/settings/panels/languageModel/index.vue",
+    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
   "编辑": [
+    "apps/web/src/components/mediaCostPanel.vue",
     "apps/web/src/components/settings/panels/languageModel/index.vue",
     "apps/web/src/components/settings/panels/personalization.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue",
     "apps/web/src/pages/assets/materialCollection.vue",
+    "apps/web/src/pages/prompts/index.vue",
+    "apps/web/src/pages/workspace/components/storyboardPanel.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
     "apps/desktop/src/index.ts"
   ],
@@ -1251,101 +1234,14 @@
     "apps/web/src/components/settings/panels/languageModel/index.vue",
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
-  "外部工具控制": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "开启 MCP": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "通过 MCP 允许外部 AI 工具操作零幕。开启后，将连接配置添加到可信工具中。": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "连接状态": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
   "刷新": [
-    "apps/web/src/components/settings/panels/mcp/index.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "已开启": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "已关闭": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "{0} 个界面已连接": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "首页": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "文档": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "操作画布与节点时，请保持零幕界面打开。": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "服务地址": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "首选本地端口": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "默认 10588，占用时自动顺延。保存后自动切换 MCP 端口，地址变化后请重新复制客户端配置。": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "MCP 服务地址": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "当前本地监听端口：{0}": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "首选端口 {0} 已被占用，已顺延至 {1}。": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "复制 HTTP 配置": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "复制 stdio 配置": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "HTTP 配置包含访问凭证，请仅提供给可信的客户端。": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "零幕 Skill": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "将技能文件安装到外部 AI 工具中，帮助它使用零幕的创作功能。": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "查看 Skill": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
+    "apps/web/src/components/mediaCostPanel.vue",
+    "apps/web/src/components/taskCenter.vue",
+    "apps/web/src/pages/workspace/components/productionPanel.vue"
   ],
   "复制": [
-    "apps/web/src/components/settings/panels/mcp/index.vue",
     "apps/web/src/lib/i18n.ts",
     "apps/desktop/src/index.ts"
-  ],
-  "导出 Skill": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "复制 {0}": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "此配置包含访问凭证，请仅提供给可信的客户端。": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "浏览器无法自动复制，请选中文本后手动复制。{0}": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "读取 MCP 状态失败": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "端口必须是 1 到 65535 的整数": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
-  ],
-  "{0}已复制": [
-    "apps/web/src/components/settings/panels/mcp/index.vue"
   ],
   "此格式请手动添加模型 ID": [
     "apps/web/src/components/settings/panels/mediaChannel/fetchChannelModels.ts",
@@ -1362,9 +1258,6 @@
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
   "新增渠道": [
-    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
-  ],
-  "还没有模型渠道，点击「新增渠道」开始配置。": [
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
   "渠道名称": [
@@ -1411,12 +1304,6 @@
   "未配置密钥": [
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
-  "已接入 {0} 个模型": [
-    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
-  ],
-  "拉取全部渠道": [
-    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
-  ],
   "选择 {0} 的模型": [
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
@@ -1429,9 +1316,6 @@
   "生成参数": [
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
-  "用于新建节点与草稿，创作时仍可单独调整。": [
-    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
-  ],
   "生图数量": [
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
@@ -1442,9 +1326,6 @@
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
   "默认音频声音": [
-    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
-  ],
-  "可填写模型支持的音色 ID。": [
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
   "音频格式": [
@@ -1461,15 +1342,6 @@
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
   "高级配置": [
-    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
-  ],
-  "系统提示词": [
-    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
-  ],
-  "覆盖 AI 助手与文本节点的基础指令，留空使用内置提示词。日常风格请在「创作偏好」中设置。": [
-    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
-  ],
-  "留空使用内置提示词": [
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
   "正在读取模型配置": [
@@ -1518,12 +1390,6 @@
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
   "默认模型保存失败，请重试": [
-    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
-  ],
-  "系统提示词已保存": [
-    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
-  ],
-  "系统提示词保存失败": [
     "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
   "选择渠道模型": [
@@ -1689,15 +1555,18 @@
     "apps/web/src/components/settings/panels/personalization.vue"
   ],
   "继续编辑": [
+    "apps/web/src/components/productionTemplateEditor.vue",
+    "apps/web/src/components/promptEditor.vue",
     "apps/web/src/components/settings/panels/personalization.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
+    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue",
+    "apps/web/src/pages/workspace/components/productionAssets.vue",
+    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
   ],
   "内容不能超过 {0} 个字符": [
     "apps/web/src/components/settings/panels/personalization.vue"
   ],
   "保存失败，请重试": [
-    "apps/web/src/components/settings/panels/personalization.vue",
-    "apps/web/src/components/settings/panels/pluginMarket/pluginConfigDialog.vue"
+    "apps/web/src/components/settings/panels/personalization.vue"
   ],
   "{0}已保存": [
     "apps/web/src/components/settings/panels/personalization.vue"
@@ -1717,355 +1586,44 @@
   "本地记忆已删除": [
     "apps/web/src/components/settings/panels/personalization.vue"
   ],
-  "检测失败": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "检测中": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "已就绪": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "待配置": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "重新检测": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "用于音视频转码、剪辑与合成，按需安装即可。": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "下载线路": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "{0} 条可用线路": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "选择下载线路": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "FFmpeg 下载源": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "重试安装": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "重新安装": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "下载较慢时，可取消后切换线路。": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "来源网站": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "已检测到可用版本，无需重复安装。": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "下载后自动完成安装，无需手动解压或配置。": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "当前平台暂不提供下载，请在高级设置中使用系统安装版。": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "当前仅使用系统安装版。如需使用下载的版本，请在高级设置中切换运行方式。": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "· 组件 {0}/2": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "高级设置": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "运行方式": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "FFmpeg 运行方式": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "自动选择": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "使用下载版": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "使用系统安装版": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "运行环境：{0} / {1}": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "下载版本：{0} · {1}": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "保存在当前 零幕 服务的数据目录，下载后自动复用。": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "下载版": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "系统安装版": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "不可用": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "优先使用已下载的版本；未下载时，从当前 零幕 服务的系统 PATH 查找。": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "仅使用此页面下载的版本。": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "仅从当前 零幕 服务的系统 PATH 查找 FFmpeg 与 ffprobe。": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "等待下载": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "正在下载": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "正在校验": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "正在安装": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "下载完成": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
   "下载失败": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue",
     "apps/server/src/utils/media/generation.ts"
   ],
-  "常用线路": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "更多加速线路": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "读取下载进度失败": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "{0}，请刷新查看下载状态。": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "读取 FFmpeg 状态失败": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "操作失败": [
-    "apps/web/src/components/settings/panels/pluginMarket/ffmpeg.vue"
-  ],
-  "扩展分类": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "搜索本地扩展": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "刷新本地扩展": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "安装本地扩展": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "管理本机的节点、工具与技能。扩展可执行代码，请仅安装可信来源的文件。": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "扩展类型": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
   "全部": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue",
     "apps/web/src/pages/assets/materialCollection.vue",
     "apps/web/src/pages/prompts/index.vue",
     "apps/web/src/pages/studio/index.vue"
   ],
-  "本地扩展列表": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "启用 {0}": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
   "查看 {0}": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue",
     "apps/web/src/pages/assets/materialCollection.vue"
   ],
-  "说明": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "配置 {0}": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "配置": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "导出 {0}": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
   "导出": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "确定卸载“{0}”及其附属文件吗？": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "卸载": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "卸载 {0}": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "正在读取本地扩展…": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "暂无符合条件的本地扩展": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
+    "apps/server/src/utils/production/schema.ts"
   ],
   "技能": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue",
     "apps/web/src/lib/desktopProtocol.ts",
     "apps/server/src/utils/plugins/install.ts"
   ],
   "工具": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue",
     "apps/web/src/lib/desktopProtocol.ts",
     "apps/server/src/utils/plugins/install.ts"
   ],
-  "本地扩展": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "媒体组件": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "外部连接": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "{0}列表格式错误": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "加载{0}失败，请重新打开列表重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "当前版本不支持 Agent 扩展": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "请选择节点、工具或技能文件": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "本地扩展已安装": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "安装失败，请重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "导出插件失败，请重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "卸载插件": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "更新插件状态": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "{0}失败": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "插件已卸载": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "{0}失败，请重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/index.vue"
-  ],
-  "{0}配置": [
-    "apps/web/src/components/settings/panels/pluginMarket/pluginConfigDialog.vue"
-  ],
-  "保存插件配置失败": [
-    "apps/web/src/components/settings/panels/pluginMarket/pluginConfigDialog.vue"
-  ],
-  "插件配置已保存": [
-    "apps/web/src/components/settings/panels/pluginMarket/pluginConfigDialog.vue"
-  ],
-  "编辑技能 · {0}": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "新建文件": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "name 为技能标识，不可修改": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "{0} 源码": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "技能文件列表格式错误": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "读取技能文件列表失败，请重新打开重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "技能内容格式错误": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "读取文件失败，请重新选择重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "移动文件失败": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "移动文件失败，请重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "保存顺序失败": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "保存顺序失败，请重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "新文件将创建在“{0}”目录": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "新文件将创建在技能根目录": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "请输入文件名称": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
   "名称不能包含斜杠": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue"
   ],
   "创建": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue",
     "apps/web/src/pages/home/workspacePicker.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
   ],
-  "创建文件失败": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "创建文件失败，请重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "修改尚未保存，确定放弃修改并关闭吗？": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "未保存的修改": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
-  "放弃修改": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
-  ],
   "保存文件失败": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue",
     "apps/web/src/lib/saveFile.ts"
   ],
   "已保存": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue",
+    "apps/web/src/components/settings/panels/mediaChannel/index.vue",
     "apps/web/src/pages/canvasLibrary/index.vue",
     "apps/server/src/routes/agents/save.ts",
     "apps/server/src/routes/settings/personalization/save.ts",
     "apps/server/src/routes/skills/save.ts"
-  ],
-  "保存文件失败，请重试": [
-    "apps/web/src/components/settings/panels/pluginMarket/skillEditorDialog.vue"
   ],
   "外观模式": [
     "apps/web/src/components/settings/panels/ui.vue"
@@ -3230,7 +2788,8 @@
     "apps/web/src/pages/studio/index.vue"
   ],
   "刷新模型": [
-    "apps/web/src/pages/studio/index.vue"
+    "apps/web/src/pages/studio/index.vue",
+    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ],
   "管理模型渠道": [
     "apps/web/src/pages/studio/index.vue"
@@ -5030,9 +4589,6 @@
   "请填写不含查询参数的 HTTP API 基础地址": [
     "apps/server/src/routes/providers/models.ts"
   ],
-  "系统提示词不能超过 {0} 个字符": [
-    "apps/server/src/routes/settings/save.ts"
-  ],
   "选择自定义更新源前，请先填写有效地址": [
     "apps/server/src/routes/settings/save.ts"
   ],
@@ -5258,9 +4814,6 @@
   ],
   "更新包缺少目标版本或构建号，请重新下载。": [
     "apps/server/src/utils/desktop/index.ts"
-  ],
-  "当前操作需要 FFmpeg，请在插件市场下载安装或配置可用版本后重试。": [
-    "apps/server/src/utils/ffmpeg/index.ts"
   ],
   "正在下载，请等待完成或取消后再试": [
     "apps/server/src/utils/ffmpeg/index.ts"
@@ -6793,5 +6346,35 @@
   ],
   "FFmpeg 不能操作悬空符号链接": [
     "packages/ffmpeg/src/runtime.ts"
+  ],
+  "当前操作需要 FFmpeg 和 ffprobe，未检测到可用版本。": [
+    "apps/server/src/utils/ffmpeg/index.ts"
+  ],
+  "本机背景移除需要 FFmpeg 和 ffprobe，未检测到可用版本": [
+    "apps/server/src/utils/media/backgroundRemoval.ts"
+  ],
+  "成片需要 FFmpeg 和 ffprobe，未检测到可用版本": [
+    "apps/server/src/utils/production/edit.ts"
+  ],
+  "本地图片编辑需要 FFmpeg 和 ffprobe，未检测到可用版本": [
+    "apps/server/src/utils/production/image.ts"
+  ],
+  "暂无渠道": [
+    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
+  ],
+  "连接记录": [
+    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
+  ],
+  "连接失败": [
+    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
+  ],
+  "目录已连接": [
+    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
+  ],
+  "刷新记录": [
+    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
+  ],
+  "暂无记录": [
+    "apps/web/src/components/settings/panels/mediaChannel/index.vue"
   ]
 }

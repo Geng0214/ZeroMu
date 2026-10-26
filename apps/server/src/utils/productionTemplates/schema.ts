@@ -101,7 +101,8 @@ export function exportProductionTemplate(value: ProductionTemplate, options = { 
 }
 
 const templateEntrySchema = z.strictObject({ id: z.uuid(), definition: productionTemplateSchema, createdAt: z.number().finite().nonnegative(), updatedAt: z.number().finite().nonnegative(), archivedAt: z.number().finite().nonnegative().optional() });
-export const productionTemplateLibrarySchema = z.strictObject({ zeromuProductionTemplateLibrary: z.literal(true), format: z.literal(1), revision: z.number().int().nonnegative().safe(), entries: z.array(templateEntrySchema).max(500), favorites: z.array(z.string().min(1).max(100)).max(510) }).superRefine((value, context) => { if (new Set(value.entries.map(entry => entry.id)).size !== value.entries.length || new Set(value.favorites).size !== value.favorites.length) context.addIssue({ code: "custom", message: "模板或收藏编号重复" }); });
+// 仅清理已移除范例的收藏，不改写用户自己创建的制作模板。
+export const productionTemplateLibrarySchema = z.strictObject({ zeromuProductionTemplateLibrary: z.literal(true), format: z.literal(1), revision: z.number().int().nonnegative().safe(), entries: z.array(templateEntrySchema).max(500), favorites: z.array(z.string().min(1).max(100)).max(510).transform(ids => ids.filter(id => !["builtinDialogue", "builtinProductAd", "builtinShortComic"].includes(id))) }).superRefine((value, context) => { if (new Set(value.entries.map(entry => entry.id)).size !== value.entries.length || new Set(value.favorites).size !== value.favorites.length) context.addIssue({ code: "custom", message: "模板或收藏编号重复" }); });
 export type ProductionTemplateLibrary = z.infer<typeof productionTemplateLibrarySchema>;
 export type ProductionTemplateEntry = { id: string; definition: ProductionTemplate; origin: "builtin" | "personal"; favorite: boolean; archived: boolean };
 export type ProductionTemplateLibraryView = { revision: number; entries: ProductionTemplateEntry[] };

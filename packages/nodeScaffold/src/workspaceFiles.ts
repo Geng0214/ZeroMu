@@ -25,9 +25,23 @@ function getNodeDirectory(nodeId: string) {
   return `assets/${nodeId}`;
 }
 
-export async function uploadNodeFile(files: WorkspaceFiles, nodeId: string, file: File) {
-  const directory = getNodeDirectory(nodeId);
-  for (const path of ["assets", directory]) {
+export async function nodeFileDirectory(files: Partial<Pick<WorkspaceFiles, "list">>, nodeId: string) {
+  const legacy = getNodeDirectory(nodeId);
+  const entries = files.list ? (await files.list()).entries : [];
+  if (entries.some(item => item.type === "directory" && item.name === "assets")) {
+    const assets = await files.list?.("assets");
+    if (assets?.entries.some(item => item.type === "directory" && item.name === nodeId)) return legacy;
+  }
+  const references = entries.some(item => item.type === "directory" && item.name === "references")
+    ? await files.list?.("references/nodes")
+    : undefined;
+  return references?.entries.some(item => item.type === "directory" && item.name === nodeId) ? `references/nodes/${nodeId}` : legacy;
+}
+
+export async function uploadNodeFile(files: Pick<WorkspaceFiles, "mkdir" | "write"> & Partial<Pick<WorkspaceFiles, "list">>, nodeId: string, file: File) {
+  const directory = await nodeFileDirectory(files, nodeId);
+  const parts = directory.split("/");
+  for (const path of parts.map((_part, index) => parts.slice(0, index + 1).join("/"))) {
     await files.mkdir(path).catch((error: { response?: { data?: { data?: { code?: string } } } }) => {
       if (error.response?.data?.data?.code !== "EEXIST") throw error;
     });
@@ -53,10 +67,11 @@ export function useNodeFiles() {
   }
 
   async function removeNodeFiles(nodeId: string) {
-    const directory = getNodeDirectory(nodeId);
     // ACT: 支持撤销的画布保留节点素材，不随节点删除物理文件。
     if (retainNodeFiles) return;
-    await getWorkspaceFiles().remove(directory, true).catch((error: { response?: { data?: { data?: { code?: string } } } }) => {
+    const files = getWorkspaceFiles();
+    const directory = await nodeFileDirectory(files, nodeId);
+    await files.remove(directory, true).catch((error: { response?: { data?: { data?: { code?: string } } } }) => {
       if (error.response?.data?.data?.code !== "ENOENT") throw error;
     });
   }
@@ -107,7 +122,8 @@ export function useNodeFiles() {
     const info = ref<NodeMediaPreview>();
     const ready = useNodePreviewReady();
     const legacyFile = computed(() => { const value = toValue(file); return value && !getWorkspaceFiles().mediaPreview ? value : undefined; });
-    const legacyUrl = useFileUrl(legacyFile, () => {});
+    const legacyBytes = ref(0);
+    const legacyUrl = useFileUrl(legacyFile, () => {}, size => { legacyBytes.value = size ?? 0; });
     watch([() => toValue(file), ready], async ([value, visible], _previous, onCleanup) => {
       let cancelled = false; onCleanup(() => { cancelled = true; }); info.value = undefined;
       if (!value || !visible) return;
@@ -118,7 +134,7 @@ export function useNodeFiles() {
         if (!cancelled) info.value = { originalUrl, thumbnailUrl: "", width: 0, height: 0, bytes: 0, duration: 0, mimeType: value.mimeType, message: "缩略图暂不可用，请检查原件或重新打开预览" };
       }
     }, { immediate: true });
-    return computed(() => info.value || (legacyUrl.value ? { originalUrl: legacyUrl.value, thumbnailUrl: toValue(file)?.mimeType.startsWith("image/") ? legacyUrl.value : "", width: 0, height: 0, bytes: 0, duration: 0, mimeType: toValue(file)?.mimeType || "", message: "" } : undefined));
+    return computed(() => info.value || (legacyUrl.value ? { originalUrl: legacyUrl.value, thumbnailUrl: toValue(file)?.mimeType.startsWith("image/") ? legacyUrl.value : "", width: 0, height: 0, bytes: legacyBytes.value, duration: 0, mimeType: toValue(file)?.mimeType || "", message: "" } : undefined));
   }
 
   return { getWorkspaceFiles, uploadFile, removeNodeFiles, useFileUrl, useMediaPreview };

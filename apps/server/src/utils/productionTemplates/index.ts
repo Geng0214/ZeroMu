@@ -1,14 +1,13 @@
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { lstat, readFile, writeAtomic, withFileAccess } from "@toonflow/file";
-import conf from "@/utils/conf";
+import { selectedWorkspace } from "@/utils/workspace/projects";
 import { builtinProductionTemplates, productionTemplateLibrarySchema, productionTemplateMutationSchema, type ProductionTemplateLibrary, type ProductionTemplateLibraryView } from "./schema";
 
 export { productionTemplateMutationSchema } from "./schema";
-const libraryPath = () => join(dirname(conf.path), "productionTemplates.json");
+const libraryPath = () => join(selectedWorkspace(), "promptLibrary", "templates.json");
 function fail(message: string, status: number): never { throw Object.assign(new Error(message), { status }); }
 
-async function readLibrary(): Promise<ProductionTemplateLibrary> {
-  const path = libraryPath();
+async function readLibrary(path = libraryPath()): Promise<ProductionTemplateLibrary> {
   const info = await lstat(path).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return null; throw cause; });
   if (!info) return { zeromuProductionTemplateLibrary: true, format: 1, revision: 0, entries: [], favorites: [] };
   if (!info.isFile() || info.isSymbolicLink() || info.size > 8 * 1024 * 1024) fail("个人制作模板库须为不超过 8 MB 的普通文件，请保留原件并恢复备份", 422);
@@ -31,8 +30,9 @@ export async function readProductionTemplateLibrary() { return view(await readLi
 
 export async function updateProductionTemplateLibrary(expectedRevision: number, value: unknown) {
   const operation = productionTemplateMutationSchema.parse(value);
-  return withFileAccess([`${libraryPath()}.mutation`], "write", async () => {
-    const library = await readLibrary();
+  const path = libraryPath();
+  return withFileAccess([`${path}.mutation`], "write", async () => {
+    const library = await readLibrary(path);
     if (library.revision !== expectedRevision) fail("制作模板库已在其他页面更新。草稿已保留，请刷新并核对最新内容", 409);
     let entryId: string;
     let changed = true;
@@ -65,7 +65,7 @@ export async function updateProductionTemplateLibrary(expectedRevision: number, 
       library.revision++;
       const text = JSON.stringify(productionTemplateLibrarySchema.parse(library), null, 2);
       if (Buffer.byteLength(text) > 8 * 1024 * 1024) fail("个人制作模板库超过 8 MB，本次未保存。请缩短内容后重试", 413);
-      await writeAtomic(libraryPath(), text, { mode: 0o600 });
+      await writeAtomic(path, text, { mode: 0o600 });
     }
     return { library: view(library), entryId };
   });

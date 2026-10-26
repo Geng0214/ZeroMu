@@ -1,6 +1,6 @@
 <template>
-  <el-dialog v-model="visible" class="channelSettingsPicker" title="选择渠道模型" width="min(1120px, 94vw)" alignCenter appendToBody destroyOnClose :closeOnClickModal="false" :closeOnPressEscape="!saving" :showClose="!saving">
-    <template #header><div class="pickerHeading"><h2>选择渠道模型</h2><span>已选择 {{ selectedModels.length }} / {{ availableModels.length }} 可接入</span></div></template>
+  <el-dialog v-model="visible" class="channelSettingsPicker" title="管理模型" width="min(1120px, 94vw)" alignCenter appendToBody destroyOnClose :closeOnClickModal="false" :closeOnPressEscape="!saving" :showClose="!saving">
+    <template #header><div class="pickerHeading"><h2>管理模型</h2><span>已选择 {{ selectedModels.length }} / {{ availableModels.length }} 可接入</span></div></template>
     <div class="pickerToolbar">
       <form class="pickerSearch" role="search" @submit.prevent><el-input v-model="query" aria-label="搜索模型" placeholder="搜索模型" clearable><template #append><el-button :icon="IconSearch" nativeType="submit" aria-label="搜索" /></template></el-input></form>
       <form class="pickerAdd" @submit.prevent="addModel"><el-input v-model="newModelId" aria-label="输入模型名称" placeholder="输入模型名称" spellcheck="false" /><el-button nativeType="submit" :disabled="!newModelId.trim() || pulling || saving">增加模型</el-button><el-button :icon="IconRefresh" :loading="pulling" :disabled="saving || channel.protocol === 'minimax'" :title="channel.protocol === 'minimax' ? '此格式请手动添加模型 ID' : undefined" @click="pullModels">拉取模型列表</el-button></form>
@@ -18,8 +18,9 @@
       </div>
     </div>
     <el-alert v-if="error" class="pickerError" :title="error" type="error" :closable="false" showIcon />
-    <template #footer><el-button :disabled="saving" @click="visible = false">取消</el-button><el-button class="pickerConfirm" :disabled="pulling" :loading="saving" @click="confirm">确定</el-button></template>
+    <template #footer><el-button class="capabilityAction" :disabled="pulling || saving || !selectedModels.length" @click="capabilityVisible = true">高级能力</el-button><el-button :disabled="saving" @click="visible = false">取消</el-button><el-button class="pickerConfirm" :disabled="pulling" :loading="saving" @click="confirm">保存模型</el-button></template>
   </el-dialog>
+  <modelCapabilitiesDialog v-model="capabilityVisible" :channel="capabilityChannel" :saving="saving" @save="applyCapabilities" />
 </template>
 
 <script setup lang="ts">
@@ -30,6 +31,8 @@ import { IconSearch, IconRefresh } from "@tabler/icons-vue";
 import { protocolKinds, type MediaChannelModel, type MediaChannelRow } from "./types";
 import fetchChannelModels, { type ChannelCandidate } from "./fetchChannelModels";
 import { classifyChannelModel } from "@toonflow/providers/channelModels";
+import { mediaCapabilityFields } from "@toonflow/providers/mediaCapabilities";
+import modelCapabilitiesDialog from "./modelCapabilitiesDialog.vue";
 
 const props = defineProps<{ channel: MediaChannelRow; initialCandidates?: ChannelCandidate[]; saving?: boolean }>();
 const emit = defineEmits<{ picked: [MediaChannelModel[]]; fetched: [ChannelCandidate[]] }>();
@@ -38,10 +41,26 @@ const existingModels = ref<ChannelCandidate[]>([]);
 const candidates = ref<ChannelCandidate[]>([]);
 const supportedKinds = computed(() => protocolKinds[props.channel.protocol]);
 const newModels = computed(() => candidates.value.filter(model => !existingModels.value.some(item => item.id === model.id)));
-const allModels = computed(() => [...existingModels.value, ...newModels.value]);
+const capabilityVisible = ref(false);
+const capabilityDrafts = ref<Record<string, Record<string, unknown>>>({});
+const allModels = computed(() => [...existingModels.value, ...newModels.value].map(model => {
+  const draft = capabilityDrafts.value[model.id];
+  if (!draft) return model;
+  const result = { ...model };
+  for (const field of mediaCapabilityFields) delete result[field];
+  return { ...result, ...draft };
+}));
 const availableModels = computed(() => allModels.value.filter(model => !!model.type));
 const selectedIds = ref<string[]>([]);
 const selectedModels = computed(() => availableModels.value.filter(model => selectedIds.value.includes(model.id)));
+const capabilityChannel = computed(() => ({ ...props.channel, models: selectedModels.value.map(model => ({ ...model, type: model.type! })) }));
+function applyCapabilities(models: MediaChannelModel[]) {
+  for (const model of models) {
+    const record: Record<string, unknown> = { ...model };
+    capabilityDrafts.value[model.id] = Object.fromEntries(mediaCapabilityFields.filter(field => record[field] !== undefined).map(field => [field, record[field]]));
+  }
+  capabilityVisible.value = false;
+}
 const activeTab = ref<'new' | 'existing'>('existing');
 const query = ref('');
 const newModelId = ref('');
@@ -59,9 +78,12 @@ function normalize(model: ChannelCandidate): ChannelCandidate {
 }
 watch(visible, value => {
   pullController?.abort(); pullController = undefined; pulling.value = false;
+  capabilityVisible.value = false;
   if (!value) return;
+  capabilityDrafts.value = {};
   candidates.value = [...new Map((props.initialCandidates ?? []).map(model => [model.id, normalize(model)])).values()];
-  existingModels.value = props.channel.models.map(model => normalize({ ...model, ...candidates.value.find(item => item.id === model.id) }));
+  // ACT: 已保存的选择与能力优先；接口目录只补充缺少的字段。
+  existingModels.value = props.channel.models.map(model => normalize({ ...candidates.value.find(item => item.id === model.id), ...model }));
   manualIds.clear();
   selectedIds.value = existingModels.value.filter(model => !!model.type).map(model => model.id);
   activeTab.value = existingModels.value.length || !newModels.value.length ? 'existing' : 'new';
@@ -102,7 +124,7 @@ async function pullModels() {
     if (controller.signal.aborted) return;
     const combined = new Map(candidates.value.filter(model => manualIds.has(model.id)).map(model => [model.id, model]));
     for (const model of models) combined.set(model.id, normalize(model));
-    existingModels.value = existingModels.value.map(model => { const fresh = models.find(item => item.id === model.id); return fresh ? normalize({ ...model, ...fresh }) : model; });
+    existingModels.value = existingModels.value.map(model => { const fresh = models.find(item => item.id === model.id); return fresh ? normalize({ ...fresh, ...model }) : model; });
     candidates.value = [...combined.values()];
     selectedIds.value = selectedIds.value.filter(id => availableModels.value.some(model => model.id === id));
     emit('fetched', models);
@@ -145,7 +167,7 @@ function confirm() {
   .pickerModel { min-width: 0; display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 8px; border-bottom: 1px solid var(--el-border-color-extra-light); cursor: pointer; font-size: 13px; color: var(--el-text-color-regular);
     &:hover, &:focus-within { background: var(--el-fill-color-light); } span { overflow-wrap: anywhere; line-height: 1.5; } small { display: block; color: var(--el-text-color-secondary); margin-top: 3px; } input { margin: 0; width: 15px; height: 15px; flex-shrink: 0; accent-color: var(--el-color-primary); cursor: pointer; } &.unavailable { opacity: .7; cursor: not-allowed; } &.selected { color: var(--el-text-color-primary); } }
   .pickerError { margin-top: 10px; flex-shrink: 0; }
-  .el-dialog__footer { flex-shrink: 0; padding-top: 16px; border-top: 1px solid var(--el-border-color-light); .pickerConfirm { background: var(--el-color-primary); border-color: var(--el-color-primary); color: var(--el-color-white); &:hover { background: var(--el-color-primary-light-3); border-color: var(--el-color-primary-light-3); } } }
+  .el-dialog__footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; flex-shrink: 0; padding-top: 16px; border-top: 1px solid var(--el-border-color-light); .el-button { margin: 0; } .capabilityAction { margin-right: auto; } .pickerConfirm { background: var(--el-color-primary); border-color: var(--el-color-primary); color: var(--el-color-white); &:hover { background: var(--el-color-primary-light-3); border-color: var(--el-color-primary-light-3); } } }
   button:focus-visible, input:focus-visible, [tabindex="0"]:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
   @media(max-width: 1000px) { .pickerGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; } }
   @media(max-width: 650px) { padding: 18px 16px 14px; height: 92dvh; max-height: 92dvh; .pickerToolbar { grid-template-columns: 1fr; gap: 10px; } .pickerTabs { gap: 24px; height: 52px; } .pickerSelection { align-items: flex-start; flex-direction: column; gap: 10px; padding-block: 12px; } .pickerGrid { grid-template-columns: minmax(0, 1fr); } .pickerModel { min-height: 44px; padding: 8px 2px; } .pickerAdd .el-button { padding-inline: 8px; } }

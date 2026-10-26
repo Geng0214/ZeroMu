@@ -1,6 +1,7 @@
 import { existsSync } from "@toonflow/file";
 import { dirname, resolve } from "node:path";
 import { deserialize, serialize } from "node:v8";
+import { MessageChannel, receiveMessageOnPort, Worker, type MessagePort } from "node:worker_threads";
 import { describeFfmpeg } from "@toonflow/ffmpeg/runtime";
 import type { ToolContext, ToolDefinition } from "@toonflow/tools-scaffold/runtime";
 import { ToolChannel } from "./toolChannel";
@@ -20,6 +21,8 @@ export async function createIsolatedTool(source: string, workerDirectory = getTo
   const ready = Promise.withResolvers<void>();
   void ready.promise.catch(() => {});
   const activeScopes = new Set(["init"]);
+  const renderScope = crypto.randomUUID();
+  let renderScopeOpened = false;
   const lifetime = new AbortController();
   const scopeControllers = new Map<string, AbortController>();
   const fileOperations = new Map<string, Set<Promise<unknown>>>();
@@ -33,6 +36,13 @@ export async function createIsolatedTool(source: string, workerDirectory = getTo
   let closing: Promise<void> | undefined;
   let channel: ToolChannel;
   let child: Bun.Subprocess<"ignore", "ignore", "ignore">;
+  let relay: Worker | undefined;
+  let relayPort: MessagePort | undefined;
+  let relayWake: Int32Array | undefined;
+  let relayReady: ReturnType<typeof Promise.withResolvers<string>> | undefined;
+  let syncTarget: string | undefined;
+  let syncDeadline: number | undefined;
+  const syncReplies = new Map<string, { data?: Uint8Array; error?: string } | undefined>();
   const token = crypto.randomUUID() + crypto.randomUUID();
   const server = Bun.serve({
     hostname: "127.0.0.1", port: 0, maxRequestBodySize: 16 * 1024 * 1024,
@@ -55,6 +65,7 @@ export async function createIsolatedTool(source: string, workerDirectory = getTo
       scopeControllers.clear();
       channel?.abortSignals(reason);
       ready.reject(reason);
+      relayReady?.reject(reason);
       // Windows 需在父进程还存活时结束整棵树，涵盖插件内仍在运行的 FFmpeg。
       if (process.platform === "win32" && child && child.exitCode === null && child.signalCode === null) {
         try {
@@ -69,12 +80,68 @@ export async function createIsolatedTool(source: string, workerDirectory = getTo
       await waitForFiles();
       channel?.close(reason);
       await child?.exited;
+      await relay?.terminate();
+      relayPort?.close();
       await server.stop(true);
     })().then(finished.resolve, finished.reject);
     return closing;
   };
-  channel = new ToolChannel("host", message => child.send(message), undefined, scope => {
-    if (closing || !activeScopes.has(scope)) throw Object.assign(new Error("工具调用上下文已结束"), { code: "TOOL_CALL_CLOSED" });
+  const receiveRelay = (message: any) => {
+    if (message?.type === "ready" && typeof message.url === "string") { relayReady?.resolve(message.url); return; }
+    if (message?.type === "reply" && syncReplies.has(message.id)) { syncReplies.set(message.id, message); return; }
+    if (message?.type !== "callback" || typeof message.id !== "string" || !(message.data instanceof Uint8Array)) return;
+    let reply;
+    try { reply = channel.receiveSync(deserialize(Buffer.from(message.data))); }
+    catch { reply = { error: channel.encode(new Error("插件同步回调数据无效")) }; }
+    relayPort?.postMessage({ type: "callbackReply", id: message.id, data: serialize(reply) });
+  };
+  const synchronize = (message: Parameters<ToolChannel["receiveSync"]>[0]) => {
+    if (!relayPort || !relayWake || !syncTarget) throw Object.assign(new Error("插件同步通道尚未就绪"), { code: "TOOL_SYNC_CALLBACK_UNAVAILABLE" });
+    if (syncReplies.size >= 8) throw new Error("插件同步调用嵌套过深");
+    const id = crypto.randomUUID();
+    const rendering = message.scope === renderScope && !activeScopes.has(renderScope);
+    const renderController = rendering ? new AbortController() : undefined;
+    if (renderController) { activeScopes.add(renderScope); scopeControllers.set(renderScope, renderController); }
+    const deadline = syncDeadline ?? performance.now() + 2000;
+    syncDeadline = deadline;
+    syncReplies.set(id, undefined);
+    try {
+      relayPort.postMessage({ type: "request", id, url: syncTarget, data: serialize(message) });
+      while (true) {
+        const version = Atomics.load(relayWake, 0);
+        for (let count = 0; count < 32; count++) {
+          if (performance.now() >= deadline) throw new Error("插件同步钩子超过 2 秒");
+          const received = receiveMessageOnPort(relayPort);
+          if (!received) break;
+          receiveRelay(received.message);
+        }
+        const reply = syncReplies.get(id);
+        if (reply) {
+          if (reply.error || !(reply.data instanceof Uint8Array)) throw new Error(reply.error || "插件同步响应无效");
+          return deserialize(Buffer.from(reply.data));
+        }
+        const remaining = deadline - performance.now();
+        if (remaining <= 0) throw new Error("插件同步钩子超过 2 秒");
+        Atomics.wait(relayWake, 0, version, Math.min(20, remaining));
+      }
+    } catch (error) {
+      const failure = Object.assign(new Error(error instanceof Error ? error.message : "插件同步传输失败"), { code: "TOOL_SYNC_TRANSPORT", status: 504 });
+      void dispose(failure);
+      throw failure;
+    } finally {
+      syncReplies.delete(id);
+      if (!syncReplies.size) syncDeadline = undefined;
+      if (renderController) {
+        activeScopes.delete(renderScope);
+        renderController.abort(Object.assign(new Error("工具显示上下文已结束"), { code: "TOOL_CALL_CLOSED" }));
+        void waitForFiles(renderScope).finally(() => {
+          if (scopeControllers.get(renderScope) === renderController) scopeControllers.delete(renderScope);
+        }).catch(() => {});
+      }
+    }
+  };
+  channel = new ToolChannel("host", message => child.send(message), synchronize, (scope, message) => {
+    if (closing || (!activeScopes.has(scope) && !(scope === renderScope && channel.canUsePassive(message)))) throw Object.assign(new Error("工具调用上下文已结束"), { code: "TOOL_CALL_CLOSED" });
   });
   try { child = Bun.spawn([process.execPath, worker], {
     env, cwd: dirname(worker), stdin: "ignore", stdout: "ignore", stderr: "ignore", windowsHide: true, serialization: "advanced",
@@ -92,6 +159,21 @@ export async function createIsolatedTool(source: string, workerDirectory = getTo
     try { return await channel.run("init", operation); }
     catch (error) { await dispose(error instanceof Error ? error : new Error("工具初始化失败")); throw error; }
     finally { clearTimeout(timeout); activeScopes.delete("init"); await waitForFiles("init"); }
+  };
+  const enableSync = async () => {
+    if (syncTarget) return;
+    const { port1, port2 } = new MessageChannel();
+    relayPort = port1;
+    relayWake = new Int32Array(new SharedArrayBuffer(4));
+    relayReady = Promise.withResolvers<string>();
+    void relayReady.promise.catch(() => {});
+    relayPort.on("message", receiveRelay);
+    relay = new Worker(locate("toolSyncRelay"), { workerData: { port: port2, wake: relayWake, token }, transferList: [port2] });
+    relay.on("error", error => { void dispose(error instanceof Error ? error : new Error("插件同步传输失败")); });
+    relay.on("exit", () => { if (!closing) void dispose(new Error("插件同步传输线程已结束")); });
+    syncTarget = await channel.request("method", "enableSync", [await relayReady.promise]);
+    const target = new URL(syncTarget!);
+    if (target.protocol !== "http:" || target.hostname !== "127.0.0.1" || target.username || target.password) throw new Error("插件同步地址无效");
   };
   try {
     child.send({ type: "bootstrap", syncClient, token, url: `http://127.0.0.1:${server.port}/` });
@@ -114,9 +196,11 @@ export async function createIsolatedTool(source: string, workerDirectory = getTo
     const fileNames = ["readFile", "access", "stat", "readdir", "detectImageMimeType", "writeFile", "mkdir", "rename", "remove", "copyFile"] as const;
     const files = Object.fromEntries(fileNames.map(name => [name, (...args: any[]) => {
       const scope = assertActiveScope();
+      const operationSignal = scopeControllers.get(scope)?.signal ?? lifetime.signal;
       let operations = fileOperations.get(scope);
       if (!operations) fileOperations.set(scope, operations = new Set());
       const pending = Promise.resolve().then(() => {
+        operationSignal.throwIfAborted();
         assertActiveScope();
         return Reflect.apply(context.files[name], context.files, args);
       });
@@ -196,15 +280,42 @@ export async function createIsolatedTool(source: string, workerDirectory = getTo
         if (!definition || typeof definition.name !== "string" || !definition.name || typeof definition.execute !== "function") {
           await dispose(); throw new Error("插件返回了无效的工具定义");
         }
-        for (const name of ["prepareArguments", "renderCall", "renderResult"] as const) {
-          if (typeof definition[name] === "function" && channel.isRemote(definition[name])) {
-            await dispose();
-            throw Object.assign(new Error(`工具 ${definition.name} 的自定义同步钩子 ${name} 尚不支持进程隔离；请使用宿主 SDK 内置钩子`), { code: "TOOL_SYNC_HOOK_UNSUPPORTED", status: 400 });
-          }
-        }
+      }
+      if (definitions.some(definition => ["prepareArguments", "renderCall", "renderResult"].some(name => typeof definition[name] === "function" && channel.isRemote(definition[name])))) await initialize(enableSync);
+      if (!renderScopeOpened && definitions.some(definition => ["renderCall", "renderResult"].some(name => typeof definition[name] === "function" && channel.isRemote(definition[name])))) {
+        channel.openScope(renderScope);
+        renderScopeOpened = true;
       }
       return definitions.map((definition: ToolDefinition) => ({
         ...definition,
+        ...Object.fromEntries((["renderCall", "renderResult"] as const).filter(name => typeof definition[name] === "function" && channel.isRemote(definition[name]!)).map(name => [name, (...args: any[]) => {
+          if (closing) throw new Error("工具工作进程已关闭；显示组件已释放");
+          const context = args.at(-1);
+          const theme = args.at(-2);
+          if (theme && typeof theme === "object") { channel.markOpaque(theme); channel.markPassive(theme); }
+          if (context?.state && typeof context.state === "object") channel.markMutable(context.state);
+          if (typeof context?.invalidate === "function") channel.markPassive(context.invalidate);
+          return channel.run(renderScope, () => Reflect.apply(definition[name]!, definition, args));
+        }])),
+        ...(typeof definition.prepareArguments === "function" && channel.isRemote(definition.prepareArguments) ? {
+          prepareArguments(args: unknown) {
+            if (closing) throw new Error("工具工作进程已关闭；请重新创建会话工具");
+            const scope = crypto.randomUUID();
+            activeScopes.add(scope);
+            const controller = new AbortController();
+            scopeControllers.set(scope, controller);
+            try {
+              channel.openScope(scope);
+              return channel.run(scope, () => definition.prepareArguments!(args));
+            }
+            finally {
+              activeScopes.delete(scope);
+              controller.abort(Object.assign(new Error("参数准备上下文已结束"), { code: "TOOL_CALL_CLOSED" }));
+              channel.releaseScope(scope);
+              void waitForFiles(scope).finally(() => scopeControllers.delete(scope)).catch(() => {});
+            }
+          },
+        } : {}),
         async execute(...args: Parameters<ToolDefinition["execute"]>) {
           if (closing) throw new Error("工具工作进程已关闭；请重新创建会话工具");
           args[2]?.throwIfAborted();

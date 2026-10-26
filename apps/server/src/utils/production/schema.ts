@@ -113,7 +113,7 @@ export const projectSchema = z.strictObject({
   for (const version of project.assetVersions) {
     if (!assets.get(version.assetId)?.versionIds.includes(version.versionId)) issue("版本未登记到所属素材");
     if (version.parentVersionId && versions.get(version.parentVersionId)?.assetId !== version.assetId) issue("父版本不属于同一素材");
-    if (version.files.some(file => !file.path.startsWith(`assets/production/${version.versionId}/`))) issue("版本文件须保存在独立版本目录");
+    if (version.files.some(file => !file.path.startsWith(`assets/production/${version.versionId}/`) && !file.path.startsWith(`references/versions/${version.versionId}/`))) issue("版本文件须保存在独立版本目录");
   }
   for (const candidate of project.candidates) {
     if (!shots.get(candidate.shotId)?.candidateIds.includes(candidate.candidateId) || !versions.has(candidate.versionId)) issue("候选缺少镜头或媒体版本");

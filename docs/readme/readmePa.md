@@ -127,7 +127,6 @@
 <p align="center">
 <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">ਡਾਊਨਲੋਡ</a> ·
 <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">ਵਰਤੋਂ ਗਾਈਡ</a> ·
-<a href="https://api.toonflow.net/console/plugIn">ਪਲੱਗਇਨ ਮਾਰਕੀਟਪਲੇਸ</a> ·
 <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">ਡਿਵੈਲਪਰ ਦਸਤਾਵੇਜ਼</a> ·
 <a href="https://api.toonflow.net/">ਅਧਿਕਾਰਤ ਮਾਡਲ ਪਲੇਟਫਾਰਮ</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow ਛੋਟੇ ਨਾਟਕਾਂ, ਐਨੀਮੇਟਡ ਕਾਮਿਕ�
 | 🏠 **ਆਪਣੇ ਸਿਸਟਮ ਉੱਤੇ ਸਥਾਪਨਾ** | ਪ੍ਰੋਜੈਕਟ ਅਤੇ ਸਮੱਗਰੀ ਆਪਣੇ ਡਿਵਾਈਸ ਜਾਂ ਸਰਵਰ ਉੱਤੇ ਰੱਖੋ। ਡੈਸਕਟਾਪ, Docker ਅਤੇ ਸਰਵਰ ਸਥਾਪਨਾ ਦੇ ਵਿਕਲਪ ਹਨ। |
 | 🖼️ **ਬੇਅੰਤ ਕੈਨਵਸ** | ਪਟਕਥਾਵਾਂ, ਪਾਤਰ, ਦ੍ਰਿਸ਼ ਅਤੇ ਵੀਡੀਓ ਕਲਿੱਪਾਂ ਨੂੰ ਇੱਕੋ ਕੈਨਵਸ ਉੱਤੇ ਸਜਾਓ। |
 | 🔌 **MCP** | MCP ਰਾਹੀਂ ਬਾਹਰੀ ਔਜ਼ਾਰਾਂ ਅਤੇ ਸੇਵਾਵਾਂ ਨੂੰ ਕਨੈਕਟ ਕਰੋ। |
-| 🧩 **ਪਲੱਗਇਨ ਮਾਰਕੀਟਪਲੇਸ** | [ਪਲੱਗਇਨ ਮਾਰਕੀਟਪਲੇਸ](https://api.toonflow.net/console/plugIn) ਰਾਹੀਂ ਨੋਡ, ਟੂਲ ਅਤੇ ਰਚਨਾਤਮਕ ਸਹੂਲਤਾਂ ਜੋੜੋ। |
 | 🤖 **ਖੁੱਲ੍ਹਾ Agent ਸਿਸਟਮ** | ਪ੍ਰੋਂਪਟ, ਟੂਲ ਅਤੇ A2A ਦੀ ਖੁੱਲ੍ਹੀ ਪਹੁੰਚ ਨਾਲ Agent ਦਾ ਵਿਹਾਰ ਬਦਲੋ ਅਤੇ ਬਾਹਰੀ Agent ਨਾਲ ਮਿਲ ਕੇ ਕੰਮ ਕਰੋ। |
 | 🔧 **ਮਾਡਲ ਜੋੜਨ ਦੀ ਲਚਕ** | ਤੀਜੀ ਧਿਰ ਦੇ API ਸੈੱਟ ਕਰੋ ਜਾਂ ਆਪਣੇ ਕੰਪਿਊਟਰ ਉੱਤੇ ਚੱਲਦੇ ComfyUI ਅਤੇ LLMs ਜੋੜੋ। |
 | 🌐 **ਬਹੁਭਾਸ਼ੀ ਸਹਾਇਤਾ** | ਇੰਟਰਫੇਸ ਲਈ 21 ਭਾਸ਼ਾਵਾਂ ਦਾ ਸਮਰਥਨ ਹੈ। |
@@ -220,7 +218,6 @@ Toonflow ਛੋਟੇ ਨਾਟਕਾਂ, ਐਨੀਮੇਟਡ ਕਾਮਿਕ�
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow · ਨੋਡ ਮੀਨੂ ਅਤੇ ਗਰੁੱਪ ਕਾਰਵਾਈਆਂ" width="80%" /></a><br /><sub>ਨੋਡ ਮੀਨੂ ਅਤੇ ਗਰੁੱਪ ਕਾਰਵਾਈਆਂ</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow · ਪਲੱਗਇਨ ਮਾਰਕੀਟਪਲੇਸ" width="80%" /></a><br /><sub>ਪਲੱਗਇਨ ਮਾਰਕੀਟਪਲੇਸ</sub>
 
 </div>
 
@@ -439,7 +436,6 @@ TF-Router Toonflow ਦਾ ਅਧਿਕਾਰਤ, ਸਵੈ-ਸੰਚਾਲਿਤ
 > 5। ਨਵੇਂ ਮੋਡੀਊਲ
 > ਅਨੰਤ ਕੈਨਵਸ - ਸਪੇਸ ਤੋਂ ਵੱਧ: ਆਜ਼ਾਦੀ।
 > ਪ੍ਰੇਰਨਾ ਮੋਡ — ਸਿਰਜਣਹਾਰਾਂ ਲਈ ਬਣਾਇਆ ਗਿਆ।
-> Plugin Hub — ਵਧੀਆ ਪਲੱਗਇਨ ਖੋਜਣ ਵਿੱਚ ਮਦਦ ਕਰਨਾ।
 > Skill Hub — ਅਨੁਭਵ ਨੂੰ ਸਾਂਝਾ ਕਰਨ ਯੋਗ ਬਣਾਉਣਾ।
 > Provider Hub — ਜਿੱਥੇ ਈਕੋਸਿਸਟਮ ਸ਼ੁਰੂ ਹੁੰਦਾ ਹੈ।
 > ਪੂਰਾ Docker ਏਕੀਕਰਨ — ਸਥਾਪਨਾ ਕਰਨੀ ਹਰ ਕਿਸੇ ਲਈ ਆਸਾਨ ਹੋਵੇ।

@@ -118,7 +118,7 @@ export async function removeBackground(input: Uint8Array, signal?: AbortSignal) 
     || bytes.toString("ascii", 0, 4) === "RIFF" && bytes.toString("ascii", 8, 12) === "WEBP")) invalid("背景移除仅支持 PNG、JPEG 和 WebP 图片");
   if (!await modelReady()) invalid("请先在模型配置中下载并启用本机背景移除", 424);
   const { tools } = await getStatus();
-  if (!tools.ffmpeg.path || tools.ffmpeg.error || !tools.ffprobe.path || tools.ffprobe.error) throw Object.assign(new Error("本机背景移除需要 FFmpeg 和 ffprobe，请在扩展管理完成配置"), { name: "FfmpegRequiredError", code: "FFMPEG_REQUIRED", status: 424, submissionRejected: true });
+  if (!tools.ffmpeg.path || tools.ffmpeg.error || !tools.ffprobe.path || tools.ffprobe.error) throw Object.assign(new Error("本机背景移除需要 FFmpeg 和 ffprobe，未检测到可用版本"), { name: "FfmpegRequiredError", code: "FFMPEG_REQUIRED", status: 424, submissionRejected: true });
   let runtime: string;
   try { runtime = require.resolve("onnxruntime-node"); } catch { invalid("当前应用缺少本机图片运行环境，请安装包含该能力的完整版本", 424); }
   signal?.throwIfAborted();

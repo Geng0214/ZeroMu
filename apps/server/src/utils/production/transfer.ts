@@ -1,3 +1,4 @@
+import { projectCanvasFolder, projectPath } from "@/utils/workspace/projectLayout";
 import { createHash } from "node:crypto";
 import { basename, extname, join } from "node:path";
 import { mkdir, withFileAccess, writeAtomic } from "@toonflow/file";
@@ -59,12 +60,12 @@ async function prepareReceipt(directory: string, source: ProductionTransferSourc
   const verifiedSource = { ...source, prompt: task?.request.prompt ?? source.prompt, request: task?.request ?? source.request, modelLabel: task ? JSON.stringify([task.request.providerId, task.request.modelId]) : source.modelLabel, contentHash };
   const receipt: TransferReceipt = { transferId, inputFingerprint, createdAt: Date.now(), source: verifiedSource, target, status: "pending", files: [] };
   if (target.kind === "shot") { receipt.candidateId = transferId; return receipt; }
-  receipt.canvasId = target.canvasId ?? `studioCanvas${transferId}.json`;
+  receipt.canvasId = target.canvasId ?? (projectCanvasFolder(directory) ? "canvases/" : "") + "studioCanvas" + transferId + ".json";
   receipt.nodeId = transferId;
   const references = referenceFiles(verifiedSource);
   for (const [index, file] of [{ path: source.path, mimeType: source.mimeType }, ...references].entries()) {
     const extension = extname(file.path);
-    const path = `assets/transfers/${transferId}/reference${index}${/^\.[a-z0-9]{1,10}$/i.test(extension) ? extension.toLowerCase() : ""}`;
+    const path = projectPath(directory, `assets/transfers/${transferId}/reference${index}${/^\.[a-z0-9]{1,10}$/i.test(extension) ? extension.toLowerCase() : ""}`);
     receipt.files.push({ sourcePath: file.path, mimeType: file.mimeType, path, hash: index ? hash(await readProjectFile(directory, file.path)) : contentHash });
   }
   return receipt;
@@ -79,7 +80,7 @@ function referenceFiles(source: ProductionTransferSource) {
 }
 
 async function freezeFiles(directory: string, receipt: TransferReceipt) {
-  const folder = (await resolveWorkspacePath(directory, `assets/transfers/${receipt.transferId}`, true)).path;
+  const folder = (await resolveWorkspacePath(directory, projectPath(directory, `assets/transfers/${receipt.transferId}`), true)).path;
   await mkdir(folder, { recursive: true });
   for (const file of receipt.files) {
     const existing = await readProjectFile(directory, file.path).catch((cause: NodeJS.ErrnoException) => { if (cause.code !== "ENOENT") throw cause; return undefined; });
@@ -114,8 +115,8 @@ async function appendCanvas(directory: string, receipt: TransferReceipt) {
     document.nodes.push({ id: receipt.nodeId!, type: `remote-${source.mediaType}Node`, position: origin, selected: true, data }, ...references);
     if (source.mediaType !== "audio") document.edges.push(...references.map((node, index) => ({ id: stableId(`${transferId}:edge${index}`), source: node.id, target: receipt.nodeId, sourceHandle: referenceFiles(source)[index]!.kind, targetHandle: "in" })));
     if (existing) {
-      const backup = (await resolveWorkspacePath(directory, `projectBackups/transfer${transferId}.json`, true)).path;
-      await mkdir(join(directory, "projectBackups"), { recursive: true });
+      const backup = (await resolveWorkspacePath(directory, projectPath(directory, `projectBackups/transfer${transferId}.json`), true)).path;
+      await mkdir(join(directory, projectPath(directory, "projectBackups")), { recursive: true });
       await writeAtomic(backup, existing, { exclusive: true }).catch((cause: NodeJS.ErrnoException) => { if (cause.code !== "EEXIST") throw cause; });
     }
     await readProject(directory);
@@ -124,14 +125,14 @@ async function appendCanvas(directory: string, receipt: TransferReceipt) {
 }
 
 export async function transferResult(directory: string, rawSource: unknown, rawTarget: unknown) {
-  return withFileAccess([join(directory, "productionTransfers", "admission")], "write", async () => {
+  return withFileAccess([join(directory, projectPath(directory, "productionTransfers"), "admission")], "write", async () => {
   const source = transferSourceSchema.parse(rawSource);
   source.modelLabel = source.modelLabel?.trim() || undefined;
   const target = transferTargetSchema.parse(rawTarget);
   const identity = { resultId: source.resultId, taskId: source.taskId, path: normalized(source.path), target: target.kind === "shot" ? target : { kind: "canvas", canvasId: target.canvasId ? normalized(target.canvasId) : undefined } };
   const transferId = stableId(JSON.stringify(identity));
-  const path = `productionTransfers/${transferId}.json`;
-  const folder = (await resolveWorkspacePath(directory, "productionTransfers", true)).path;
+  const path = projectPath(directory, `productionTransfers/${transferId}.json`);
+  const folder = (await resolveWorkspacePath(directory, projectPath(directory, "productionTransfers"), true)).path;
   const release = lockWorkspaceFiles([folder]);
   try {
     await readProject(directory);
@@ -166,7 +167,7 @@ export async function transferResult(directory: string, rawSource: unknown, rawT
 export async function verifyTransferFile(directory: string, path: string, bytes: Uint8Array) {
   const id = path.replaceAll("\\", "/").split("/")[2];
   if (!id || !z.uuid().safeParse(id).success) fail("传递参考的标识无效", 422);
-  const receipt = await readReceipt(directory, `productionTransfers/${id}.json`);
+  const receipt = await readReceipt(directory, projectPath(directory, `productionTransfers/${id}.json`));
   const file = receipt?.files.find(file => normalized(file.path) === normalized(path));
   if (!file || hash(bytes) !== file.hash) fail("固定传递参考已改变或依据缺失，请恢复原文件后再生成");
 }

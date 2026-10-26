@@ -1,6 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 
-type ToolReference = { owner: string; id: string; kind: "function" | "object"; sync?: boolean };
+type ToolReference = { owner: string; id: string; kind: "function" | "object"; sync?: boolean; array?: boolean };
 type ToolMessage = { type: string; id?: string; scope?: string; action?: string; target?: string; args?: any; data?: any; error?: any };
 type ToolReply = { data?: any; error?: any; deferred?: string; callbacks?: ToolMessage[] };
 type ToolPending = ReturnType<typeof Promise.withResolvers<any>> & { scope: string };
@@ -37,6 +37,8 @@ export class ToolChannel {
   private remoteScopes = new Map<string, Set<string>>();
   private synchronousFunctions = new WeakSet<Function>();
   private opaqueValues = new WeakSet<object>();
+  private mutableValues = new WeakMap<object, Set<string> | null>();
+  private passiveValues = new WeakSet<object>();
   private methods = new Map<string, (...args: any[]) => any>();
   private pending = new Map<string, ToolPending>();
   private deferred = new Map<string, ToolPending>();
@@ -55,7 +57,7 @@ export class ToolChannel {
     readonly owner: "host" | "worker",
     private send: (message: ToolMessage) => void,
     private synchronize?: (message: ToolMessage) => ToolReply,
-    private authorize = (_scope: string) => {},
+    private authorize = (_scope: string, _message: ToolMessage) => {},
   ) {}
 
   register(name: string, operation: (...args: any[]) => any) { this.methods.set(name, operation); }
@@ -69,6 +71,17 @@ export class ToolChannel {
   }
   markSynchronous(value: Function) { this.synchronousFunctions.add(value); }
   markOpaque(value: object) { this.opaqueValues.add(value); }
+  markMutable(value: object, properties?: readonly string[]) {
+    this.markOpaque(value);
+    this.mutableValues.set(value, properties ? new Set(properties) : null);
+  }
+  markPassive(value: object) { this.passiveValues.add(value); }
+  canUsePassive(message: ToolMessage) {
+    if (message.action === "method") return false;
+    const entry = this.references.get(message.target!);
+    return !!entry && (this.passiveValues.has(entry.value) || (entry.receiver && this.passiveValues.has(entry.receiver))
+      || (this.mutableValues.has(entry.value) && ["get", "has", "keys", "set", "delete"].includes(message.action ?? "")));
+  }
   isRemote(value: object) {
     const reference = this.remoteReferences.get(value);
     return !!reference && reference.owner !== this.owner;
@@ -109,12 +122,13 @@ export class ToolChannel {
       }
       if (value === null || !["object", "function"].includes(typeof value)) return { kind: "value", value };
       if (blockedReferences.has(value)) throw reflectionError();
+      // 已登记的远端引用直接往返，不能在检查本地对象时再次进入远端。
+      const remote = this.remoteReferences.get(value);
+      if (remote) return { kind: "reference", owner: remote.owner, id: remote.id, referenceKind: remote.kind, sync: remote.sync, array: remote.array };
       if (typeof value === "object") {
         const constructor = Object.getOwnPropertyDescriptor(value, "constructor")?.value;
         if (typeof constructor === "function" && Object.getOwnPropertyDescriptor(constructor, "prototype")?.value === value) throw reflectionError();
       }
-      const remote = this.remoteReferences.get(value);
-      if (remote) return { kind: "reference", owner: remote.owner, id: remote.id, referenceKind: remote.kind, sync: remote.sync };
       if (typeof value === "function") return {
         kind: "reference", owner: this.owner, id: this.reference(value, receiver),
         referenceKind: "function", sync: forceSynchronous || this.synchronousFunctions.has(value)
@@ -134,11 +148,12 @@ export class ToolChannel {
         }
         return { kind: "signal", owner: this.owner, id, aborted: value.aborted, reason: value.aborted ? encode(value.reason) : undefined };
       }
+      if (this.opaqueValues.has(value)) return { kind: "reference", owner: this.owner, id: this.reference(value), referenceKind: "object", array: Array.isArray(value) };
       if (Buffer.isBuffer(value)) return { kind: "buffer", bytes: new Uint8Array(value) };
       if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer || value instanceof Date || value instanceof RegExp) return { kind: "clone", value };
-      if (this.opaqueValues.has(value) || (!Array.isArray(value) && !(value instanceof Error)
+      if ((!Array.isArray(value) && !(value instanceof Error)
         && ![Object.prototype, null].includes(Object.getPrototypeOf(value)))) {
-        return { kind: "reference", owner: this.owner, id: this.reference(value), referenceKind: "object" };
+        return { kind: "reference", owner: this.owner, id: this.reference(value), referenceKind: "object", array: Array.isArray(value) };
       }
       const previous = visited.get(value);
       if (previous !== undefined) return { kind: "previous", id: previous };
@@ -205,10 +220,12 @@ export class ToolChannel {
       }
       if (item.kind === "reference") {
         if (!["host", "worker"].includes(item.owner) || typeof item.id !== "string" || !["function", "object"].includes(item.referenceKind)
-          || (item.sync !== undefined && typeof item.sync !== "boolean")) throw new Error("插件通道引用无效");
+          || (item.sync !== undefined && typeof item.sync !== "boolean") || (item.array !== undefined && typeof item.array !== "boolean")
+          || (item.array === true && item.referenceKind !== "object")) throw new Error("插件通道引用无效");
         if (item.owner === this.owner) {
           const entry = this.getReference(item.id);
           if ((typeof entry.value === "function" ? "function" : "object") !== item.referenceKind) throw new Error("插件通道引用类型无效");
+          if (item.array !== undefined && item.array !== Array.isArray(entry.value)) throw new Error("插件通道数组引用无效");
           if (typeof entry.value !== "function" || entry.receiver === undefined) return entry.value;
           if (!entry.bound) {
             entry.bound = entry.value.bind(entry.receiver);
@@ -242,23 +259,43 @@ export class ToolChannel {
     scopes.add(this.currentScope());
     const previous = this.remoteValues.get(key);
     if (previous) return previous;
-    const reference: ToolReference = { owner: item.owner, id: item.id, kind: item.referenceKind ?? item.kind, sync: item.sync };
-    const invoke = (...args: any[]) => {
+    const reference: ToolReference = { owner: item.owner, id: item.id, kind: item.referenceKind ?? item.kind, sync: item.sync, array: item.array };
+    const withinScope = <T>(operation: () => T): T => this.run(this.scope.getStore()
+      ?? [...scopes].find(scope => scope !== "init" && this.liveScopes.has(scope)) ?? "init", operation);
+    const invoke = (...args: any[]) => withinScope(() => {
       if (reference.sync) return this.requestSync("invoke", reference.id, args);
       const result = this.request("invoke", reference.id, args);
       // 事件回调可能不消费返回 Promise；等待者仍然收到原 Promise 的拒绝。
       void result.catch(() => {});
       return result;
-    };
-    const proxy = new Proxy(reference.kind === "function" ? invoke : {}, {
+    });
+    const proxy = new Proxy(reference.kind === "function" ? invoke : reference.array ? [] : {}, {
       get: (_target, property) => {
         if (property === "then") return undefined;
         if (reference.kind === "function" && property === "toJSON") return undefined;
         if (reference.kind === "function" && ["call", "apply", "bind", "toString"].includes(String(property))) return Reflect.get(Function.prototype, property);
-        return this.requestSync("get", reference.id, [property]);
+        // 数组迭代和回调在调用方执行，不把插件的同步回调放进宿主数组方法。
+        if (reference.array && property !== "constructor" && typeof Reflect.get(Array.prototype, property) === "function") return Reflect.get(Array.prototype, property);
+        return withinScope(() => this.requestSync("get", reference.id, [property]));
       },
-      ownKeys: () => this.requestSync("keys", reference.id, []),
-      getOwnPropertyDescriptor: () => ({ configurable: true, enumerable: true }),
+      has: (_target, property) => withinScope(() => this.requestSync("has", reference.id, [property])),
+      set: (_target, property, value) => withinScope(() => {
+        if (value && typeof value === "object" && !this.remoteReferences.has(value) && !this.mutableValues.has(value)) this.markMutable(value);
+        return this.requestSync("set", reference.id, [property, value]);
+      }),
+      deleteProperty: (_target, property) => withinScope(() => this.requestSync("delete", reference.id, [property])),
+      ownKeys: target => withinScope(() => [...new Set([
+        ...Reflect.ownKeys(target).filter(key => !Object.getOwnPropertyDescriptor(target, key)?.configurable),
+        ...this.requestSync("keys", reference.id, []),
+      ])]),
+      getOwnPropertyDescriptor: (target, property) => withinScope(() => {
+        const local = Object.getOwnPropertyDescriptor(target, property);
+        if (local && !local.configurable) {
+          if (reference.array && property === "length") Reflect.set(target, "length", this.requestSync("get", reference.id, [property]));
+          return Object.getOwnPropertyDescriptor(target, property);
+        }
+        return this.requestSync("has", reference.id, [property]) ? { configurable: true, enumerable: true } : undefined;
+      }),
     });
     this.remoteReferences.set(proxy, reference);
     this.remoteValues.set(key, proxy);
@@ -295,6 +332,7 @@ export class ToolChannel {
       if (reply.error) throw this.decode(reply.error);
       if (!reply.deferred) return this.decode(reply.data);
       const result = { ...Promise.withResolvers<any>(), scope };
+      void result.promise.catch(() => {});
       this.deferred.set(reply.deferred, result);
       const early = this.earlyDeferred.get(reply.deferred);
       if (early) { this.earlyDeferred.delete(reply.deferred); this.finishDeferred(early); }
@@ -311,10 +349,10 @@ export class ToolChannel {
 
   private invoke(message: ToolMessage) {
     if (!message || typeof message !== "object" || message.type !== "request" || typeof message.scope !== "string"
-      || typeof message.target !== "string" || !["method", "get", "keys", "invoke"].includes(message.action ?? "")) throw new Error("插件通道请求无效");
+      || typeof message.target !== "string" || !["method", "get", "has", "keys", "set", "delete", "invoke"].includes(message.action ?? "")) throw new Error("插件通道请求无效");
     if (this.failure) throw this.failure;
     if (!this.liveScopes.has(message.scope ?? "init")) throw Object.assign(new Error("工具调用上下文已结束"), { code: "TOOL_CALL_CLOSED" });
-    this.authorize(message.scope ?? "init");
+    this.authorize(message.scope ?? "init", message);
     const args = this.decode(message.args);
     if (!Array.isArray(args)) throw new Error("插件通道参数无效");
     if (message.action === "method") {
@@ -323,19 +361,31 @@ export class ToolChannel {
       return Reflect.apply(method, undefined, args);
     }
     const entry = this.getReference(message.target);
-    if (message.action === "get") {
+    if (["get", "has", "set", "delete"].includes(message.action!)) {
       const property = args[0];
-      if (args.length !== 1 || (typeof property !== "string" && typeof property !== "symbol")) throw new Error("插件通道属性名无效");
+      if (args.length !== (message.action === "set" ? 2 : 1) || (typeof property !== "string" && typeof property !== "symbol")) throw new Error("插件通道属性名无效");
       if (typeof property === "string" && blockedProperties.has(property)) throw reflectionError();
+      if (message.action === "set" || message.action === "delete") {
+        const properties = this.mutableValues.get(entry.value);
+        if (properties === undefined || (properties && (typeof property !== "string" || !properties.has(property)))) throw Object.assign(new Error("插件不能修改此引用"), { code: "TOOL_REFERENCE_MUTATION_DENIED", status: 403 });
+        return message.action === "set" ? Reflect.set(entry.value, property, args[1]) : Reflect.deleteProperty(entry.value, property);
+      }
       // 只导出对象自身及业务原型声明的成员；基础原型的反射方法不能成为宿主能力。
       for (let owner = entry.value; owner; owner = Object.getPrototypeOf(owner)) {
         if (owner === Object.prototype || owner === Function.prototype) {
           if (Reflect.has(owner, property)) throw reflectionError();
-          return undefined;
+          return message.action === "has" ? false : undefined;
         }
-        if (Object.hasOwn(owner, property)) return Reflect.get(entry.value, property);
+        if (Object.hasOwn(owner, property)) {
+          if (message.action === "has") return true;
+          const result = Reflect.get(entry.value, property);
+          if (typeof result === "function" && this.passiveValues.has(entry.value)) this.markPassive(result);
+          if (result && typeof result === "object" && owner === entry.value && this.mutableValues.get(entry.value) === null
+            && (Array.isArray(result) || [Object.prototype, null].includes(Object.getPrototypeOf(result)))) this.markMutable(result);
+          return result;
+        }
       }
-      return undefined;
+      return message.action === "has" ? false : undefined;
     }
     if (message.action === "keys") {
       if (args.length) throw new Error("插件通道参数无效");
@@ -343,7 +393,9 @@ export class ToolChannel {
     }
     if (message.action !== "invoke" || typeof entry.value !== "function") throw new Error("插件通道调用无效");
     if (blockedReferences.has(entry.value)) throw reflectionError();
-    return Reflect.apply(entry.value, entry.receiver, args);
+    const result = Reflect.apply(entry.value, entry.receiver, args);
+    if (typeof result === "function" && (this.passiveValues.has(entry.value) || (entry.receiver && this.passiveValues.has(entry.receiver)))) this.markPassive(result);
+    return result;
   }
 
   receiveSync(message: ToolMessage): ToolReply {
@@ -362,7 +414,7 @@ export class ToolChannel {
           void result.then(value => settle(value), error => settle(error, true)).catch(() => {});
           return { deferred: id, callbacks };
         }
-        return { data: this.encode(result, message.action === "get", message.action === "get" ? this.references.get(message.target!)?.value : undefined), callbacks };
+        return { data: this.encode(result, message.action === "get" || typeof result === "function", message.action === "get" ? this.references.get(message.target!)?.value : undefined), callbacks };
       });
     } catch (error) { return { error: this.encode(error), callbacks }; }
     finally { this.syncCallbacks = previous; }
@@ -481,6 +533,7 @@ export class ToolChannel {
     this.pending.clear(); this.deferred.clear(); this.earlyDeferred.clear(); this.methods.clear();
     this.references.clear(); this.remoteValues.clear(); this.signalListeners.clear(); this.signalControllers.clear(); this.earlyAborts.clear();
     this.referenceIds = new WeakMap(); this.remoteReferences = new WeakMap(); this.opaqueValues = new WeakSet(); this.synchronousFunctions = new WeakSet();
+    this.mutableValues = new WeakMap(); this.passiveValues = new WeakSet();
     this.remoteScopes.clear(); this.signalScopes.clear(); this.liveScopes.clear(); this.synchronizingScopes.clear();
   }
 }

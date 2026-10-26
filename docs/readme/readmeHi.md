@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">डाउनलोड</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">उपयोगकर्ता मार्गदर्शिका</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">प्लगइन मार्केटप्लेस</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">डेवलपर दस्तावेज़</a> ·
   <a href="https://api.toonflow.net/">आधिकारिक मॉडल प्लेटफ़ॉर्म</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow लघु नाटकों, एनिमेटेड कॉमिक�
 | 🏠 **स्थानीय परिनियोजन** | डेस्कटॉप, Docker और सर्वर परिनियोजन विकल्पों के साथ अपनी परियोजनाएँ और सामग्री अपने डिवाइस या सर्वर पर रखें। |
 | 🖼️ **असीमित कैनवस** | पटकथाओं, पात्रों, दृश्यों और वीडियो क्लिप को एक ही कैनवस पर व्यवस्थित करें। |
 | 🔌 **MCP** | MCP के माध्यम से बाहरी टूल और सेवाएँ जोड़ें। |
-| 🧩 **प्लगइन मार्केटप्लेस** | [प्लगइन मार्केटप्लेस](https://api.toonflow.net/console/plugIn) से नोड, टूल और रचनात्मक क्षमताएँ बढ़ाएँ। |
 | 🤖 **ओपन Agent** | प्रॉम्प्ट, टूल और A2A की खुली पहुँच के साथ Agent का व्यवहार अनुकूलित करें और बाहरी Agent के साथ काम करें। |
 | 🔧 **लचीला मॉडल एकीकरण** | तृतीय-पक्ष API कॉन्फ़िगर करें या स्थानीय ComfyUI इंस्टेंस और LLM जोड़ें। |
 | 🌐 **बहुभाषी समर्थन** | 21 इंटरफ़ेस भाषाएँ समर्थित हैं। |
@@ -220,7 +218,6 @@ Toonflow लघु नाटकों, एनिमेटेड कॉमिक�
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow नोड मेनू और समूह संबंधी क्रियाएँ" width="80%" /></a><br /><sub>नोड मेनू और समूह संबंधी क्रियाएँ</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow प्लगइन मार्केटप्लेस" width="80%" /></a><br /><sub>प्लगइन मार्केटप्लेस</sub>
 
 </div>
 

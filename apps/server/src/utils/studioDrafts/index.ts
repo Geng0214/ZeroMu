@@ -6,6 +6,7 @@ import { lstat, mkdir, readFile, realpath, statfs, withFileAccess, writeAtomic }
 import conf from "@/utils/conf";
 import { assertAppRequest } from "@/utils/mcp/control";
 import { resolveWorkspace } from "@/utils/workspace";
+import { projectPath } from "@/utils/workspace/projectLayout";
 import { lockWorkspaceFiles, resolveWorkspacePath } from "@/utils/workspace/files";
 import { draftSchema, fileHashSchema, scopeSchema, storedDraftSchema, type StudioDraftData } from "./schema";
 
@@ -19,7 +20,7 @@ export async function resolveScope(req: Request, input: { directory: string; kin
   const value = scopeSchema.parse(input);
   const root = value.directory ? await resolveWorkspace(req, value.directory) : await realpath(dirname(conf.path));
   // 已选项目的正文与附件随目录移动；未选位置的输入保存在应用数据目录。
-  return { root, path: `studioDrafts/${value.directory ? "" : "unbound/"}${value.kind}` };
+  return { root, path: projectPath(root, `studioDrafts/${value.directory ? "" : "unbound/"}${value.kind}`) };
 }
 
 async function draftPath(scope: DraftScope, name: string) {

@@ -1,6 +1,7 @@
 import type { FlowExportObject } from '@vue-flow/core';
 import useWorkspaceFiles from '@/lib/workspaceFiles';
 import saveFile from '@/lib/saveFile';
+import { legacyProjectAssets } from '@/lib/projectPaths';
 
 export type CanvasDocument = FlowExportObject & { toonflowCanvas: true; bundledAssets?: { path: string; base64: string }[] };
 
@@ -28,13 +29,13 @@ function canvasAssetPaths(data: CanvasDocument) {
   const paths = new Set<string>();
   JSON.stringify(data.nodes, (key, value) => {
     if (typeof value === 'string' && assetPath(value)
-      && (/^(assets|studioReferences)[/\\]/.test(value) || ['url', 'path', 'textPath', 'modelPath'].includes(key))) paths.add(value);
+      && (/^(assets|studioReferences|media|references)[/\\]/.test(value) || ['url', 'path', 'textPath', 'modelPath'].includes(key))) paths.add(value);
     return value;
   });
   return paths;
 }
 
-export async function exportCanvas(directory: string, path: string) {
+async function bundleCanvas(directory: string, path: string) {
   const files = useWorkspaceFiles(directory);
   const data = await files.readJson<CanvasDocument>(path);
   validateCanvas(data);
@@ -47,7 +48,17 @@ export async function exportCanvas(directory: string, path: string) {
     for (let index = 0; index < bytes.length; index += 32768) binary += String.fromCharCode(...bytes.subarray(index, index + 32768));
     bundledAssets.push({ path, base64: btoa(binary) });
   }
-  await saveFile(new Blob([JSON.stringify({ ...data, bundledAssets })], { type: 'application/json' }), path.split('/').at(-1)!);
+  return { ...data, bundledAssets };
+}
+
+export async function exportCanvas(directory: string, path: string) {
+  const data = await bundleCanvas(directory, path);
+  await saveFile(new Blob([JSON.stringify(data)], { type: "application/json" }), path.split("/").at(-1)!);
+}
+
+export async function copyCanvasFile(directory: string, source: string, target: string) {
+  const data = await bundleCanvas(directory, source);
+  await importCanvasAssets(directory, data, target);
 }
 
 export async function importCanvasAssets(directory: string, data: CanvasDocument, target: string) {
@@ -71,19 +82,22 @@ export async function importCanvasAssets(directory: string, data: CanvasDocument
   const paths = new Map<string, string>();
   const nodeIds = new Map(canvas.nodes.map(node => [node.id, crypto.randomUUID()]));
   const createdDirectories: string[] = [];
-  const prefix = `assets/import${crypto.randomUUID().replaceAll('-', '')}`;
-  if (!(await files.list()).entries.some(item => item.name === 'assets' && item.type === 'directory')) await files.mkdir('assets');
+  const organized = await legacyProjectAssets(directory);
+  const nodeRoot = organized ? 'references/nodes' : 'assets';
+  const prefix = `${organized ? 'references' : 'assets'}/import${crypto.randomUUID().replaceAll('-', '')}`;
+  if (!organized && !(await files.list()).entries.some(item => item.name === 'assets' && item.type === 'directory')) await files.mkdir('assets');
   await files.mkdir(prefix);
   createdDirectories.push(prefix);
   try {
   for (const [index, item] of bundledAssets.entries()) {
     const extension = item.path.match(/\.[a-z0-9]{1,10}$/i)?.[0] ?? '';
     const parts = item.path.replaceAll('\\', '/').split('/');
-    const owner = parts[0] === 'assets' ? nodeIds.get(parts[1]) : undefined;
-    const path = owner ? `assets/${owner}/${parts.slice(2).join('/')}` : `${prefix}/${index}${extension}`;
+    const owner = parts[0] === 'assets' ? nodeIds.get(parts[1]) : parts[0] === 'references' && parts[1] === 'nodes' ? nodeIds.get(parts[2]) : undefined;
+    const suffix = parts.slice(parts[0] === 'assets' ? 2 : 3).join('/');
+    const path = owner ? `${nodeRoot}/${owner}/${suffix}` : `${prefix}/${index}${extension}`;
     if (owner) {
       const segments = path.split('/');
-      for (let depth = 2; depth < segments.length; depth++) {
+      for (let depth = nodeRoot.split('/').length + 1; depth < segments.length; depth++) {
         const parent = segments.slice(0, depth).join('/');
         if (!createdDirectories.includes(parent)) { await files.mkdir(parent); createdDirectories.push(parent); }
       }
@@ -96,7 +110,7 @@ export async function importCanvasAssets(directory: string, data: CanvasDocument
     const imported = JSON.parse(JSON.stringify(canvas, (_key, value) => typeof value === 'string' ? paths.get(value) ?? nodeIds.get(value) ?? value : value)) as CanvasDocument;
     await files.writeJson(target, imported, true);
   } catch (error) {
-    for (const path of createdDirectories.filter(path => path.split('/').length === 2)) {
+    for (const path of createdDirectories.filter(path => path === prefix || path.split('/').length === nodeRoot.split('/').length + 1 && path.startsWith(nodeRoot + '/'))) {
       await files.remove(path, true).catch(cleanupError => console.warn('导入素材清理失败', cleanupError));
     }
     throw error;

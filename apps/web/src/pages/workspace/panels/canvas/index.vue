@@ -61,6 +61,8 @@
         <remoteNode
           v-bind="nodeProps"
           :component="nodeTypes[type]"
+          :code="nodeFrameCodes.get(type)"
+          :framePilot="nodeFramePilot"
           :error="nodeErrors[type]"
           :loading="nodeLoads.has(type) || (nodeListLoading && !nodeTypes[type] && !nodeErrors[type])" />
       </template>
@@ -80,18 +82,21 @@
         :remoteNodes="nodeChoices"
         :canUndo="canUndo"
         :canRedo="canRedo"
+        :canSplitImage="!!splitImageNode && !!imageNodeType && canvasReady"
         :assetsInteractionActive="assetLibraryRef?.interactionActive"
         @undo="changeHistory('undo')"
         @redo="changeHistory('redo')"
         @addNode="addQuickNode"
+        @splitImage="openImageSplit"
         @update:showEdges="edgeDisconnect = undefined">
         <template #assets><assetLibrary ref="assetLibraryRef" v-model="assetsVisible" :directory="project?.directory" /></template>
         <template #prompts><canvasPrompts :disabled="!canvasReady" :contextKey="JSON.stringify([project?.directory, canvasId])" @usePrompt="addQuickNode('remote-textNode', $event)" /></template>
       </canvasControls>
       <nodeMenu
-        :key="JSON.stringify([project?.directory, canvasId])"
+        :key="JSON.stringify(['nodeMenu', project?.directory, canvasId])"
         ref="nodeMenuRef"
         :remoteNodes="nodeChoices"
+        :directory="project?.directory"
         :loadNodes="loadNodeTypes"
         :pasteNode="pasteClipboardNode"
         :uploadFiles="canvasId && project?.directory ? selectFiles : undefined"
@@ -104,12 +109,13 @@
         @undo="changeHistory('undo')"
         @redo="changeHistory('redo')" />
       <selectionToolbar
-        :key="JSON.stringify([project?.directory, canvasId])"
+        :key="JSON.stringify(['selectionToolbar', project?.directory, canvasId])"
         ref="selectionToolbarRef"
         :batchHistory="canvasHistory.batch"
         :getSignal="() => canvasController.signal"
         :disabled="!canvasId || !project?.directory" />
       <nodeSearch ref="nodeSearchRef" :disabled="!active || settingsVisible || !canvasId || !project?.directory" />
+      <imageSplitDialog v-if="splitRequest" :key="JSON.stringify([splitRequest.directory, splitRequest.canvasId, splitRequest.nodeId])" v-bind="splitRequest" :loadNodes="loadNodeTypes" :batchHistory="canvasHistory.batch" @close="splitRequest = undefined" />
     </vue-flow>
     <teleport to="body">
       <el-button
@@ -132,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, markRaw, nextTick, onBeforeUnmount, onMounted, onScopeDispose, provide, ref, shallowReactive, shallowRef, watch } from "vue";
+import { computed, defineAsyncComponent, markRaw, nextTick, onBeforeUnmount, onMounted, onScopeDispose, provide, ref, shallowReactive, shallowRef, watch } from "vue";
 import axios from "axios";
 import type { ProductionSelection } from "@toonflow/server/production";
 import { debounce } from "lodash-es";
@@ -175,10 +181,11 @@ import canvasPrompts from "./components/canvasPrompts.vue";
 import { newGenerationData } from "@/lib/creationPreferences";
 import assetLibrary from "./components/assetLibrary.vue";
 import groupNode from "./components/groupNode.vue";
+import smartEditNode from "./components/smartEditNode.vue";
 import selectionToolbar from "./components/selectionToolbar.vue";
 import nodeSearch from "./components/nodeSearch.vue";
 import { finishGroupDrag, getSelectionTree } from "./selectionNodes";
-import type { NodeOutput } from "@toonflow/nodes-scaffold/values";
+import { isNodeOutput, type NodeOutput } from "@toonflow/nodes-scaffold/values";
 import type { NodeConnectionFeedback, NodeHandle } from "@toonflow/nodes-scaffold/connection";
 import { useNodeEvent } from "@toonflow/nodes-scaffold/nodeEvent";
 import { useNodeToolsContext } from "@toonflow/nodes-scaffold/nodeTools";
@@ -207,12 +214,28 @@ const { project } = storeToRefs(useWorkspaceStore());
 
 const canvasElement = ref<HTMLElement>();
 const canvasId = ref("");
+const imageSplitDialog = defineAsyncComponent(() => import("./components/imageSplitDialog.vue"));
+const splitRequest = shallowRef<{ nodeId: string; directory: string; canvasId: string; nodeType: string; signal: AbortSignal }>();
+const imageNodeType = computed(() => nodeChoices.value.find(node => ["remote-imageNode", "remote-imageGenerationNode"].includes(node.type))?.type);
+const splitImageNode = computed(() => {
+  if (flow.getSelectedNodes.value.length !== 1) return undefined;
+  const node = flow.getSelectedNodes.value[0]!;
+  const output = node.data.outputs?.image;
+  return isNodeOutput(output) && output.dataType === "IMAGE" && output.value.url ? node : undefined;
+});
+function openImageSplit() {
+  if (!canvasReady.value || !splitImageNode.value || !imageNodeType.value || !project.value?.directory) return;
+  splitRequest.value = { nodeId: splitImageNode.value.id, directory: project.value.directory, canvasId: canvasId.value, nodeType: imageNodeType.value, signal: canvasController.signal };
+}
+watch([canvasId, () => project.value?.directory], () => { splitRequest.value = undefined; });
 const nodeMenuRef = ref<InstanceType<typeof nodeMenu>>();
 const canvasMenuRef = ref<InstanceType<typeof canvasMenu>>();
 const canvasControlsRef = ref<InstanceType<typeof canvasControls>>();
 const selectionToolbarRef = ref<InstanceType<typeof selectionToolbar>>();
 const nodeSearchRef = ref<InstanceType<typeof nodeSearch>>();
-const nodeTypes = shallowRef<NodeTypesObject>({ canvasGroup: markRaw(groupNode) });
+const nodeTypes = shallowRef<NodeTypesObject>({ canvasGroup: markRaw(groupNode), smartEdit: markRaw(smartEditNode) });
+const nodeFramePilot = new URLSearchParams(window.location.search).get("nodeFramePilot") === "1";
+const nodeFrameCodes = shallowReactive(new Map<string, string>());
 const nodeConfigs = shallowRef<Record<string, Record<string, unknown>>>({});
 const nodeOptions = ref<{ type: string; label: string }[]>([]);
 const nodeLoads = shallowReactive(new Map<string, Promise<void>>());
@@ -283,6 +306,7 @@ const getNodeTools = useNodeToolsContext();
 const { addNodes, addEdges, removeEdges, findEdge, findNode, toObject, viewport, screenToFlowCoordinate } = flow;
 provide("copyNodeToClipboard", (node: Parameters<typeof copyNodeToClipboard>[0]) => copyNodeToClipboard(node, project.value?.directory ?? ""));
 provide("retainNodeFiles", true);
+provide("nodeGenerationDisabled", nodeFramePilot);
 provide("nodeCanvasActive", computed(() => props.active));
 provide("selectionConnection", shallowRef<NodeConnectionFeedback>());
 provide("saveNodeToAssets", (label: string, outputs: { label: string; output: NodeOutput }[]) => assetLibraryRef.value?.openSave(label, outputs));
@@ -312,7 +336,8 @@ function getCanvasContext() {
 }
 const canvasReady = computed(() => !!canvasId.value && !nodeListLoading.value && nodeLoads.size === 0
   && remoteNodeTypes.value.every(type => nodeTypes.value[type] || !availableNodes.value.some(node => node.type === type)));
-watch([remoteNodeTypes, nodeOptions], ([types]) => {
+watch([remoteNodeTypes, nodeOptions, canvasId, () => project.value?.directory], ([types, _options, id, directory]) => {
+  if (!id || !directory) return;
   // 只加载画布实际用到的类型，导入、粘贴和撤销恢复的节点也走同一入口。
   void loadNodeTypes(types.filter(type => availableNodes.value.some(node => node.type === type)))
     .catch(error => console.error("加载画布节点失败", error));
@@ -821,7 +846,7 @@ watch(
 
 // ACT: 切换显示面板不会卸载画布；仅清理交互，不中断本轮工具调用。
 watch(() => props.active, (active) => {
-  if (!active) libraryVisible.value = "";
+  if (!active) { libraryVisible.value = ""; splitRequest.value = undefined; }
   edgeDisconnect.value = undefined;
   dragCopy = undefined;
   pointerPosition = undefined;
@@ -954,7 +979,7 @@ async function pasteClipboardNode(position: { x: number; y: number }, command?: 
     const snapshot = await readClipboardNodes(command ?? (await readClipboardText()), directory);
     if (canvasSignal.aborted) return false;
     if (!snapshot) throw new Error("剪贴板中没有可粘贴的节点命令");
-    if (snapshot.nodes.some(node => node.type !== "canvasGroup" && !availableNodes.value.some(item => item.type === node.type))) {
+    if (snapshot.nodes.some(node => node.type !== "canvasGroup" && node.type !== "smartEdit" && !availableNodes.value.some(item => item.type === node.type))) {
       throw new Error("请先安装并启用对应的节点插件");
     }
     const ids = new Map(snapshot.nodes.map(node => [node.id, crypto.randomUUID()]));
@@ -1178,13 +1203,22 @@ async function loadNode(name: string, url: string, force = false): Promise<void>
     if (loading) return loading;
   }
   delete nodeErrors.value[nodeType];
-  const nodeLoad = loadNodeComponent(name, url, force)
+  const componentLoad = nodeFramePilot && ["textNode", "imageNode", "imageGenerationNode", "videoNode", "videoGenerationNode", "audioNode", "audioGenerationNode"].includes(name)
+    ? fetch(force ? `${url}&reload=${crypto.randomUUID()}` : url, { signal }).then(async response => {
+      if (!response.ok) throw new Error("节点脚本加载失败");
+      const code = await response.text();
+      if (code.length > 5_000_000) throw new Error("节点脚本过大");
+      nodeFrameCodes.set(nodeType, code);
+      return markRaw({ render: () => null });
+    })
+    : loadNodeComponent(name, url, force);
+  const nodeLoad = componentLoad
     .then((remoteNode) => {
       // 同类型节点共享组件，运行错误由每个节点自己的边界显示。
       nodeTypes.value = { ...nodeTypes.value, [nodeType]: markRaw(remoteNode) };
     })
     .catch((error) => {
-      nodeErrors.value[nodeType] = error instanceof Error ? error.message : String(error);
+      if (!signal.aborted) nodeErrors.value[nodeType] = error instanceof Error ? error.message : String(error);
       throw error;
     })
     .finally(() => nodeLoads.delete(nodeType));

@@ -40,6 +40,16 @@
         </div>
       </div>
     </section>
+    <section class="settingSection concurrencySection" aria-labelledby="concurrencyTitle">
+      <div class="settingInfo"><h3 id="concurrencyTitle">同时生成数</h3></div>
+      <p v-if="loadingConcurrency" class="concurrencyStatus" role="status">正在读取渠道…</p>
+      <el-alert v-else-if="concurrencyError" :title="concurrencyError" type="error" :closable="false" showIcon><el-button text @click="loadConcurrencyChannels">重新读取</el-button></el-alert>
+      <p v-else-if="!concurrencyChannels.length" class="concurrencyStatus">暂无渠道</p>
+      <div v-for="channel in concurrencyChannels" v-else :key="channel.id" class="concurrencyRow" title="此渠道最多同时执行的生成任务数，超出后排队。默认 2。">
+        <span :title="channel.label">{{ channel.label }}</span>
+        <el-input-number v-model="concurrencyDrafts[channel.id]" :min="1" :max="8" :precision="0" controlsPosition="right" :aria-label="`${channel.label} 同时生成任务上限，超出后排队`" :disabled="!!savingConcurrency || !!channel.loadError" @change="value => saveConcurrency(channel, value)" />
+      </div>
+    </section>
     <section class="settingSection">
       <div class="memoryOptions">
         <div class="settingHeader">
@@ -123,8 +133,9 @@ import { computed, onActivated, reactive, ref, watch } from "vue";
 import axios from "axios";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { IconDeviceFloppy, IconEdit, IconEye, IconRefresh, IconTrash } from "@tabler/icons-vue";
-import { saveSettings, settings } from "@/stores/settings";
+import { saveSettings, syncSettings, settings } from "@/stores/settings";
 import messageMarkdown from "@/components/messageMarkdown.vue";
+import type { MediaProvider } from "./mediaModel/types";
 
 type DocumentContent = { content: string; revision: string };
 type DocumentState = DocumentContent & {
@@ -140,6 +151,51 @@ type DocumentResponse = { code: number; data: DocumentContent; message?: string 
 const props = defineProps<{ visible: boolean }>();
 const maxLength = 20000;
 const headers = { "x-toonflow-workspace": "1" };
+const concurrencyChannels = ref<MediaProvider[]>([]);
+const concurrencyDrafts = ref<Record<string, number | undefined>>({});
+const loadingConcurrency = ref(false);
+const savingConcurrency = ref("");
+const concurrencyError = ref("");
+function channelConfig(id: string) {
+  const configs = settings.value.mediaProviderConfigs;
+  const config = configs && typeof configs === "object" && !Array.isArray(configs) ? (configs as Record<string, unknown>)[id] : undefined;
+  return config && typeof config === "object" && !Array.isArray(config) ? config as Record<string, unknown> : undefined;
+}
+function concurrencyLimit(id: string) {
+  const value = channelConfig(id)?.maxConcurrentTasks;
+  return typeof value === "number" && Number.isInteger(value) ? Math.min(8, Math.max(1, value)) : 2;
+}
+async function loadConcurrencyChannels() {
+  if (loadingConcurrency.value || savingConcurrency.value) return;
+  loadingConcurrency.value = true;
+  concurrencyError.value = "";
+  try {
+    const { data } = await axios.get<{ code: number; data: MediaProvider[]; message?: string }>("/api/providers/media/list", { headers });
+    if (data.code !== 200) throw new Error(data.message || "读取渠道失败，请重试");
+    concurrencyChannels.value = data.data.filter(channel => channel.readme?.startsWith("ToonflowMediaChannel|"));
+    concurrencyDrafts.value = Object.fromEntries(concurrencyChannels.value.map(channel => [channel.id, concurrencyLimit(channel.id)]));
+  } catch (error) { concurrencyError.value = errorMessage(error); }
+  finally { loadingConcurrency.value = false; }
+}
+async function saveConcurrency(channel: MediaProvider, value: number | undefined) {
+  if (savingConcurrency.value || channel.loadError) return;
+  if (value === undefined || !Number.isInteger(value) || value < 1 || value > 8) { concurrencyDrafts.value[channel.id] = concurrencyLimit(channel.id); return; }
+  if (value === concurrencyLimit(channel.id)) return;
+  savingConcurrency.value = channel.id;
+  try {
+    // ACT: 复用渠道保存事务，保留凭据与模型，并沿用队列容量更新。
+    await syncSettings(async () => {
+      const config = channelConfig(channel.id);
+      if (!config) throw new Error("渠道已移除，请重新读取后再试");
+      const payload = { ...config }; delete payload.apiKey;
+      const { data } = await axios.post("/api/mediaChannel/save", { ...payload, id: channel.id, label: channel.label, models: channel.models, revision: channel.revision, maxConcurrentTasks: value }, { headers, timeout: 20000 });
+      if (data.code !== 200) throw new Error(data.message || "并发设置保存失败");
+      concurrencyChannels.value = concurrencyChannels.value.map(item => item.id === channel.id ? data.data.provider : item);
+      return data.data.settings;
+    });
+  } catch (error) { ElMessage.error(errorMessage(error)); }
+  finally { concurrencyDrafts.value[channel.id] = concurrencyLimit(channel.id); savingConcurrency.value = ""; }
+}
 const conflictMessage = msg`文件已被其他操作修改。当前草稿已保留，请先复制需要保留的内容，再重新加载最新版本。`;
 const document = reactive<DocumentState>({
   content: "",
@@ -328,6 +384,7 @@ async function deleteMemory() {
 function refreshDocument() {
   if (!props.visible) return;
   void loadDocument(document, "agents");
+  void loadConcurrencyChannels();
 }
 
 watch(() => props.visible, refreshDocument, { immediate: true });
@@ -411,6 +468,16 @@ onActivated(refreshDocument);
           margin-left: 0;
         }
       }
+    }
+  }
+
+  .concurrencySection {
+    border-top: 1px solid var(--el-border-color-lighter);
+    padding-top: 24px;
+    .concurrencyStatus { margin: 0; color: var(--el-text-color-secondary); font-size: 12px; }
+    .concurrencyRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 40px;
+      >span { min-width: 0; overflow-wrap: anywhere; font-size: 13px; color: var(--el-text-color-regular); }
+      .el-input-number { width: 112px; flex-shrink: 0; }
     }
   }
 }

@@ -1,3 +1,4 @@
+import { projectPath } from "@/utils/workspace/projectLayout";
 import { mkdir, unlink, withFileAccess, writeAtomic } from "@toonflow/file";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
@@ -14,7 +15,7 @@ const digest = (bytes: Uint8Array | string) => createHash("sha256").update(bytes
 const contextSchema = z.strictObject({ schemaVersion: z.literal(1), contextId: z.uuid(), projectId: z.uuid(), revision: z.number().int().nonnegative(), sourceCandidateId: z.uuid(), sourceVersionId: z.uuid(), sourceFileIndex: z.number().int().nonnegative().max(63), sourceHash: z.string().regex(/^[a-f0-9]{64}$/), width: z.number().int().positive().max(8192), height: z.number().int().positive().max(8192), normalizedHash: z.string().regex(/^[a-f0-9]{64}$/), previewHash: z.string().regex(/^[a-f0-9]{64}$/), createdAt: z.number().finite().nonnegative() });
 type ImageEditOperation = Extract<ProductionOperation, { type: "editImageCandidate" }>;
 function fail(message: string, status = 409): never { throw Object.assign(new Error(message), { status }); }
-const folderFor = (id: string) => `productionImageEdits/${z.uuid().parse(id)}`;
+const folderFor = (directory: string, id: string) => projectPath(directory, `productionImageEdits/${z.uuid().parse(id)}`);
 function pngSize(bytes: Buffer) {
   if (bytes.length < 33 || !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) || bytes.toString("ascii", 12, 16) !== "IHDR") fail("图片处理未产生有效 PNG", 422);
   const width = bytes.readUInt32BE(16); const height = bytes.readUInt32BE(20);
@@ -23,7 +24,7 @@ function pngSize(bytes: Buffer) {
 }
 async function factory(directory: string, output: string) {
   const { tools } = await getStatus();
-  if (!tools.ffmpeg.path || tools.ffmpeg.error || !tools.ffprobe.path || tools.ffprobe.error) fail("本地图片编辑需要 FFmpeg 和 ffprobe，请在插件市场配置后重试", 424);
+  if (!tools.ffmpeg.path || tools.ffmpeg.error || !tools.ffprobe.path || tools.ffprobe.error) fail("本地图片编辑需要 FFmpeg 和 ffprobe，未检测到可用版本", 424);
   const target = (await resolveWorkspacePath(directory, output, true)).path;
   const ffmpeg = createFfmpeg(directory, { validateOutput(path) { if (path !== target) fail("图片处理只能写入本次的新文件", 403); } });
   ffmpeg.setFfmpegPath(tools.ffmpeg.path); ffmpeg.setFfprobePath(tools.ffprobe.path);
@@ -37,7 +38,7 @@ async function render(command: FfmpegCommand) {
   });
 }
 export async function readImageEditContext(directory: string, id: string) {
-  const folder = folderFor(id); const bytes = await readProjectFile(directory, `${folder}/context.json`);
+  const folder = folderFor(directory, id); const bytes = await readProjectFile(directory, `${folder}/context.json`);
   let saved: unknown;
   try { saved = JSON.parse(bytes.toString("utf8")); } catch { fail("图片编辑依据无法解析，请保留目录并重新打开编辑器", 422); }
   const checked = contextSchema.safeParse(saved); if (!checked.success) fail("图片编辑依据损坏或格式不受支持，请保留目录并重新打开编辑器", 422);
@@ -56,7 +57,7 @@ export function imageCandidateSource(project: ProjectRecord, candidateId: string
   return { candidate, shot, version, file, fileIndex };
 }
 export async function prepareImageEdit(directory: string, id: string, candidateId: string): Promise<ImageEditContext> {
-  const folder = folderFor(id);
+  const folder = folderFor(directory, id);
   return withFileAccess([`${join(directory, folder)}.prepare`], "write", async () => {
     const release = lockWorkspaceFiles([join(directory, folder)]);
     try {
@@ -106,7 +107,7 @@ export async function applyImageEdit(directory: string, project: ProjectRecord, 
   await verifyVersion(directory, source.version);
   const { crop, rotation, output } = parameters;
   if (crop.x + crop.width > context.width || crop.y + crop.height > context.height) fail("裁剪范围超出原图，请核对像素坐标", 400);
-  const folder = folderFor(operation.contextId); const sourcePath = `${folder}/source.png`;
+  const folder = folderFor(directory, operation.contextId); const sourcePath = `${folder}/source.png`;
   if (digest(await readProjectFile(directory, sourcePath)) !== context.normalizedHash) fail("编辑固定输入已改变，请重新打开编辑器");
   const outputPath = `${folder}/result${operation.editId}.png`;
   const ffmpeg = await factory(directory, outputPath);

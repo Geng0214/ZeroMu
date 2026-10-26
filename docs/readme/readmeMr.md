@@ -127,7 +127,6 @@
 <p align="center">
 <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">डाउनलोड</a> ·
 <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">वापरकर्ता मार्गदर्शक</a> ·
-<a href="https://api.toonflow.net/console/plugIn">प्लगइन बाजारपेठ</a> ·
 <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">डेव्हलपर दस्तऐवजीकरण</a> ·
 <a href="https://api.toonflow.net/">अधिकृत मॉडेल प्लॅटफॉर्म</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow हे लघुनाट्ये, ॲनिमेटेड कॉम�
 | 🏠 **स्वतःच्या यंत्रणेवर स्थापना** | प्रकल्प आणि सामग्री तुमच्या स्वतःच्या उपकरणावर किंवा सर्व्हरवर ठेवा. डेस्कटॉप, Docker आणि सर्व्हरवर स्थापनेचे पर्याय उपलब्ध आहेत. |
 | 🖼️ **अनंत कॅनव्हास** | पटकथा, पात्रे, दृश्ये आणि व्हिडिओ क्लिप एकाच कॅनव्हासवर व्यवस्थित मांडा. |
 | 🔌 **MCP** | MCP द्वारे बाह्य साधने आणि सेवा कनेक्ट करा. |
-| 🧩 **प्लगइन बाजारपेठ** | [प्लगइन बाजारपेठेतून](https://api.toonflow.net/console/plugIn) नोड, साधने आणि सर्जनशील सुविधा जोडा. |
 | 🤖 **मुक्त Agent व्यवस्था** | प्रॉम्प्ट, साधने आणि A2A वापरून Agent चे वर्तन बदलता येते आणि बाह्य Agent सोबत काम करता येते. |
 | 🔧 **लवचिक मॉडेल जोडणी** | तृतीय-पक्ष API कॉन्फिगर करा किंवा तुमच्या संगणकावर चालणारे ComfyUI आणि LLMs जोडा. |
 | 🌐 **बहुभाषिक समर्थन** | इंटरफेससाठी 21 भाषा उपलब्ध आहेत. |
@@ -220,7 +218,6 @@ Toonflow हे लघुनाट्ये, ॲनिमेटेड कॉम�
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow · नोड मेनू आणि गटांवरील क्रिया" width="80%" /></a><br /><sub>नोड मेनू आणि गटांवरील क्रिया</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow · प्लगइन बाजारपेठ" width="80%" /></a><br /><sub>प्लगइन बाजारपेठ</sub>
 
 </div>
 
@@ -439,7 +436,6 @@ TF-Router हे Toonflow चे अधिकृत, स्व-चालित �
 > 5. नवीन मॉड्यूल्स
 > अनंत कॅनव्हास - जागेपेक्षा अधिक: स्वातंत्र्य.
 > प्रेरणा मोड — निर्मात्यांसाठी तयार केलेले.
-> Plugin Hub — उत्तम प्लगइन शोधण्यात मदत करणे.
 > Skill Hub — अनुभव शेअर करण्यायोग्य बनवणे.
 > Provider Hub — जिथे इकोसिस्टम सुरू होते.
 > संपूर्ण Docker एकत्रीकरण — स्थापना करणे सर्वांना सोपे व्हावे.

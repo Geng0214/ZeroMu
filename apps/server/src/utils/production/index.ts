@@ -1,3 +1,4 @@
+import { projectPath } from "@/utils/workspace/projectLayout";
 import { mkdir, readFile, readdir, lstat, copyFile, writeAtomic, open } from "@toonflow/file";
 import { basename, extname, join } from "node:path";
 import { createHash } from "node:crypto";
@@ -31,7 +32,7 @@ const defaultOutput = { width: 1280, height: 720, frameRate: 24 };
 function invalid(message: string, status = 400): never { throw Object.assign(new Error(message), { status }); }
 const digest = (content: Uint8Array | string) => createHash("sha256").update(content).digest("hex");
 export function stableId(value: string) { const hash = digest(value).slice(0, 32); return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20)}`; }
-async function backupDirectory(directory: string, path = "projectBackups") {
+async function backupDirectory(directory: string, path = projectPath(directory, "projectBackups")) {
   const target = await resolveWorkspacePath(directory, path, true);
   await mkdir(target.path, { recursive: true });
   return target.path;
@@ -51,7 +52,7 @@ export async function createProject(directory: string, name = basename(directory
     if (existing) return existing;
     const project: ProjectRecord = { zeromuProject: true, schemaVersion: 1, projectId: crypto.randomUUID(), name, revision: 0, createdAt: Date.now(), updatedAt: Date.now(), canvases: [], sequences: [], shots: [], assets: [], assetVersions: [], candidates: [], adoptionHistory: [], directorBindings: [], directorShots: [], edits: [], exports: [], snapshots: [], storyboardDrafts: [] };
     const entries = await readdir(directory, { withFileTypes: true });
-    const backup = `projectBackups/baseline${crypto.randomUUID()}`;
+    const backup = projectPath(directory, `projectBackups/baseline${crypto.randomUUID()}`);
     for (const entry of entries) {
       if (!entry.isFile() || !entry.name.endsWith(".json")) continue;
       const target = await resolveWorkspacePath(directory, entry.name);
@@ -83,20 +84,20 @@ export async function writeProjectRevision(directory: string, original: ProjectR
   const content = JSON.stringify(checked.data, null, 2);
   if (Buffer.byteLength(content) > 20 * 1024 * 1024) invalid("制作记录超过 20 MB 上限，请分拆为独立项目；原记录保持完整", 413);
   await backupDirectory(directory);
-  await writeAtomic(join(directory, "projectBackups", `revision${original.revision}${crypto.randomUUID()}.json`), JSON.stringify(original, null, 2), { exclusive: true });
+  await writeAtomic(join(directory, projectPath(directory, "projectBackups"), `revision${original.revision}${crypto.randomUUID()}.json`), JSON.stringify(original, null, 2), { exclusive: true });
   await writeAtomic(join(directory, projectFileName), content);
   return checked.data;
 }
 
 export async function recoverableVersions(directory: string, project: ProjectRecord | null) {
-  const root = (await resolveWorkspacePath(directory, "assets/production", true)).path;
+  const root = (await resolveWorkspacePath(directory, projectPath(directory, "assets/production"), true)).path;
   const entries = await readdir(root, { withFileTypes: true }).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return []; throw cause; });
   const known = new Set(project?.assetVersions.map(item => item.versionId));
   const result: { versionId: string; status: "ready" | "incomplete"; assetId?: string }[] = [];
   for (const entry of entries) {
     if (!entry.isDirectory() || !/^[a-f0-9-]{36}$/.test(entry.name) || known.has(entry.name)) continue;
     try {
-      const version = versionSchema.parse(JSON.parse((await readProjectFile(directory, `assets/production/${entry.name}/versionManifest.json`)).toString("utf8")));
+      const version = versionSchema.parse(JSON.parse((await readProjectFile(directory, projectPath(directory, `assets/production/${entry.name}/versionManifest.json`))).toString("utf8")));
       if (version.versionId !== entry.name) invalid("版本清单标识错误");
       result.push({ versionId: entry.name, assetId: version.assetId, status: "ready" });
     } catch { result.push({ versionId: entry.name, status: "incomplete" }); }
@@ -111,7 +112,7 @@ export async function createVersion(directory: string, input: Extract<Production
   if (task && input.files.some(file => !task.results.some(result => result.path === file.path && result.mimeType === file.mimeType))) invalid("文件不属于指定的来源任务");
   const versionId = identity?.versionId ?? crypto.randomUUID();
   const version: AssetVersion = { versionId, assetId: input.assetId, parentVersionId: input.parentVersionId, createdAt: identity?.createdAt ?? Date.now(), files: [], text: input.text, description: input.description, details: input.details, contentHash: "", source: input.source, taskId: input.taskId };
-  const folder = `assets/production/${versionId}`;
+  const folder = projectPath(directory, `assets/production/${versionId}`);
   await resolveWorkspacePath(directory, folder, true);
   await mkdir(join(directory, folder), { recursive: true });
   for (const [index, file] of input.files.entries()) {
@@ -290,7 +291,7 @@ export async function updateProject(directory: string, expectedRevision: number,
       }
       case "recoverAssetVersion": {
         if (project.assetVersions.some(item => item.versionId === operation.versionId)) invalid("此版本已登记", 409);
-        const version = versionSchema.parse(JSON.parse((await readProjectFile(directory, `assets/production/${operation.versionId}/versionManifest.json`)).toString("utf8")));
+        const version = versionSchema.parse(JSON.parse((await readProjectFile(directory, projectPath(directory, `assets/production/${operation.versionId}/versionManifest.json`))).toString("utf8")));
         if (version.versionId !== operation.versionId) invalid("恢复版本标识不匹配");
         await verifyVersion(directory, version); const asset = findAsset(version.assetId); project.assetVersions.push(version); asset.versionIds.push(version.versionId); asset.activeVersionId = resultId = version.versionId; break;
       }
@@ -342,7 +343,7 @@ export async function updateProject(directory: string, expectedRevision: number,
         break;
       }
       case "snapshot": {
-        resultId = crypto.randomUUID(); const path = `projectBackups/snapshot${resultId}.json`;
+        resultId = crypto.randomUUID(); const path = projectPath(directory, `projectBackups/snapshot${resultId}.json`);
         await backupDirectory(directory); await writeAtomic(join(directory, path), JSON.stringify(project, null, 2), { exclusive: true });
         project.snapshots.push({ snapshotId: resultId, name: operation.name, revision: project.revision, createdAt: Date.now(), path }); break;
       }

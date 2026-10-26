@@ -1,0 +1,68 @@
+html:root {
+  --ui-lightBg: #e8e8e4;
+  --ui-lightSurface: #f1f1ed;
+  --ui-lightOverlay: #f6f6f2;
+  --ui-lightField: #e8e8e4;
+  --ui-lightRaised: #e2e3dc;
+  --ui-lightBorder: #c6c9c0;
+  --ui-lightText: #2c302d;
+  --ui-lightRegular: #484f49;
+  --ui-lightMuted: #60675f;
+}
+
+// 页面、弹窗与组件共享柔和的浅色底；深色主题继续使用各组件原有变量。
+html:root:not(.dark) {
+  background-color: var(--ui-lightBg);
+  --el-bg-color: var(--ui-lightSurface);
+  --el-bg-color-page: var(--ui-lightBg);
+  --el-bg-color-overlay: var(--ui-lightOverlay);
+  --el-fill-color-blank: var(--ui-lightSurface);
+  --el-fill-color: var(--ui-lightRaised);
+  --el-fill-color-light: var(--ui-lightField);
+  --el-fill-color-lighter: #ecece7;
+  --el-fill-color-extra-light: #efefea;
+  --el-fill-color-dark: #d9dcd3;
+  --el-fill-color-darker: #d0d4ca;
+  --el-text-color-primary: var(--ui-lightText);
+  --el-text-color-regular: var(--ui-lightRegular);
+  --el-text-color-secondary: var(--ui-lightMuted);
+  --el-text-color-placeholder: var(--ui-lightMuted);
+  --el-text-color-disabled: #8a8f86;
+  --el-border-color: var(--ui-lightBorder);
+  --el-border-color-light: #cfd2c9;
+  --el-border-color-lighter: #d7dad1;
+  --el-border-color-extra-light: #dfe1d9;
+  --el-border-color-dark: #b2b8ac;
+  --el-border-color-darker: #969f90;
+  --el-disabled-bg-color: var(--ui-lightRaised);
+  --el-disabled-text-color: var(--el-text-color-disabled);
+  --el-disabled-border-color: var(--el-border-color-light);
+
+  --td-bg-color-page: var(--el-bg-color-page);
+  --td-bg-color-container: var(--el-bg-color);
+  --td-bg-color-container-hover: var(--el-fill-color);
+  --td-bg-color-container-active: var(--el-fill-color-dark);
+  --td-bg-color-container-select: var(--el-bg-color);
+  --td-bg-color-secondarycontainer: var(--el-fill-color-light);
+  --td-bg-color-secondarycontainer-hover: var(--el-fill-color);
+  --td-bg-color-component: var(--el-fill-color);
+  --td-bg-color-component-hover: var(--el-fill-color-dark);
+  --td-bg-color-component-active: var(--el-fill-color-darker);
+  --td-bg-color-component-disabled: var(--el-fill-color-dark);
+  --td-bg-color-secondarycomponent: var(--el-fill-color-light);
+  --td-bg-color-secondarycomponent-hover: var(--el-fill-color);
+  --td-bg-color-specialcomponent: var(--el-bg-color-overlay);
+  --td-text-color-primary: var(--el-text-color-primary);
+  --td-text-color-secondary: var(--el-text-color-regular);
+  --td-text-color-placeholder: var(--el-text-color-placeholder);
+  --td-text-color-disabled: var(--el-text-color-disabled);
+  --td-border-level-1-color: var(--el-border-color-light);
+  --td-border-level-2-color: var(--el-border-color);
+
+  .el-input__wrapper,
+  .el-textarea__inner,
+  .el-select__wrapper {
+    --el-input-bg-color: var(--ui-lightField);
+    --el-fill-color-blank: var(--ui-lightField);
+  }
+}

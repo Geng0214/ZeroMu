@@ -1,5 +1,5 @@
 <template>
-  <libraryShell class="assetPage" aria-label="我的资产">
+  <libraryShell class="assetPage" aria-label="仓库">
     <materialCollection />
   </libraryShell>
 </template>

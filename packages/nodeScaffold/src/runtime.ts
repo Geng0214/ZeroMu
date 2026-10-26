@@ -1,5 +1,7 @@
 export { default as nodeSkeleton } from "./nodeSkeleton.vue";
 export { default as nodeComposer } from "./components/nodeComposer.vue";
+export { default as cameraControl } from "./components/cameraControl.vue";
+export * from "./cameraSettings";
 export { useNode, type NodeOptions } from "./useNode";
 export { useNodeReferences } from "./useNodeReferences";
 export { useNodeGeneration } from "./useNodeGeneration";

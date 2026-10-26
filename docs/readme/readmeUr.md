@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">ڈاؤن لوڈ</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">صارف رہنما</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">پلگ اِن مارکیٹ</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">ڈویلپر دستاویزات</a> ·
   <a href="https://api.toonflow.net/">آفیشل ماڈل پلیٹ فارم</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow مختصر ڈراموں، متحرک کامکس اور مختصر وی�
 | 🏠 **مقامی تنصیب** | منصوبے اور اثاثے اپنے آلے یا سرور پر رکھیں؛ ڈیسک ٹاپ، Docker اور سرور پر تنصیب کے اختیارات موجود ہیں۔ |
 | 🖼️ **لامحدود کینوس** | اسکرپٹس، کرداروں، مناظر اور ویڈیو کلپس کو ایک ہی کینوس پر ترتیب دیں۔ |
 | 🔌 **MCP** | بیرونی ٹولز اور سروسز کو MCP کے ذریعے جوڑیں۔ |
-| 🧩 **پلگ اِن مارکیٹ** | [پلگ اِن مارکیٹ](https://api.toonflow.net/console/plugIn) کے ذریعے نوڈز، ٹولز اور تخلیقی صلاحیتوں میں اضافہ کریں۔ |
 | 🤖 **اوپن Agent** | پرامپٹس، ٹولز اور A2A تک کھلی رسائی کے ساتھ Agent کا طرزِ عمل اپنی ضرورت کے مطابق بنائیں اور بیرونی ایجنٹس سے تعاون کریں۔ |
 | 🔧 **ماڈلز کا لچک دار انضمام** | تھرڈ پارٹی API ترتیب دیں یا مقامی ComfyUI انسٹینسز اور بڑے لسانی ماڈلز کو جوڑیں۔ |
 | 🌐 **کثیر لسانی معاونت** | انٹرفیس 21 زبانوں میں دستیاب ہے۔ |
@@ -220,7 +218,6 @@ Toonflow مختصر ڈراموں، متحرک کامکس اور مختصر وی�
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow · نوڈ مینو اور گروپ بنانے کے کام" width="80%" /></a><br /><sub>نوڈ مینو اور گروپ بنانے کے کام</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow · پلگ اِن مارکیٹ" width="80%" /></a><br /><sub>پلگ اِن مارکیٹ</sub>
 
 </div>
 

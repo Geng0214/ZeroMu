@@ -17,6 +17,7 @@ export const useProductionStore = defineStore("production", () => {
   const project = ref<ProjectRecord | null>(null);
   const recoverableVersions = ref<RecoverableVersion[]>([]);
   const visible = ref(false);
+  const fullScreenEdit = ref(false);
   const panel = ref<"storyboard" | "batches" | "assets" | "edit" | "packages" | "snapshots">("storyboard");
   const focusAssetId = ref(""); const assetFocusToken = ref("");
   const focusShotId = ref("");
@@ -83,7 +84,8 @@ export const useProductionStore = defineStore("production", () => {
     if (!project.value) throw new Error("请先建立制作记录");
     return write(path, "update", { expectedRevision, operation });
   }
-  function open(value: typeof panel.value) { panel.value = value; visible.value = true; void load(); }
+  function open(value: typeof panel.value) { fullScreenEdit.value = false; panel.value = value; visible.value = true; void load(); }
+  function openSmartEdit() { panel.value = "edit"; fullScreenEdit.value = true; visible.value = true; void load(); }
   function focusAsset(id: string) { focusAssetId.value = id; assetFocusToken.value = crypto.randomUUID(); panel.value = "assets"; }
   function openAsset(id: string) { focusAsset(id); open("assets"); }
   function openShot(id: string) { focusShotId.value = id; focusToken.value = crypto.randomUUID(); open("storyboard"); }
@@ -109,6 +111,7 @@ export const useProductionStore = defineStore("production", () => {
     finally { if (!current.signal.aborted && visible.value && directory.value === path) taskTimer = setTimeout(loadShotTasks, 5000); }
   }
   watch([visible, directory], () => { shotTasks.value = []; taskError.value = ""; void loadShotTasks(); });
+  watch(visible, value => { if (!value) fullScreenEdit.value = false; });
   onScopeDispose(() => { reader?.abort(); taskReader?.abort(); clearTimeout(taskTimer); });
 
   watch(directory, () => {
@@ -123,5 +126,5 @@ export const useProductionStore = defineStore("production", () => {
     loading.value = false;
     void load();
   }, { immediate: true });
-  return { focusAssetId, assetFocusToken, focusAsset, openAsset, directory, project, recoverableVersions, visible, panel, focusShotId, focusToken, loading, error, busy, projectionCounts, projectionErrors, startProjection, shotTasks, taskError, batchDrafts, load, create, update, open, openShot, requireDirectory };
+  return { focusAssetId, assetFocusToken, focusAsset, openAsset, directory, project, recoverableVersions, visible, fullScreenEdit, panel, focusShotId, focusToken, loading, error, busy, projectionCounts, projectionErrors, startProjection, shotTasks, taskError, batchDrafts, load, create, update, open, openSmartEdit, openShot, requireDirectory };
 });

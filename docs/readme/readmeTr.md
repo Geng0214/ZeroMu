@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">İndir</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">Kullanıcı Kılavuzu</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">Eklenti Pazarı</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">Geliştirici Belgeleri</a> ·
   <a href="https://api.toonflow.net/">Resmî Model Platformu</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow; senaryoları, varlıkları ve video kliplerini tek bir sonsuz tuvalde 
 | 🏠 **Yerel kurulum** | Masaüstü, Docker ve sunucu kurulumu seçenekleriyle projeleri ve varlıkları kendi cihazınızda veya sunucunuzda tutun. |
 | 🖼️ **Sonsuz tuval** | Senaryoları, karakterleri, sahneleri ve video kliplerini aynı tuval üzerinde düzenleyin. |
 | 🔌 **MCP** | Harici araç ve hizmetleri MCP üzerinden bağlayın. |
-| 🧩 **Eklenti pazarı** | [Eklenti Pazarı](https://api.toonflow.net/console/plugIn) üzerinden düğümleri, araçları ve yaratıcı olanakları genişletin. |
 | 🤖 **Açık Agent** | Agent davranışını özelleştirmek ve harici Agent’larla iş birliği yapmak için istemlere, araçlara ve A2A’ya açık erişim. |
 | 🔧 **Esnek model entegrasyonu** | Üçüncü taraf API’leri yapılandırın veya yerel ComfyUI örnekleri ile büyük dil modellerini bağlayın. |
 | 🌐 **Çoklu dil desteği** | Arayüz 21 dili destekler. |
@@ -220,7 +218,6 @@ Desteklenen diller: 简体中文, 繁體中文, English, 日本語, Русски
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow · Düğüm menüsü ve gruplama işlemleri" width="80%" /></a><br /><sub>Düğüm menüsü ve gruplama işlemleri</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow · Eklenti Pazarı" width="80%" /></a><br /><sub>Eklenti Pazarı</sub>
 
 </div>
 

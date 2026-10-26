@@ -3,7 +3,7 @@ import { join, relative, sep } from "node:path";
 import { Router } from "express";
 import u from "@/utils";
 import { success } from "@/lib/responseFormat";
-import { readMetadata, metadataKey, type AssetMetadata } from '@/utils/assets/metadata';
+import { metadataFile, readMetadata, metadataKey, type AssetMetadata } from '@/utils/assets/metadata';
 
 type AssetEntry = { name: string; path: string; type: "file" | "directory"; children?: AssetEntry[] };
 
@@ -28,5 +28,5 @@ async function listEntries(root: string, directory: string, metadata: Record<str
 
 export default router.get("/", async (_req, res) => {
   const directory = await u.assets.getAssetsDirectory();
-  res.set("Cache-Control", "no-store").json(success({ entries: await listEntries(directory, directory, await readMetadata()) }));
+  res.set("Cache-Control", "no-store").json(success({ entries: await listEntries(directory, directory, await readMetadata(metadataFile(directory))) }));
 });

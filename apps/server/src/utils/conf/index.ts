@@ -15,7 +15,7 @@ const configPath = resolve(configDirectory, "settings.json");
 const initialText = existsSync(configPath) ? readFileSync(configPath, "utf8") : "{}";
 const credentialStorage = await createCredentialStorage(JSON.parse(initialText));
 
-type configuration = { credentialStorageKeyId: string; settings: Record<string, unknown>; toolConfigs: Record<string, Record<string, unknown>>; nodeConfigs: Record<string, Record<string, unknown>>; remoteConnections: Record<string, RemoteTeam>; a2a: A2aSettings; desktopUpdateAttempt: desktopUpdateAttempt };
+type configuration = { workspaceDirectory: string; credentialStorageKeyId: string; settings: Record<string, unknown>; toolConfigs: Record<string, Record<string, unknown>>; nodeConfigs: Record<string, Record<string, unknown>>; remoteConnections: Record<string, RemoteTeam>; a2a: A2aSettings; desktopUpdateAttempt: desktopUpdateAttempt };
 const config = new conf<configuration>({
   cwd: configDirectory,
   configName: "settings",
@@ -40,7 +40,7 @@ export function restoreSettingsCredentials(next: Record<string, unknown>, curren
 export function removeLegacySettings(settings: Record<string, unknown>) {
   let changed = false;
   // ACT: 只清理已废弃字段，保留其他设置和插件配置。
-  for (const [record, key] of [[settings, "developerConfirmed"], [settings.general, "systemPrompt"], [settings.stores, "toonflow.developer"]] as const) {
+  for (const [record, key] of [[settings, "agentSystemPrompt"], [settings, "developerConfirmed"], [settings.general, "systemPrompt"], [settings.stores, "toonflow.developer"]] as const) {
     if (record && typeof record === "object" && !Array.isArray(record) && Object.hasOwn(record, key)) {
       Reflect.deleteProperty(record, key);
       changed = true;

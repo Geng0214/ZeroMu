@@ -1,3 +1,4 @@
+import { projectPath } from "@/utils/workspace/projectLayout";
 import { createHash } from "node:crypto";
 import type { MediaGenerationRequest, MediaTaskSource } from "@toonflow/tools-scaffold/runtime";
 import { getTask } from "@/utils/media/tasks";
@@ -15,7 +16,7 @@ async function fixedSource(directory: string, project: ProjectRecord, contextId:
   const source = imageCandidateSource(project, context.sourceCandidateId);
   if (context.projectId !== project.projectId || context.sourceVersionId !== source.version.versionId || context.sourceFileIndex !== source.fileIndex || context.sourceHash !== source.file.hash) fail("背景移除的固定原图与候选不匹配，请重新打开编辑器");
   await verifyVersion(directory, source.version);
-  const inputPath = `productionImageEdits/${contextId}/source.png`;
+  const inputPath = projectPath(directory, `productionImageEdits/${contextId}/source.png`);
   if (digest(await readProjectFile(directory, inputPath)) !== context.normalizedHash) fail("背景移除的固定输入已改变，请保留文件并重新打开编辑器");
   return { context, source, inputPath };
 }

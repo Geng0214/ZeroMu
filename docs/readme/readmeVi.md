@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">Tải ứng dụng</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">Hướng dẫn sử dụng</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">Chợ plugin</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">Tài liệu nhà phát triển</a> ·
   <a href="https://api.toonflow.net/">Nền tảng mô hình chính thức</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow là nền tảng sáng tạo AI mã nguồn mở dành cho sản xuất
 | 🏠 **Triển khai trên hệ thống của bạn** | Lưu dự án và tư liệu trên thiết bị hoặc máy chủ của riêng bạn; hỗ trợ ứng dụng desktop, Docker và triển khai máy chủ. |
 | 🖼️ **Canvas vô hạn** | Sắp xếp kịch bản, nhân vật, bối cảnh và các đoạn video trên cùng một canvas. |
 | 🔌 **MCP** | Kết nối công cụ và dịch vụ bên ngoài qua MCP. |
-| 🧩 **Chợ plugin** | Mở rộng các nút, công cụ và khả năng sáng tạo thông qua [chợ plugin](https://api.toonflow.net/console/plugIn). |
 | 🤖 **Agent mở** | Cho phép tùy chỉnh prompt và công cụ, đồng thời hỗ trợ A2A để tùy biến hành vi Agent và phối hợp với Agent bên ngoài. |
 | 🔧 **Tự do kết nối mô hình** | Cấu hình API bên thứ ba hoặc kết nối ComfyUI và LLM chạy cục bộ. |
 | 🌐 **Hỗ trợ đa ngôn ngữ** | Giao diện hỗ trợ 21 ngôn ngữ. |
@@ -220,7 +218,6 @@ Các ngôn ngữ được hỗ trợ: 简体中文, 繁體中文, English, 日�
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Menu nút và thao tác nhóm trong Toonflow" width="80%" /></a><br /><sub>Menu nút và thao tác nhóm</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Chợ plugin Toonflow" width="80%" /></a><br /><sub>Chợ plugin</sub>
 
 </div>
 
@@ -439,7 +436,6 @@ TF-Router là nền tảng trung chuyển mô hình chính thức do Toonflow t�
 > 5. Các mô-đun mới
 > Canvas vô hạn — không chỉ rộng lớn, mà còn tự do
 > Chế độ ý tưởng — dành riêng cho người sáng tạo
-> Plugin Hub — giúp những plugin tốt được biết đến
 > Skill Hub — để kinh nghiệm được truyền lại
 > Provider Hub — hệ sinh thái bắt đầu từ đây
 > Tích hợp Docker hoàn chỉnh — triển khai không còn là rào cản

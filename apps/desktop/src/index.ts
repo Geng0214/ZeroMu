@@ -12,6 +12,7 @@ import type { DesktopRuntime, PluginInstallRequest } from "@toonflow/server/desk
 import { showNativeSplash } from "@toonflow/startup";
 import Electrobun, { ApplicationMenu, BrowserWindow, PATHS, Screen, Utils, Updater } from "electrobun/main";
 import { parseInstallUrl } from "./protocol";
+import { claimWindowsInstance } from "./windowsInstance";
 import saveFile, { selectSaveFile } from "./saveFile";
 import createWindowsUpdater, { confirmWindowsUpdateStartup, waitForWindowsUpdateCommit } from "./update/windowsUpdater";
 
@@ -83,11 +84,24 @@ async function restoreInstallRegistration(installDirectory: string) {
 async function start() {
   let splash: Awaited<ReturnType<typeof showNativeSplash>> | undefined;
   let isClosing = false;
+  let activationPending = false;
+  let activateWindow: (() => void) | undefined;
 
   try {
     // Windows 的 data 与 app 同级；macOS 的 data 与 .app 同级，避免随程序更新被替换。
     const installDirectory = resolve(PATHS.RESOURCES_FOLDER, process.platform === "darwin" ? "../../.." : "../..");
     const dataDirectory = process.env.TOONFLOW_DATA_DIR ?? resolve(installDirectory, "data");
+    if (process.platform === "win32") {
+      const instance = await claimWindowsInstance(dataDirectory, () => {
+        activationPending = true;
+        activateWindow?.();
+      });
+      if (!instance) {
+        Utils.quit();
+        return;
+      }
+      process.once("exit", () => instance.close());
+    }
     // ACT: 先显示原生动画，再加载服务，避免初始化期间没有反馈。
     const startupSettings = await file(resolve(dataDirectory, "settings.json")).json().catch((error) => {
       if (error.code !== "ENOENT") console.error("读取启动设置失败，使用默认启动动画：", error);
@@ -161,9 +175,10 @@ async function start() {
     // ACT: 宽高分别限制在屏幕可用区域内，预留标题栏和边距，不固定比例。
     const width = Math.min(1280, workArea.width - 64);
     const height = Math.min(960, workArea.height - 64);
+    const mainUrl = `http://127.0.0.1:${address.port}/?desktop=1`;
     const mainWindow = new BrowserWindow({
       title: "零幕 · ZEROMU",
-      url: `http://127.0.0.1:${address.port}/?desktop=1`,
+      url: mainUrl,
       // 页面原生能力通过受限本机接口提供，关闭页面直接调用宿主 RPC 的入口。
       sandbox: true,
       // Windows SDK 在子页面也保留通道引用；子页面不需要原生事件入口。
@@ -201,6 +216,77 @@ async function start() {
     // 页面重载时监听器随旧页面销毁，安装请求等新页面 ready 后再投递。
     Electrobun.events.on(`will-navigate-${mainWindow.webview.id}`, () => { deliverInstall = undefined; });
     let isShowing = false;
+    let pageReady = false;
+    let navigationTimer: ReturnType<typeof setTimeout> | undefined;
+    let startupTimer: ReturnType<typeof setTimeout> | undefined;
+    let showingWindow: Promise<void> | undefined;
+    let registration: Promise<void> | undefined;
+    function clearStartupTimers() {
+      clearTimeout(navigationTimer);
+      clearTimeout(startupTimer);
+    }
+    function showMainWindow() {
+      return showingWindow ??= (async () => {
+        const startupSplash = splash;
+        if (startupSplash) {
+          let finishTimer: ReturnType<typeof setTimeout> | undefined;
+          try {
+            await Promise.race([
+              startupSplash.finish(),
+              new Promise<void>(resolve => { finishTimer = setTimeout(() => { console.error("启动动画退场超时，继续显示主窗口"); resolve(); }, 1500); }),
+            ]);
+          } catch (error) {
+            console.error("结束启动动画失败，继续显示主窗口：", error);
+          } finally {
+            clearTimeout(finishTimer);
+            try { startupSplash.close(); } catch (error) { console.error("关闭启动动画失败：", error); }
+            splash = undefined;
+          }
+        }
+        if (isClosing) return;
+        mainWindow.show();
+        isShowing = true;
+        if (activationPending) activateWindow?.();
+      })();
+    }
+    function guardStartup() {
+      clearStartupTimers();
+      // ACT: WebView2 初次导航偶发失败时，使用已创建的同一个窗口重载一次。
+      navigationTimer = setTimeout(() => {
+        if (isClosing || pageReady) return;
+        console.error("尚未收到主界面就绪通知，重试加载首页");
+        try { mainWindow.webview.loadURL(mainUrl); }
+        catch (error) { console.error("重新加载首页失败：", error); }
+      }, 5000);
+      startupTimer = setTimeout(() => {
+        if (isClosing || pageReady) return;
+        console.error("主界面启动超时，停止等待启动动画");
+        void (async () => {
+          await showMainWindow();
+          if (isClosing || pageReady) return;
+          const { response } = await Utils.showMessageBox({
+            type: "error", title: t`启动超时`, message: t`主界面未能完成加载。请重试；如果仍然失败，请退出后重新打开零幕。`,
+            buttons: [t`重新加载`, t`退出`], defaultId: 0, cancelId: 1,
+          });
+          if (isClosing || pageReady) return;
+          if (response === 0) {
+            guardStartup();
+            mainWindow.webview.loadURL(mainUrl);
+          } else {
+            isClosing = true;
+            clearStartupTimers();
+            Utils.quit(1);
+          }
+        })().catch(error => { console.error("启动恢复失败：", error); Utils.quit(1); });
+      }, 20000);
+    }
+    activateWindow = () => {
+      if (isClosing || !isShowing) return;
+      activationPending = false;
+      mainWindow.unminimize();
+      mainWindow.show();
+      mainWindow.activate();
+    };
     let finishStartup: Promise<void> | undefined;
     app.locals.desktop = {
       openUrl,
@@ -218,18 +304,12 @@ async function start() {
       },
       async ready(failed = false) {
         if (isClosing) return;
-        if (!isShowing) {
-          if (splash) {
-            await splash.finish();
-            if (isClosing || !splash) return;
-            mainWindow.show();
-            splash.close();
-            splash = undefined;
-          }
-          isShowing = true;
-          // ACT: 窗口已展示；登记恢复结束后才确认更新交接，避免助手退出时仍有登记任务在途。
-          await restoreInstallRegistration(installDirectory);
-        }
+        pageReady = true;
+        clearStartupTimers();
+        await showMainWindow();
+        if (isClosing) return;
+        // ACT: 窗口已展示；登记恢复结束后才确认更新交接，避免助手退出时仍有登记任务在途。
+        await (registration ??= restoreInstallRegistration(installDirectory));
         if (failed) {
           if (process.platform === "win32") confirmWindowsUpdateStartup(PATHS.RESOURCES_FOLDER, true);
           else await (Updater as DesktopRuntime["updater"]).confirmStartup?.(true);
@@ -290,11 +370,13 @@ async function start() {
     }
     mainWindow.on("close", () => {
       isClosing = true;
+      clearStartupTimers();
       deliverInstall = undefined;
       pendingInstalls.length = 0;
       splash?.close();
       splash = undefined;
     });
+    guardStartup();
     if (process.platform === "win32") {
       // ACT: 运行信息随应用目录清理；启动器通过 PID 忽略已退出进程留下的端口。
       writeAtomicSync(resolve(PATHS.RESOURCES_FOLDER, "desktopRuntime.json"), JSON.stringify({ pid: process.pid, port: address.port }));

@@ -1,3 +1,4 @@
+import { projectCanvasFolder, projectPath } from "@/utils/workspace/projectLayout";
 import { createHash } from "node:crypto";
 import { dirname, extname, join } from "node:path";
 import { lstat, readdir, readFile, mkdir, writeAtomic } from "@toonflow/file";
@@ -23,13 +24,13 @@ export function applicationInput(value: unknown) { return templateApplicationInp
 export function applicationHash(value: TemplateApplicationInput) {
   return templateDigest(JSON.stringify(canonical({ ...value, mappings: [...value.mappings].sort((a, b) => compareKeys(a.slotKey, b.slotKey)), mediaBindings: [...value.mediaBindings].sort((a, b) => compareKeys(a.key, b.key)) })));
 }
-export const templateFolder = (id: string) => `productionTemplateInputs/${id}`;
-export const templateCanvasId = (id: string) => `template${id.replaceAll("-", "")}.json`;
+export const templateFolder = (directory: string, id: string) => projectPath(directory, `productionTemplateInputs/${id}`);
+export const templateCanvasId = (directory: string, id: string) => (projectCanvasFolder(directory) ? "canvases/" : "") + "template" + id.replaceAll("-", "") + ".json";
 const mediaRecordSchema = z.strictObject({ key: z.string(), path: z.string(), mimeType: z.string(), hash: z.string().regex(/^[a-f0-9]{64}$/), bytes: z.number().int().positive().max(100 * 1024 * 1024), stagedPath: z.string() });
 const pendingSchema = z.strictObject({ zeromuTemplateApplication: z.literal(true), format: z.literal(1), inputHash: z.string().regex(/^[a-f0-9]{64}$/), input: templateApplicationInputSchema, media: z.array(mediaRecordSchema).max(32) });
 type PendingApplication = z.infer<typeof pendingSchema>;
 async function readPending(directory: string, id: string) {
-  const path = `${templateFolder(id)}/application.json`;
+  const path = `${templateFolder(directory, id)}/application.json`;
   const target = await resolveWorkspacePath(directory, path, true);
   const info = await lstat(target.path).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return null; throw cause; });
   if (!info) return null;
@@ -37,15 +38,15 @@ async function readPending(directory: string, id: string) {
   let saved: PendingApplication;
   try { saved = pendingSchema.parse(JSON.parse(await readFile(target.path, "utf8"))); }
   catch (cause) { if (cause instanceof SyntaxError || cause instanceof z.ZodError) templateFailure("待完成模板记录损坏或格式不受支持，原目录已保留", 422); throw cause; }
-  if (saved.input.applicationId !== id || applicationHash(saved.input) !== saved.inputHash || new Set(saved.media.map(item => item.key)).size !== saved.media.length || saved.media.some(item => item.stagedPath !== stagedMediaPath(saved.input, item.key))) templateFailure("待完成模板记录摘要或文件位置不匹配，原目录已保留", 422);
+  if (saved.input.applicationId !== id || applicationHash(saved.input) !== saved.inputHash || new Set(saved.media.map(item => item.key)).size !== saved.media.length || saved.media.some(item => item.stagedPath !== stagedMediaPath(directory, saved.input, item.key))) templateFailure("待完成模板记录摘要或文件位置不匹配，原目录已保留", 422);
   return saved;
 }
-function stagedMediaPath(input: TemplateApplicationInput, key: string) {
+function stagedMediaPath(directory: string, input: TemplateApplicationInput, key: string) {
   const binding = input.mediaBindings.find(item => item.key === key);
   if (!binding) templateFailure("参考文件不属于模板输入", 422);
   const extension = extname(binding.path).toLowerCase();
   if (!/^\.[a-z0-9]{1,10}$/.test(extension)) templateFailure("参考文件需要可识别的扩展名", 400);
-  return `${templateFolder(input.applicationId)}/media${key}${extension}`;
+  return `${templateFolder(directory, input.applicationId)}/media${key}${extension}`;
 }
 async function mediaBytes(directory: string, item: TemplatePreview["media"][number], pending: boolean) {
   const bytes = pending ? await readProjectFile(directory, item.stagedPath).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return readProjectFile(directory, item.path); throw cause; }) : await readProjectFile(directory, item.path);
@@ -87,12 +88,12 @@ export async function prepareTemplate(directory: string, project: ProjectRecord,
     const bytes = await readProjectFile(directory, binding.path);
     if (!bytes.length) templateFailure("参考文件不能为空", 400);
     const hash = templateDigest(bytes);
-    if (binding.path.replaceAll("\\", "/").toLowerCase().startsWith("assets/production/")) {
+    if (/^(assets\/production|references\/versions)\//i.test(binding.path.replaceAll("\\", "/"))) {
       const fixed = project.assetVersions.flatMap(version => version.files).find(file => file.path.toLowerCase() === binding.path.replaceAll("\\", "/").toLowerCase());
       if (!fixed || fixed.hash !== hash || fixed.mimeType !== binding.mimeType) templateFailure("固定参考文件未登记或内容已改变");
     }
-    if (binding.path.replaceAll("\\", "/").toLowerCase().startsWith("assets/transfers/")) await verifyTransferFile(directory, binding.path, bytes);
-    media.push({ ...binding, hash, bytes: bytes.length, stagedPath: stagedMediaPath(input, binding.key) });
+    if (/^(assets\/transfers|references\/transfers)\//i.test(binding.path.replaceAll("\\", "/"))) await verifyTransferFile(directory, binding.path, bytes);
+    media.push({ ...binding, hash, bytes: bytes.length, stagedPath: stagedMediaPath(directory, input, binding.key) });
     if (media.reduce((sum, item) => sum + item.bytes, 0) > 500 * 1024 * 1024) templateFailure("单次模板参考文件合计不能超过 500 MB", 413);
   }
   if (media.reduce((sum, item) => sum + item.bytes, 0) > 500 * 1024 * 1024) templateFailure("单次模板参考文件合计不能超过 500 MB", 413);
@@ -115,7 +116,7 @@ export async function prepareTemplate(directory: string, project: ProjectRecord,
   const missingMedia = rendered.mediaInputs.filter(item => !media.some(file => file.key === item.key));
   if (missingMedia.length) warnings.push(`尚未补充可选参考：${missingMedia.map(item => item.label).join("、")}；将保留文字资料节点`);
   if (unmatched.length) warnings.push(`以下未声明占位符按原文保留：${unmatched.join("、")}`);
-  const preview: TemplatePreview = { definition: rendered, inputHash, previewFingerprint: templateDigest(JSON.stringify(canonical({ inputHash, media, mappings }))), title: rendered.example.name, canvasId: templateCanvasId(input.applicationId), counts: { shots: rendered.example.shots.length, assets: rendered.example.assets.length, versions, generationNodes: rendered.example.shots.length + rendered.example.generationNodes.length, referenceNodes: versions + media.length }, mappings, media, warnings, resuming: !!pending };
+  const preview: TemplatePreview = { definition: rendered, inputHash, previewFingerprint: templateDigest(JSON.stringify(canonical({ inputHash, media, mappings }))), title: rendered.example.name, canvasId: templateCanvasId(directory, input.applicationId), counts: { shots: rendered.example.shots.length, assets: rendered.example.assets.length, versions, generationNodes: rendered.example.shots.length + rendered.example.generationNodes.length, referenceNodes: versions + media.length }, mappings, media, warnings, resuming: !!pending };
   return { input, rendered, preview, pending };
 }
 export async function previewTemplate(directory: string, expectedRevision: number, value: unknown) {
@@ -125,7 +126,7 @@ export async function previewTemplate(directory: string, expectedRevision: numbe
   return (await prepareTemplate(directory, project, value)).preview;
 }
 export async function freezeTemplateInputs(directory: string, plan: Awaited<ReturnType<typeof prepareTemplate>>) {
-  const folder = (await resolveWorkspacePath(directory, templateFolder(plan.input.applicationId), true)).path;
+  const folder = (await resolveWorkspacePath(directory, templateFolder(directory, plan.input.applicationId), true)).path;
   await mkdir(folder, { recursive: true });
   const record: PendingApplication = { zeromuTemplateApplication: true, format: 1, inputHash: plan.preview.inputHash, input: plan.input, media: plan.preview.media };
   const text = JSON.stringify(pendingSchema.parse(record), null, 2);
@@ -140,7 +141,7 @@ export async function writeFrozenFile(directory: string, path: string, bytes: st
 }
 export async function pendingTemplates(directory: string) {
   const project = await readProject(directory);
-  const root = (await resolveWorkspacePath(directory, "productionTemplateInputs", true)).path;
+  const root = (await resolveWorkspacePath(directory, projectPath(directory, "productionTemplateInputs"), true)).path;
   const entries = await readdir(root, { withFileTypes: true }).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return []; throw cause; });
   if (entries.length > 1000) templateFailure("模板应用目录过多，请先保留备份并整理项目", 413);
   const items: TemplateApplicationInput[] = []; const warnings: string[] = [];

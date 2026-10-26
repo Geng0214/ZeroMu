@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">Download</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">User Guide</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">Plugin Marketplace</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">Developer Documentation</a> ·
   <a href="https://api.toonflow.net/">Official Model Platform</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow is an open-source AI creation platform for short dramas, animated comic
 | 🏠 **Local deployment** | Keep projects and assets on your own device or server, with desktop, Docker, and server deployment options. |
 | 🖼️ **Infinite canvas** | Organize scripts, characters, scenes, and video clips on the same canvas. |
 | 🔌 **MCP** | Connect external tools and services through MCP. |
-| 🧩 **Plugin marketplace** | Extend nodes, tools, and creative capabilities through the [Plugin Marketplace](https://api.toonflow.net/console/plugIn). |
 | 🤖 **Open Agent** | Open access to prompts, tools, and A2A to customize Agent behavior and collaborate with external Agents. |
 | 🔧 **Flexible model integration** | Configure third-party APIs or connect local ComfyUI instances and LLMs. |
 | 🌐 **Multilingual support** | Supports 21 interface languages. |
@@ -220,7 +218,6 @@ Supported languages: 简体中文, 繁體中文, English, 日本語, Русск�
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow node menu and grouping operations" width="80%" /></a><br /><sub>Node menu and grouping operations</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow Plugin Marketplace" width="80%" /></a><br /><sub>Plugin Marketplace</sub>
 
 </div>
 
@@ -439,7 +436,6 @@ TF-Router is Toonflow's official, self-operated model gateway. You are welcome t
 > 5. New Modules
 > Infinite Canvas — more than space: freedom.
 > Inspiration Mode — built for creators.
-> Plugin Hub — helping great plugins get discovered.
 > Skill Hub — making experience shareable.
 > Provider Hub — where the ecosystem begins.
 > Complete Docker integration — making deployment accessible.

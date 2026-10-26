@@ -32,6 +32,7 @@ import { computed, nextTick, onScopeDispose, reactive, ref, watch } from "vue";
 import { onBeforeRouteLeave } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import axios from "axios";
+import { organizedProject } from "@/lib/projectPaths";
 import type { ImageEditContext, ImageEditParameters } from "@toonflow/server/production";
 import type { MediaModel, MediaTaskRecord } from "@toonflow/tools-scaffold/runtime";
 import { productionError, useProductionStore } from "@/stores/production";
@@ -105,7 +106,7 @@ async function removeBackground() {
     if (!models.data.data.some(model => model.providerId === "biRefNet" && model.modelId === "biRefNetTiny" && model.type === "image")) throw new Error("请先在「模型配置」下载并启用本机背景移除，再返回此编辑器提交。原图与裁剪参数保持完整。");
     const { data } = await axios.post<{ data: MediaTaskRecord }>("/api/ai/media/tasks/start", {
       id: backgroundTaskId, directory: sourceDirectory, mediaType: "image",
-      request: { providerId: "biRefNet", modelId: "biRefNetTiny", prompt: "移除背景，保留原图主体", n: 1, images: [{ path: `productionImageEdits/${contextId}/source.png`, mimeType: "image/png" }] },
+      request: { providerId: "biRefNet", modelId: "biRefNetTiny", prompt: "移除背景，保留原图主体", n: 1, images: [{ path: `${await organizedProject(sourceDirectory) ? "projectData/history/imageEdits" : "productionImageEdits"}/${contextId}/source.png`, mimeType: "image/png" }] },
       source: { kind: "studio", imageEdit: { contextId, sourceCandidateId } },
     }, { headers: { "x-toonflow-workspace": "1" } });
     backgroundSubmitted.value = true;

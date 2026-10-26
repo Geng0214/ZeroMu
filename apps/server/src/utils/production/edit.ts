@@ -1,3 +1,4 @@
+import { projectPath } from "@/utils/workspace/projectLayout";
 import { createReadStream, mkdir, rename, statfs, writeAtomic } from "@toonflow/file";
 import { createHash } from "node:crypto";
 import { join, resolve } from "node:path";
@@ -14,12 +15,13 @@ type InputFile = { versionId: string; versionHash: string; assetId: string; asse
 type EditManifest = { format: 1; projectId: string; exportId: string; createdAt: number; edit: EditRecord; totalFrames: number; duration: number; clips: (InputFile & { shotId: string; candidateId: string; title: string; taskId?: string; basis: ProjectRecord["candidates"][number]["basis"]; startFrame: number; frameCount: number; originalVolume: number })[]; audio: (InputFile & { offsetSeconds: number; volume: number; role?: string })[] };
 type ExportJob = { directory: string; controller: AbortController; command?: FfmpegCommand; progress: number; phase: string };
 const jobs = new Map<string, ExportJob>();
+export function hasRunningExport(directory: string) { return [...jobs.values()].some(job => job.directory === directory); }
 function invalid(message: string, status = 400): never { throw Object.assign(new Error(message), { status }); }
 const jobKey = (directory: string, id: string) => JSON.stringify([resolve(directory), id]);
 async function fileHash(path: string) { const hash = createHash("sha256"); for await (const chunk of createReadStream(path)) hash.update(chunk); return hash.digest("hex"); }
 async function factory(directory: string, outputPaths: string[] = []) {
   const { tools } = await getStatus();
-  if (!tools.ffmpeg.path || tools.ffmpeg.error || !tools.ffprobe.path || tools.ffprobe.error) invalid("成片需要 FFmpeg 和 ffprobe，请先在插件市场配置", 424);
+  if (!tools.ffmpeg.path || tools.ffmpeg.error || !tools.ffprobe.path || tools.ffprobe.error) invalid("成片需要 FFmpeg 和 ffprobe，未检测到可用版本", 424);
   const ffmpeg = createFfmpeg(directory, { validateOutput(path) { if (!outputPaths.includes(path)) assertProductionPath(directory, [path]); } });
   ffmpeg.setFfmpegPath(tools.ffmpeg.path); ffmpeg.setFfprobePath(tools.ffprobe.path);
   return ffmpeg;
@@ -130,7 +132,7 @@ export async function startExport(directory: string, sequenceId: string, expecte
     const disk = await statfs(directory); const required = compiled.duration * 12 * 1024 * 1024 + 256 * 1024 * 1024;
     if (disk.bavail * disk.bsize < required) invalid("磁盘可用空间不足，请释放空间或缩短成片", 507);
     const createdAt = Date.now(); manifest = { ...compiled, exportId, createdAt };
-    const relativeFolder = `productionExports/${exportId}`; folder = (await resolveWorkspacePath(directory, relativeFolder, true)).path;
+    const relativeFolder = projectPath(directory, `productionExports/${exportId}`); folder = (await resolveWorkspacePath(directory, relativeFolder, true)).path;
     await mkdir(folder, { recursive: true });
     await writeAtomic(join(folder, "editManifest.json"), JSON.stringify(manifest, null, 2), { exclusive: true });
     await writeAtomic(join(folder, "subtitles.srt"), subtitleText(edit, "srt"), { exclusive: true });
@@ -178,8 +180,8 @@ async function render(directory: string, folder: string, manifest: EditManifest,
     const outputHash = await fileHash(partial);
     job.controller.signal.throwIfAborted(); job.phase = "保存成片";
     await rename(partial, final);
-    await writeAtomic(join(folder, "outputManifest.json"), JSON.stringify({ ...manifest, output: { path: `productionExports/${manifest.exportId}/movie.mp4`, hash: outputHash, ...info } }, null, 2), { exclusive: true });
-    await changeExport(directory, manifest.exportId, { status: "completed", path: `productionExports/${manifest.exportId}/movie.mp4`, actualDuration: info.videoDuration ?? info.duration, outputHash });
+    await writeAtomic(join(folder, "outputManifest.json"), JSON.stringify({ ...manifest, output: { path: projectPath(directory, `productionExports/${manifest.exportId}/movie.mp4`), hash: outputHash, ...info } }, null, 2), { exclusive: true });
+    await changeExport(directory, manifest.exportId, { status: "completed", path: projectPath(directory, `productionExports/${manifest.exportId}/movie.mp4`), actualDuration: info.videoDuration ?? info.duration, outputHash });
     job.progress = 100;
   } catch (cause) {
     const error = job.controller.signal.aborted ? "导出已停止；部分文件保留，原素材不受影响" : cause instanceof Error ? cause.message : String(cause);

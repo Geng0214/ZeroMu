@@ -1,12 +1,13 @@
 <template>
-  <el-drawer v-model="store.visible" title="项目制作" size="min(760px, 100vw)" :modal="false" :lockScroll="false" appendToBody class="productionPanel" @focusin="revealFocus">
-    <div ref="navigation" class="productionNavigation"><div class="productionHeader"><div><strong>{{ store.project?.name || workspace.project?.name }}</strong><p>{{ store.project ? `制作记录 · 修订 ${store.project.revision}` : '尚未建立制作记录' }}</p></div><el-button :disabled="store.busy || switching" @click="selectProject">选择项目</el-button><el-button :loading="store.loading" :disabled="store.busy" @click="store.load">刷新</el-button></div>
+  <el-drawer v-model="store.visible" title="项目制作" :size="store.fullScreenEdit ? '100vw' : 'min(760px, 100vw)'" :withHeader="!store.fullScreenEdit" :modal="store.fullScreenEdit" :lockScroll="store.fullScreenEdit" appendToBody class="productionPanel" :class="{ smartEditFullscreen: store.fullScreenEdit }" @focusin="revealFocus">
+    <header v-if="store.fullScreenEdit" class="smartEditHeader"><strong>智能剪辑</strong><div><el-button type="primary" :loading="filmEditor?.exporting" :disabled="!filmEditor?.canExport" @click="filmEditor?.startExport()">导出 MP4</el-button><el-button aria-label="关闭智能剪辑" @click="store.visible = false">关闭</el-button></div></header>
+    <div v-if="!store.fullScreenEdit" ref="navigation" class="productionNavigation"><div class="productionHeader"><div><strong>{{ store.project?.name || workspace.project?.name }}</strong><p>{{ store.project ? `制作记录 · 修订 ${store.project.revision}` : '尚未建立制作记录' }}</p></div><el-button :disabled="store.busy || switching" @click="selectProject">选择项目</el-button><el-button :loading="store.loading" :disabled="store.busy" @click="store.load">刷新</el-button></div>
     <workspacePicker ref="projectPicker" v-model="targetDirectory" hideTrigger :disabled="switching || store.busy" />
     <nav class="productionTabs" aria-label="制作面板"><button v-for="(label, value) in panels" :key="value" :aria-pressed="store.panel === value" @click="store.panel = value">{{ label }}</button></nav></div>
     <p v-if="store.error" class="productionError" role="alert">{{ store.error }}</p>
-    <section v-if="!store.project && store.panel !== 'packages' && !store.loading && !store.error" class="productionEmpty"><h3>把创作组织成一部作品</h3><p>建立制作记录后，可以排列镜头、保存角色场景版本、比较候选和记录采用结果。</p><el-button type="primary" :loading="store.busy" :disabled="!store.directory" @click="create">建立制作记录</el-button></section>
+    <section v-if="!store.project && store.panel !== 'packages' && !store.loading && !store.error" class="productionEmpty"><h3>{{ store.panel === 'edit' ? '开始剪辑' : '把创作组织成一部作品' }}</h3><p>{{ store.panel === 'edit' ? '先建立制作记录和制作单元，再载入已采用的视频片段，即可使用剪辑器。' : '建立制作记录后，可以排列镜头、保存角色场景版本、比较候选和记录采用结果。' }}</p><el-button type="primary" :loading="store.busy" :disabled="!store.directory" @click="create">建立制作记录</el-button></section>
     <projectPackagePanel v-show="store.panel === 'packages'" />
-    <div v-if="store.project" :aria-busy="store.busy"><storyboardPanel v-show="store.panel === 'storyboard'" :focusId="store.focusShotId" :focusToken="store.focusToken" /><productionAssets v-show="store.panel === 'assets'" :focusId="store.focusAssetId" :focusToken="store.assetFocusToken" /><filmPanel v-show="store.panel === 'edit'" />
+    <div v-if="store.project" :class="{ fullScreenEditContent: store.fullScreenEdit }" :aria-busy="store.busy"><storyboardPanel v-show="store.panel === 'storyboard'" :focusId="store.focusShotId" :focusToken="store.focusToken" /><productionAssets v-show="store.panel === 'assets'" :focusId="store.focusAssetId" :focusToken="store.assetFocusToken" /><filmPanel ref="filmEditor" v-show="store.panel === 'edit'" />
       <shotBatchPanel v-show="store.panel === 'batches'" :active="store.visible && store.panel === 'batches'" />
       <section v-show="store.panel === 'snapshots'" class="snapshots"><div class="snapshotHeader"><div><h3>制作记录快照</h3><p>保存镜头顺序、固定参考和采用关系。恢复时保留之后新增的媒体版本及历史；画布布局暂不随此快照恢复。</p></div><el-button type="primary" :disabled="store.busy" @click="saveSnapshot">保存快照</el-button></div><p v-if="!store.project.snapshots.length" class="snapshotHint">在替换参考或调整镜头前，可以保存一份快照。</p><ol><li v-for="snapshot in store.project.snapshots.toReversed()" :key="snapshot.snapshotId"><div><strong>{{ snapshot.name }}</strong><p>修订 {{ snapshot.revision }} · {{ new Date(snapshot.createdAt).toLocaleString() }}</p></div><el-button :disabled="store.busy" @click="restore(snapshot.snapshotId)">恢复制作关系</el-button></li></ol><section v-if="store.recoverableVersions.length" class="recoverable"><h3>未登记版本</h3><p>中断保存时留下的完整版本，可以校验文件后继续登记。</p><article v-for="item in store.recoverableVersions" :key="item.versionId"><span>{{ item.versionId }} · {{ item.status === 'ready' ? '清单完整' : '资料不完整，保留待检查' }}</span><el-button v-if="item.status === 'ready'" :disabled="store.busy" @click="recover(item.versionId)">校验并登记</el-button></article></section></section>
     </div>
@@ -25,7 +26,7 @@ import projectPackagePanel from "./projectPackagePanel.vue";
 import shotBatchPanel from "./shotBatchPanel.vue";
 import workspacePicker from "@/pages/home/workspacePicker.vue";
 const store = useProductionStore(); const workspace = useWorkspaceStore();
-const navigation = ref<HTMLElement>();
+const navigation = ref<HTMLElement>(); const filmEditor = ref<InstanceType<typeof filmPanel>>();
 let focusFrame = 0;
 function revealFocus(event: FocusEvent) {
   const target = event.target;
@@ -69,6 +70,13 @@ async function recover(id: string) { try { await store.update({ type: "recoverAs
   .productionError { color: var(--el-color-danger); font-size: 13px; }
   .productionEmpty { padding: 30px 8px; h3 { font-size: 18px; } p { max-width: 430px; line-height: 1.8; color: var(--el-text-color-secondary); } }
   .snapshots { .snapshotHeader { display: flex; gap: 14px; align-items: start; h3 { font-size: 15px; margin-top: 0; } p { line-height: 1.7; color: var(--el-text-color-secondary); font-size: 12px; } } > ol { list-style: none; padding: 0; li { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--el-border-color-light); strong { font-size: 14px; } p { color: var(--el-text-color-secondary); font-size: 12px; } } } .snapshotHint, .recoverable p { color: var(--el-text-color-secondary); font-size: 12px; } .recoverable { margin-top: 24px; h3 { font-size: 15px; } article { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; span { font-size: 12px; overflow-wrap: anywhere; flex: 1; min-width: 200px; } } } }
+}
+.productionPanel.smartEditFullscreen {
+  .el-drawer__body { display: flex; flex-direction: column; overflow: hidden; padding: 0; }
+  .smartEditHeader { display: flex; flex: 0 0 54px; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid var(--el-border-color-light); strong { font-size: 14px; } }
+  .productionError { margin: 12px 20px 0; }
+  .productionEmpty { flex: 1; overflow: auto; padding: 24px; }
+  .fullScreenEditContent { min-height: 0; flex: 1; overflow: auto; padding: 20px 24px; }
 }
 .shotForm, .versionForm { label { display: grid; gap: 6px; font-size: 12px; } input:not([type='checkbox']):not([type='file']), select, textarea { min-width: 0; width: 100%; box-sizing: border-box; border: 1px solid var(--el-border-color); border-radius: 5px; padding: 8px 10px; background: var(--el-bg-color); color: var(--el-text-color-primary); font: inherit; } button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; } }
 </style>

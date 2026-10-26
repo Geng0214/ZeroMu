@@ -1,17 +1,18 @@
 <template>
-  <nodeSkeleton class="mediaNode" v-bind="nodeProps" v-model:bottomVisible="node.selected" :topVisible="node.selected" topWidth="max-content"
+  <nodeSkeleton class="mediaNode" v-bind="nodeProps" v-model:bottomVisible="node.selected"
     :bottomWidth="720" :downloadUrl="previewUrl" :downloadName="outputFile?.url.split(/[\\/]/).at(-1)"
-    style="width: 340px" @fullscreen="enterFullscreen">
-    <template #topActions>
-      <mediaHistory mediaType="audio" :current="outputFile" :disabled="generating || deleting || uploading" @select="outputs.audio = { dataType: 'AUDIO', value: $event }" />
-      <el-button :icon="IconTransfer" :loading="uploading" :disabled="generating || deleting" text title="替换音频" aria-label="替换音频" @click.stop="fileInput?.click()" />
-    </template>
+    @fullscreen="enterFullscreen">
     <input ref="fileInput" type="file" accept="audio/*" hidden aria-label="选择音频" :disabled="generating || deleting || uploading" @change="replaceOutput" />
     <div ref="audioContent" class="audioContent nopan" :aria-busy="generating || uploading">
-      <audio v-if="previewUrl" class="audioPreview nodrag nowheel" :src="previewUrl" controls preload="none"
+      <audio v-if="previewUrl" ref="audio" class="audioPreview nodrag nowheel" :src="previewUrl" controls preload="metadata"
         aria-label="音频试听" @pointerdown.stop @mousedown.stop @dblclick.stop
-        @loadedmetadata="updateNodeInternals" @error="showNodeError('无法播放该音频，可下载后播放', '音频预览失败')" />
-      <div v-else class="mediaEmpty">
+        @loadedmetadata="audioFailed = false; updateNodeInternals()" @error="audioFailed = true" />
+      <div v-if="audioFailed" class="audioFailure" role="status">
+        <span class="emptyHint">{{ previewUrl ? '音频暂时无法播放' : '音频文件无法读取，请重新上传' }}</span>
+        <el-button v-if="previewUrl" class="nodrag" text @click.stop="retryAudio">重试播放</el-button>
+      </div>
+      <div v-else-if="!previewUrl && outputFile" class="mediaEmpty" role="status"><span class="emptyHint">正在加载音频…</span></div>
+      <div v-else-if="!outputFile" class="mediaEmpty">
         <el-button class="uploadButton nodrag" text :loading="uploading" :disabled="generating || deleting || uploading" aria-label="上传音频" @dblclick.stop @click.stop="fileInput?.click()">
           <span class="uploadPrompt"><icon-upload :size="32" stroke="1.5" aria-hidden="true" /><span>上传音频</span></span>
         </el-button>
@@ -76,9 +77,10 @@
               <el-button text :loading="modelsLoading" :disabled="generating || deleting || uploading" @click="refreshModels">刷新模型</el-button>
             </el-form>
           </el-popover>
+          <p v-if="!ai.canGenerate" class="speechHint" role="status">隔离试运行暂未开放生成。</p>
           <el-button class="sendButton" :icon="generating ? IconPlayerStop : IconArrowUp"
-            :disabled="deleting || uploading || (!generating && (!selectedModel || !generationPrompt || !!referenceHint || !!capabilityError))"
-            :title="generating ? '停止生成' : '生成语音'" :aria-label="generating ? '停止生成' : '生成语音'"
+            :disabled="deleting || uploading || (!generating && (!ai.canGenerate || !selectedModel || !generationPrompt || !!referenceHint || !!capabilityError))"
+            :title="generating ? '停止生成' : ai.canGenerate ? '生成语音' : '隔离试运行暂未开放生成'" :aria-label="generating ? '停止生成' : '生成语音'"
             @click="generating ? generationController?.abort() : startGeneration().catch(reportError)" />
         </template>
       </nodeComposer>
@@ -88,12 +90,11 @@
 
 <script setup lang="ts">
 import { audioNodeIcon } from "@toonflow/nodes-scaffold/nodeIcons";
-import { computed, onMounted, onScopeDispose, ref, watch } from "vue";
+import { computed, inject, onMounted, onScopeDispose, ref, watch, type Ref } from "vue";
 import { ElButton, ElPopover, ElForm, ElFormItem, ElInput, ElInputNumber, ElSelect, ElOption, ElOptionGroup } from "element-plus";
-import { IconUpload, IconPlayerStop, IconTransfer, IconArrowUp, IconSparkles, IconAdjustmentsHorizontal, IconChevronUp } from "@tabler/icons-vue";
+import { IconUpload, IconPlayerStop, IconArrowUp, IconSparkles, IconAdjustmentsHorizontal, IconChevronUp } from "@tabler/icons-vue";
 import { getMediaCapabilityError, groupNodeModels, invalidateNodeModels, nodeSkeleton, nodeComposer, nodeTools, showNodeError, useNode, useNodeGeneration, useNodeReferences, z, type NodeMediaModel, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import referenceItem from "@toonflow/nodes-scaffold/referenceItem";
-import mediaHistory from "@toonflow/nodes-scaffold/mediaHistory";
 
 defineOptions({
   inheritAttrs: false,
@@ -137,7 +138,19 @@ const modelGroups = computed(() => groupNodeModels(models.value));
 const generationPrompt = computed(() => [data.value.prompt.trim(), ...refList.value.flatMap(item =>
   item.dataType === "STRING" && item.value?.trim() ? [item.value.trim()] : [])].filter(Boolean).join("\n\n"));
 const outputFile = computed(() => outputs.value.audio?.dataType === "AUDIO" ? outputs.value.audio.value : undefined);
-const previewUrl = files.useFileUrl(outputFile, error => showNodeError(error, "音频读取失败"));
+const audio = ref<HTMLAudioElement>();
+const audioFailed = ref(false);
+const previewUrl = files.useFileUrl(outputFile, () => { audioFailed.value = true; });
+const canvasActive = inject<Readonly<Ref<boolean>>>("nodeCanvasActive", ref(true));
+watch(previewUrl, () => { audioFailed.value = false; });
+watch(canvasActive, active => { if (!active) audio.value?.pause(); });
+async function retryAudio() {
+  if (!audio.value) return;
+  audioFailed.value = false;
+  audio.value.load();
+  try { await audio.value.play(); }
+  catch (error) { if (!(error instanceof DOMException && error.name === "AbortError")) audioFailed.value = true; }
+}
 watch(selectedModel, choice => {
   if (modelsLoading.value || !choice) return;
   if (choice?.voices?.length && !choice.voices.some(item => item.voice === data.value.voice)) data.value.voice = choice.voices[0]!.voice;
@@ -300,13 +313,14 @@ nodeTools.register({
 </script>
 
 <style scoped lang="scss">
-.mediaNode { --node-handle-opacity: 1; }
+.mediaNode { --node-handle-opacity: 1; --nodeWidth: 360px; --nodeCardHeight: 144px; }
 .mediaEmpty {
   display: grid;
   place-content: center;
   justify-items: center;
   gap: 4px;
-  min-height: 144px;
+  min-height: 0;
+  height: 100%;
   .uploadButton {
     height: auto;
     min-height: 76px;
@@ -321,10 +335,13 @@ nodeTools.register({
 .audioContent {
   display: grid;
   place-items: center;
-  min-height: 120px;
+  box-sizing: border-box;
+  min-height: 0;
+  height: 100%;
   padding: 12px;
   gap: 8px;
   .audioPreview { width: 100%; }
+  .audioFailure { display: flex; align-items: center; gap: 8px; color: var(--el-text-color-secondary); font-size: 12px; }
   .progressText { color: var(--el-text-color-secondary); font-size: 12px; }
   &:fullscreen { background: var(--el-bg-color); padding: 40px; }
 }

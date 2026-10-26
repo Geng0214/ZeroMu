@@ -8,12 +8,12 @@
       :src="src"
       :controls="fullscreen"
       playsinline
-      preload="metadata"
+      :preload="poster && !posterFailed ? 'metadata' : 'auto'"
       draggable="false"
       :aria-label="label"
       @fullscreenchange="fullscreen = !!video?.matches(':fullscreen')"
       @loadedmetadata="readMetadata"
-      @loadeddata="ready = true"
+      @loadeddata="ready = true; loadFailed = false"
       @timeupdate="currentTime = video?.currentTime ?? 0"
       @play="playing = true"
       @pause="playing = false"
@@ -21,11 +21,18 @@
       @volumechange="readVolume"
       @error="mediaError" />
     <button v-else class="posterButton nodrag" type="button" :aria-label="`播放原视频：${label}`" @pointerdown.stop @click.stop="togglePlayback">
-      <img v-if="poster" :src="poster" :alt="`${label}缩略图`" draggable="false" />
+      <img v-if="poster && !posterFailed" :src="poster" :alt="`${label}缩略图`" draggable="false" @error="posterFailed = true" />
       <span v-else>点击播放原视频</span><icon-player-play class="posterPlay" :size="32" aria-hidden="true" />
     </button>
-    <div v-show="!fullscreen" class="playerControls nodrag nopan nowheel" @pointerdown.stop @mousedown.stop @dblclick.stop @keydown.stop>
-      <el-button class="playerButton playButton" text circle :icon="playing ? IconPlayerPause : IconPlayerPlay" :disabled="activated && !ready" :aria-label="playing ? '暂停视频' : '播放视频'" :title="playing ? '暂停' : '播放'" @click="togglePlayback" />
+    <div v-if="activated && !playing && !fullscreen" class="previewOverlay">
+      <span v-if="loadFailed" class="previewStatus" role="status">视频暂时无法播放，请重试或更换文件</span>
+      <span v-else-if="!ready" class="previewStatus" role="status">正在加载视频…</span>
+      <button class="inlinePlayButton nodrag nopan" type="button" :disabled="!ready && !loadFailed" :aria-label="loadFailed ? '重试播放视频' : '播放视频'" @pointerdown.stop @click.stop="togglePlayback">
+        <icon-player-play :size="28" aria-hidden="true" /><span v-if="loadFailed">重试播放</span>
+      </button>
+    </div>
+    <div v-show="!fullscreen" class="playerControls nodrag nopan nowheel" :class="{ controlsVisible: !playing }" @pointerdown.stop @mousedown.stop @dblclick.stop @keydown.stop>
+      <el-button class="playerButton playButton" text circle :icon="playing ? IconPlayerPause : IconPlayerPlay" :disabled="activated && !ready && !loadFailed" :aria-label="playing ? '暂停视频' : '播放视频'" :title="playing ? '暂停' : '播放'" @click="togglePlayback" />
       <span class="currentTime">{{ formatTime(currentTime) }}</span>
       <el-slider class="progressSlider" :modelValue="currentTime" :min="0" :max="duration || 1" :step="0.01" :disabled="!ready || !duration" :formatTooltip="formatTime" aria-label="视频播放进度" @input="seek" />
       <span class="durationLabel"><span class="timeSeparator">/</span>{{ formatTime(duration) }}</span>
@@ -72,6 +79,8 @@ let resumeTime = 0;
 const fullscreen = ref(false);
 const ready = ref(false);
 const playing = ref(false);
+const loadFailed = ref(false);
+const posterFailed = ref(false);
 const muted = ref(false);
 const volume = ref(100);
 let lastVolume = 100;
@@ -90,15 +99,22 @@ watch(() => src, () => {
   captureController?.abort();
   ready.value = false;
   playing.value = false;
+  loadFailed.value = false;
+  posterFailed.value = false;
   currentTime.value = 0;
-  duration.value = initialDuration; resumeTime = 0; activated.value = !lazy;
+  duration.value = initialDuration; resumeTime = 0; activated.value = !lazy || (visible.value && canvasActive.value && !poster);
 }, { flush: "sync" });
 watch(() => initialDuration, value => { if (!activated.value) duration.value = value; });
-watch([visible, canvasActive], ([inViewport, active]) => {
-  if (inViewport && active || fullscreen.value || !lazy) return;
+watch([visible, canvasActive, () => poster, posterFailed], ([inViewport, active]) => {
+  if (fullscreen.value || !lazy) return;
+  if (inViewport && active) {
+    // ACT: 没有服务端封面时由浏览器读取首帧；只加载视口内的视频，不自动播放。
+    if (!poster || posterFailed.value) activated.value = true;
+    return;
+  }
   resumeTime = video.value?.currentTime ?? currentTime.value;
   video.value?.pause(); activated.value = false; ready.value = false; playing.value = false;
-});
+}, { immediate: true });
 onBeforeUnmount(() => captureController?.abort());
 
 async function enterFullscreen() {
@@ -130,12 +146,17 @@ function readMetadata(event: Event) {
 function mediaError() {
   ready.value = false;
   playing.value = false;
-  ElMessage.error("无法预览该视频");
+  loadFailed.value = true;
 }
 
 async function togglePlayback() {
   if (!activated.value) { activated.value = true; await nextTick(); }
   if (!video.value) return;
+  if (loadFailed.value) {
+    loadFailed.value = false;
+    ready.value = false;
+    video.value.load();
+  }
   if (playing.value) video.value.pause();
   else {
     try { await video.value.play(); }
@@ -269,6 +290,13 @@ async function captureFrame(command: "current" | "first" | "last") {
   cursor: grab;
 
   &:active { cursor: grabbing; }
+  .previewOverlay { position: absolute; inset: 0 0 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; pointer-events: none; }
+  .previewStatus { max-width: calc(100% - 24px); padding: 4px 8px; border-radius: 4px; background: var(--el-bg-color-overlay); color: var(--el-text-color-primary); font-size: 12px; text-align: center; }
+  .inlinePlayButton { display: flex; align-items: center; gap: 6px; padding: 10px; border: 1px solid var(--el-border-color); border-radius: 50%; background: var(--el-bg-color-overlay); color: var(--el-text-color-primary); cursor: pointer; font: inherit; pointer-events: auto;
+    &:has(span) { border-radius: var(--el-border-radius-base); font-size: 12px; }
+    &:disabled { opacity: 0.5; cursor: wait; }
+    &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; }
+  }
   .posterButton { position: relative; display: grid; place-items: center; width: 100%; min-height: 160px; padding: 0; border: 0; background: var(--el-fill-color-darker); color: var(--el-text-color-primary); cursor: pointer; font: inherit; img { display: block; width: 100%; height: 240px; object-fit: contain; } .posterPlay { position: absolute; padding: 10px; border-radius: 50%; background: var(--el-bg-color-overlay); } &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; } }
   .videoPreview {
     display: block;
@@ -362,7 +390,7 @@ async function captureFrame(command: "current" | "first" | "last") {
     }
     @media (prefers-reduced-motion: reduce) { transition: none; }
   }
-  &:hover .playerControls, .playerControls:has(:focus-visible) {
+  &:hover .playerControls, .playerControls:has(:focus-visible), .playerControls.controlsVisible {
     opacity: 1;
     pointer-events: auto;
   }

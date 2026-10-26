@@ -4,6 +4,7 @@ import { onBeforeRouteLeave, onBeforeRouteUpdate, useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
 import type { GeneratedMedia, MediaGenerationRequest, MediaModel, MediaTaskRecord } from "@toonflow/tools-scaffold/runtime";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
+import { projectHistoryPath, projectReferencesPath } from "@/lib/projectPaths";
 import { debounce } from "lodash-es";
 import { accessDraft, studioDraftKey, type StudioDraft } from "./draftStorage";
 import saveFile from "@/lib/saveFile";
@@ -34,7 +35,7 @@ export default function useStudio(kind: Ref<StudioKind>) {
   const transferDirectory = ref("");
   const transferSource = ref<ProductionTransferSource>();
   let handingOff = false;
-  const directory = ref(taskCenter.studioDirectory || workspace.project?.directory || "");
+  const directory = ref(workspace.project?.directory || "");
   const prompt = ref("");
   const models = ref<MediaModel[]>([]);
   const selectedModel = ref("");
@@ -124,6 +125,7 @@ export default function useStudio(kind: Ref<StudioKind>) {
   let draftController: AbortController | undefined;
   async function loadDraft() {
     const request = ++draftLoad;
+    const sourceRoute = router.currentRoute.value;
     draftController?.abort();
     const controller = new AbortController(); draftController = controller;
     const previousScope = draftKey ? JSON.parse(draftKey) as [string, StudioKind] : undefined;
@@ -138,17 +140,18 @@ export default function useStudio(kind: Ref<StudioKind>) {
     try {
       if (request !== draftLoad || disposed) return;
       const storedDraft = await accessDraft(key, undefined, controller.signal);
-      const draft = storedDraft ?? unboundDraft;
+      const transferredDraft = !storedDraft && directory.value && sourceRoute.query.fromUnbound === "1" ? await accessDraft(studioDraftKey("", kind.value), undefined, controller.signal) : undefined;
+      const draft = storedDraft ?? unboundDraft ?? transferredDraft;
       if (request !== draftLoad || disposed) return;
       clearReferences();
       const fields = draft?.fields ?? { ...initialFields, selectedModel: availableModels.value[0] ? modelKey(availableModels.value[0]) : "", ratio: kind.value === "video" ? "16:9" : "1:1" };
       for (const [name, field] of Object.entries(draftFields)) if (name in fields) (field as Ref<unknown>).value = fields[name];
       if (!loadingModels.value && !model.value) selectedModel.value = availableModels.value[0] ? modelKey(availableModels.value[0]) : "";
-      const queryPrompt = router.currentRoute.value.query.prompt;
+      const queryPrompt = sourceRoute.query.prompt;
       if (typeof queryPrompt === "string") prompt.value = queryPrompt;
       references.value = (draft?.references ?? []).filter(item => item.file instanceof Blob).map(item => ({ ...item, url: URL.createObjectURL(item.file) }));
       draftVersion++; queuedDraftVersion = -1;
-      draftDirty.value = (!storedDraft && !!unboundDraft) || (typeof queryPrompt === "string" && queryPrompt !== storedDraft?.fields.prompt);
+      draftDirty.value = (!storedDraft && !!(unboundDraft || transferredDraft)) || (typeof queryPrompt === "string" && queryPrompt !== storedDraft?.fields.prompt);
       draftError.value = "";
       draftReadFailed.value = false; loaded = true;
       await nextTick();
@@ -163,6 +166,16 @@ export default function useStudio(kind: Ref<StudioKind>) {
         restoringDraft.value = false;
         if (draftDirty.value && !draftReadFailed.value) scheduleDraft();
       }
+    }
+    if (loaded && request === draftLoad && !disposed && (sourceRoute.query.fromUnbound === "1" || typeof sourceRoute.query.prompt === "string")) {
+      try {
+        await saveDraft();
+        if (request !== draftLoad || disposed || router.currentRoute.value.fullPath !== sourceRoute.fullPath) return;
+        // 输入已写入当前范围；一次性来源不能随刷新或下一次项目选择重复应用。
+        const query = { ...sourceRoute.query };
+        delete query.prompt; delete query.fromUnbound;
+        await router.replace({ path: sourceRoute.path, query, hash: sourceRoute.hash });
+      } catch { /* 保存失败时保留来源和输入，由草稿错误提示引导重试。 */ }
     }
   }
   async function retryDraft() {
@@ -206,7 +219,12 @@ export default function useStudio(kind: Ref<StudioKind>) {
   const videoModes = computed(() => Array.isArray(model.value?.mode) ? model.value.mode.filter(item =>
     typeof item === "string" ? ["text", "singleImage", "startEndRequired", "endFrameOptional", "startFrameOptional"].includes(item)
       : Array.isArray(item) && item.every(value => typeof value === "string" && /^(image|video|audio)Reference:\d+$/.test(value))) : []);
-  const referenceLimits = computed(() => { try { return model.value ? getMediaReferenceLimits(model.value, kind.value, kind.value === "video" && videoMode.value ? JSON.parse(videoMode.value) : undefined) : { image: 0, video: 0, audio: 0 }; } catch { return { image: 0, video: 0, audio: 0 }; } });
+  const referenceLimits = computed(() => {
+    // ACT: 未选择模型时允许准备参考草稿；生成时仍按所选模型的真实能力校验。
+    if (!model.value) return { image: kind.value === "audio" ? 0 : 64, video: kind.value === "video" ? 64 : 0, audio: kind.value === "video" ? 64 : 0 };
+    try { return getMediaReferenceLimits(model.value, kind.value, kind.value === "video" && videoMode.value ? JSON.parse(videoMode.value) : undefined); }
+    catch { return { image: 0, video: 0, audio: 0 }; }
+  });
   function requestFor(choice: MediaModel, type: StudioKind, text: string, uploaded: Record<ReferenceKind, { path: string; mimeType: string }[]>): MediaGenerationRequest {
     const payload: MediaGenerationRequest = { providerId: choice.providerId, modelId: choice.modelId, prompt: text };
     if (type === "image") { payload.images = uploaded.image; if (uploaded.video.length) payload.videos = uploaded.video; if (uploaded.audio.length) payload.audios = uploaded.audio; payload.n = quantity.value; if (imageSize.value) payload.size = imageSize.value; else if (imagePreset.value === "custom") payload.size = `${width.value}x${height.value}`; if (ratio.value) payload.ratio = ratio.value; if (quality.value) payload.quality = quality.value; }
@@ -215,6 +233,7 @@ export default function useStudio(kind: Ref<StudioKind>) {
     return payload;
   }
   const inputError = computed(() => {
+    if (kind.value === "audio" && references.value.length) return "文字配音不使用参考素材，请先移除";
     if (!model.value) return "";
     const uploaded = Object.fromEntries((["image", "video", "audio"] as const).map(type => [type, references.value.filter(item => item.kind === type).map(item => ({ path: "", mimeType: item.file.type }))])) as Record<ReferenceKind, { path: string; mimeType: string }[]>;
     try { return getMediaCapabilityError(model.value, kind.value, requestFor(model.value, kind.value, prompt.value, uploaded)) ?? ""; } catch { return "生成模式无效，请重新选择模型已声明的模式"; }
@@ -307,7 +326,7 @@ export default function useStudio(kind: Ref<StudioKind>) {
     if (!path) { loadingHistory.value = false; return; }
     loadingHistory.value = true;
     try {
-      const content = await useWorkspaceFiles(path).readJson<{ version: number; items: StudioResult[]; hiddenResults?: string[] }>(historyPath(type), signal);
+      const content = await useWorkspaceFiles(path).readJson<{ version: number; items: StudioResult[]; hiddenResults?: string[] }>(await projectHistoryPath(path, historyPath(type)), signal);
       if (request !== historyRequest) return;
       if (content?.version !== 1 || !Array.isArray(content.items) || !content.items.every(item => item && typeof item.id === "string" && typeof item.path === "string" && item.mediaType === type && typeof item.mimeType === "string" && typeof item.prompt === "string" && typeof item.model === "string" && Number.isFinite(item.createdAt))) throw new Error("结果记录格式无效，请先备份并检查记录文件");
       hiddenResults.value = (content.hiddenResults ?? []).filter(item => typeof item === "string");
@@ -317,7 +336,7 @@ export default function useStudio(kind: Ref<StudioKind>) {
     } finally { if (request === historyRequest) loadingHistory.value = false; }
   }
   async function persist(items: StudioResult[], path = directory.value, type = kind.value) {
-    await useWorkspaceFiles(path).writeJson(historyPath(type), { version: 1, items, hiddenResults: hiddenResults.value });
+    await useWorkspaceFiles(path).writeJson(await projectHistoryPath(path, historyPath(type)), { version: 1, items, hiddenResults: hiddenResults.value });
   }
   async function loadTasks() {
     clearTimeout(taskTimer);
@@ -414,12 +433,13 @@ export default function useStudio(kind: Ref<StudioKind>) {
         if ((mode === "startEndRequired" && count !== 2) || (["singleImage", "endFrameOptional"].includes(mode) && count < 1)) throw new Error("请添加当前模式所需的首帧／尾帧参考图");
       }
       if (references.value.length) {
-        try { await files.mkdir("studioReferences"); } catch (cause) { if (!(axios.isAxiosError(cause) && cause.response?.status === 409 && cause.response.data?.data?.code === "EEXIST")) throw cause; }
-        const names = new Set((await files.list("studioReferences")).entries.filter(item => item.type === "file").map(item => item.name));
+        const referencesFolder = await projectReferencesPath(path);
+        try { await files.mkdir(referencesFolder); } catch (cause) { if (!(axios.isAxiosError(cause) && cause.response?.status === 409 && cause.response.data?.data?.code === "EEXIST")) throw cause; }
+        const names = new Set((await files.list(referencesFolder)).entries.filter(item => item.type === "file").map(item => item.name));
         for (const reference of references.value) {
           let target = reference.paths?.[path];
-          if (!target || !/^studioReferences\/[a-f0-9-]{36}$/i.test(target) || !names.has(target.slice("studioReferences/".length))) {
-            target = `studioReferences/${crypto.randomUUID()}`;
+          if (!target || !target.startsWith(referencesFolder + "/") || !/^[a-f0-9-]{36}$/i.test(target.slice(referencesFolder.length + 1)) || !names.has(target.slice(referencesFolder.length + 1))) {
+            target = `${referencesFolder}/${crypto.randomUUID()}`;
             pendingUploads.push(target);
             await files.write(target, reference.file, true, signal);
             (reference.paths ??= {})[path] = target;
@@ -467,35 +487,12 @@ export default function useStudio(kind: Ref<StudioKind>) {
     format.value = creationPreferences.value.format;
     if (model.value?.voices?.length && !model.value.voices.some(item => item.voice === voice.value)) voice.value = model.value.voices[0].voice;
   }
-  async function sendToCanvas(item?: StudioResult) {
+  function sendToCanvas(item: StudioResult) {
     if (locked.value) return;
     if (!directory.value) { ElMessage.warning("请先选择保存位置，再发送到画布"); return; }
-    if (item) {
-      transferDirectory.value = directory.value;
-      transferSource.value = JSON.parse(JSON.stringify({ resultId: item.id, taskId: item.taskId, path: item.path, mimeType: item.mimeType, mediaType: item.mediaType, prompt: item.prompt, request: item.generationConfig ?? (item.audioConfig ? { ...item.audioConfig, prompt: item.prompt } : undefined), contentHash: item.contentHash, modelLabel: item.model.slice(0, 1000) })) as ProductionTransferSource;
-      transferVisible.value = true;
-      return;
-    }
-    if (references.value.length) { ElMessage.warning("语音节点支持文字朗读；请先移除参考音频，或生成后发送音频结果"); return; }
-    const text = prompt.value;
-    if (!text.trim()) { ElMessage.warning("请先输入朗读文本"); return; }
-    const path = directory.value;
-    const config = { providerId: model.value?.providerId ?? "", modelId: model.value?.modelId ?? "", voice: voice.value, speed: speed.value, format: format.value || "mp3" };
-    if (!Number.isFinite(config.speed) || config.speed < 0.25 || config.speed > 4 || !["mp3", "wav", "flac", "aac", "opus"].includes(config.format)) { ElMessage.error("音频参数无效，请检查音色、语速和格式"); return; }
-    saving.value = true;
-    let canvasFile = "";
-    try {
-      await workspace.openProject(path);
-      const id = crypto.randomUUID();
-      canvasFile = `studioCanvas${Date.now()}${id.slice(0, 8)}.json`;
-      await useWorkspaceFiles(path).writeJson(canvasFile, { toonflowCanvas: true, nodes: [{ id, type: "remote-audioNode", position: { x: 200, y: 160 }, selected: true, data: { label: "音频", prompt: text, model: config.providerId && config.modelId ? JSON.stringify([config.providerId, config.modelId]) : "", voice: config.voice, speed: config.speed, format: config.format } }], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }, true);
-      await saveDraft();
-      handingOff = true;
-      const failure = await router.push({ path: "/workspace", query: { canvas: canvasFile } });
-      if (failure) throw new Error("未能打开画布，请在项目中打开已保存的创作画布");
-      ElMessage.success("朗读文本与参数已带入语音节点");
-    } catch (cause) { ElMessage.error(`${message(cause, "发送到画布失败")}${canvasFile ? `（已保存：${canvasFile}）` : ""}`); }
-    finally { handingOff = false; saving.value = false; }
+    transferDirectory.value = directory.value;
+    transferSource.value = JSON.parse(JSON.stringify({ resultId: item.id, taskId: item.taskId, path: item.path, mimeType: item.mimeType, mediaType: item.mediaType, prompt: item.prompt, request: item.generationConfig ?? (item.audioConfig ? { ...item.audioConfig, prompt: item.prompt } : undefined), contentHash: item.contentHash, modelLabel: item.model.slice(0, 1000) })) as ProductionTransferSource;
+    transferVisible.value = true;
   }
   async function openTransferTarget(receipt: ProductionTransferReceipt) {
     const path = transferDirectory.value;
@@ -561,6 +558,7 @@ export default function useStudio(kind: Ref<StudioKind>) {
     if (choice.audio !== "optional") generateAudio.value = choice.audio === true;
   }, { flush: "sync" });
   watch(duration, () => { if (!restoringDraft.value && !draftReadFailed.value && !resolutionOptions.value.includes(resolution.value)) resolution.value = ""; });
+  watch(() => router.currentRoute.value.query.prompt, value => { if (typeof value === "string") void loadDraft(); });
   watch([directory, kind], () => {
     taskCenter.studioDirectory = directory.value;
     tasks.value = []; taskError.value = ""; taskWarnings.value = []; taskPage.value = 1; taskTotal.value = 0; hasRunningTasks.value = false; clearTimeout(taskTimer); taskController?.abort();

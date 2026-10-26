@@ -16,6 +16,7 @@ export default {
     bun: { entrypoint: "apps/desktop/src/index.ts", minify: true },
     copy: {
       ...(process.platform === "win32" ? {
+        "packages/assets/logo.ico": "zeromuMinimalIcon.ico",
         "build/desktop/protocol/protocolLauncher.exe": "protocolLauncher.exe",
         "build/desktop/workers/saveFileDialogWorker.js": "saveFileDialogWorker.js",
         "build/desktop/protocol/updateHelper.exe": "updateHelper.exe",
@@ -27,6 +28,7 @@ export default {
       "build/server/toolRuntimeWorker.js": "toolRuntimeWorker.js",
       "build/server/providerWorker.js": "providerWorker.js",
       "build/server/toolSyncClient.js": "toolSyncClient.js",
+      "build/server/toolSyncRelay.js": "toolSyncRelay.js",
       "build/server/node_modules": "node_modules",
       "build/tools": "tools",
       // ACT: 团队暂不打包，恢复时取消注释。

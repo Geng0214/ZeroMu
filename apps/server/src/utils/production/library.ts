@@ -1,8 +1,9 @@
+import { projectPath } from "@/utils/workspace/projectLayout";
 import { createHash } from "node:crypto";
 import { basename, extname, join } from "node:path";
 import { lstat, mkdir, readFile, readdir, writeAtomic } from "@toonflow/file";
 import { getAssetsDirectory } from "@/utils/assets";
-import { metadataKey, readMetadata } from "@/utils/assets/metadata";
+import { metadataFile, metadataKey, readMetadata } from "@/utils/assets/metadata";
 import { mentionAssetType } from "@/agent/mentionSources";
 import { resolveWorkspacePath } from "@/utils/workspace/files";
 import { readProject } from "./format";
@@ -11,9 +12,9 @@ import { importLibraryAssetSchema, librarySourceSchema, type LibraryImportOperat
 
 const digest = (bytes: Uint8Array | string) => createHash("sha256").update(bytes).digest("hex");
 const inputHash = (operation: LibraryImportOperation) => digest(JSON.stringify(importLibraryAssetSchema.parse(operation)));
-export const libraryFolder = (id: string) => `productionLibraryImports/${id}`;
+export const libraryFolder = (directory: string, id: string) => projectPath(directory, `productionLibraryImports/${id}`);
 function fail(message: string, status = 409): never { throw Object.assign(new Error(message), { status }); }
-function sourcePath(operation: LibraryImportOperation) { const extension = extname(operation.source.path); return `${libraryFolder(operation.importId)}/original${/^\.[a-z0-9]{1,10}$/i.test(extension) ? extension.toLowerCase() : ".bin"}`; }
+function sourcePath(directory: string, operation: LibraryImportOperation) { const extension = extname(operation.source.path); return `${libraryFolder(directory, operation.importId)}/original${/^\.[a-z0-9]{1,10}$/i.test(extension) ? extension.toLowerCase() : ".bin"}`; }
 async function globalSource(path: string) {
   const root = await getAssetsDirectory();
   const target = await resolveWorkspacePath(root, path).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") fail("全局素材原件不存在，请刷新素材库并重新选择", 404); throw cause; });
@@ -21,7 +22,7 @@ async function globalSource(path: string) {
   if (!info.isFile() || info.isSymbolicLink() || info.size > 100 * 1024 * 1024) fail("请选择不超过 100 MB 的普通素材文件", 400);
   const bytes = await readFile(target.path);
   if (bytes.length > 100 * 1024 * 1024) fail("素材文件超过 100 MB", 413);
-  const metadata = (await readMetadata())[metadataKey(path)] ?? { title: basename(path).slice(0, 200), description: "", category: "", tags: [], source: "" };
+  const metadata = (await readMetadata(metadataFile(root)))[metadataKey(path)] ?? { title: basename(path).slice(0, 200), description: "", category: "", tags: [], source: "" };
   const checked = librarySourceSchema.safeParse({ path: path.replaceAll("\\", "/"), hash: digest(bytes), bytes: bytes.length, mimeType: mentionAssetType(path).mimeType, metadata });
   if (!checked.success) fail("此素材的资料格式无法读取，请保留原件并在素材库核对后重试", 422);
   return { source: checked.data, bytes };
@@ -36,7 +37,7 @@ function checkTarget(project: ProjectRecord, operation: LibraryImportOperation) 
   if ((project.libraryImports?.length ?? 0) >= 10000 || project.assetVersions.length >= 100000 || target.mode === "new" && project.assets.length >= 10000) fail("项目素材数量达到上限，请分拆项目后带入", 413);
 }
 async function stagedInput(directory: string, operation: LibraryImportOperation) {
-  const path = `${libraryFolder(operation.importId)}/import.json`;
+  const path = `${libraryFolder(directory, operation.importId)}/import.json`;
   try {
     const bytes = await readProjectFile(directory, path);
     if (bytes.length > 65536) fail("待完成素材记录过大，请保留目录并检查", 422);
@@ -52,7 +53,7 @@ async function stagedInput(directory: string, operation: LibraryImportOperation)
 async function original(directory: string, operation: LibraryImportOperation) {
   const staged = await stagedInput(directory, operation);
   if (staged) {
-    try { const bytes = await readProjectFile(directory, sourcePath(operation)); if (bytes.length !== operation.source.bytes || digest(bytes) !== operation.source.hash) fail("中断素材副本已变化，请保留文件并核对原件"); return { bytes, frozen: true }; }
+    try { const bytes = await readProjectFile(directory, sourcePath(directory, operation)); if (bytes.length !== operation.source.bytes || digest(bytes) !== operation.source.hash) fail("中断素材副本已变化，请保留文件并核对原件"); return { bytes, frozen: true }; }
     catch (cause) { if ((cause as NodeJS.ErrnoException).code !== "ENOENT") throw cause; }
   }
   const current = await globalSource(operation.source.path);
@@ -82,9 +83,9 @@ export async function existingLibraryImport(directory: string, project: ProjectR
 }
 export async function importLibraryAsset(directory: string, project: ProjectRecord, operation: LibraryImportOperation) {
   checkTarget(project, operation); const prepared = await original(directory, operation);
-  const folder = libraryFolder(operation.importId); const target = (await resolveWorkspacePath(directory, folder, true)).path; await mkdir(target, { recursive: true });
+  const folder = libraryFolder(directory, operation.importId); const target = (await resolveWorkspacePath(directory, folder, true)).path; await mkdir(target, { recursive: true });
   await writeAtomic(join(target, "import.json"), JSON.stringify(operation, null, 2), { exclusive: true }).catch(async (cause: NodeJS.ErrnoException) => { if (cause.code !== "EEXIST") throw cause; await stagedInput(directory, operation); });
-  const path = sourcePath(operation);
+  const path = sourcePath(directory, operation);
   await writeAtomic((await resolveWorkspacePath(directory, path, true)).path, prepared.bytes, { exclusive: true }).catch(async (cause: NodeJS.ErrnoException) => { if (cause.code !== "EEXIST") throw cause; if (digest(await readProjectFile(directory, path)) !== operation.source.hash) fail("中断素材副本内容冲突，已保留原件"); });
   const assetId = operation.target.mode === "new" ? stableId(`${operation.importId}:libraryAsset`) : operation.target.assetId;
   const versionId = stableId(`${operation.importId}:libraryVersion`);
@@ -101,13 +102,13 @@ export async function importLibraryAsset(directory: string, project: ProjectReco
 }
 export async function pendingLibraryImports(directory: string) {
   const project = await readProject(directory); if (!project) return { items: [] as LibraryImportOperation[], warnings: [] as string[] };
-  const folder = (await resolveWorkspacePath(directory, "productionLibraryImports", true)).path;
+  const folder = (await resolveWorkspacePath(directory, projectPath(directory, "productionLibraryImports"), true)).path;
   const entries = await readdir(folder, { withFileTypes: true }).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return []; throw cause; });
   if (entries.length > 10000) fail("素材带入目录过多，请保留项目并检查", 413);
   const items: LibraryImportOperation[] = []; const warnings: string[] = [];
   for (const entry of entries) {
     if (!entry.isDirectory() || !/^[a-f0-9-]{36}$/i.test(entry.name) || project.libraryImports?.some(item => item.importId === entry.name)) continue;
-    try { const bytes = await readProjectFile(directory, `${libraryFolder(entry.name)}/import.json`); if (bytes.length > 65536) fail("记录过大"); const operation = importLibraryAssetSchema.parse(JSON.parse(bytes.toString("utf8"))); if (operation.importId !== entry.name) fail("编号不同"); items.push(operation); }
+    try { const bytes = await readProjectFile(directory, `${libraryFolder(directory, entry.name)}/import.json`); if (bytes.length > 65536) fail("记录过大"); const operation = importLibraryAssetSchema.parse(JSON.parse(bytes.toString("utf8"))); if (operation.importId !== entry.name) fail("编号不同"); items.push(operation); }
     catch { warnings.push(`待完成素材 ${entry.name} 无法读取，请保留目录并检查`); }
   }
   return { items, warnings };

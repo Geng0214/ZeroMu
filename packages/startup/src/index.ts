@@ -10,12 +10,18 @@ export async function showNativeSplash(assetDir: string, onClose: () => void) {
     let isReady = false;
     let isClosed = false;
     let isFinishing = false;
+    let closeTimeout: ReturnType<typeof setTimeout> | undefined;
 
     function close() {
       if (isClosed) return;
       isClosed = true;
       worker.postMessage("close");
       finished.resolve();
+      // ACT: 优先让线程释放原生窗口；线程失去响应时也不能留下置顶的启动画面。
+      closeTimeout = setTimeout(() => {
+        void worker.terminate().catch(error => console.error("释放启动动画线程失败：", error));
+      }, 1000);
+      closeTimeout.unref();
     }
 
     worker.on("message", (message: "ready" | "finished" | "cancelled") => {
@@ -38,11 +44,21 @@ export async function showNativeSplash(assetDir: string, onClose: () => void) {
       }
     });
     worker.on("exit", (code) => {
+      clearTimeout(closeTimeout);
       ready.reject(new Error(`启动动画线程提前退出：${code}`));
       finished.resolve();
       isClosed = true;
     });
-    await ready.promise;
+    const readyTimeout = setTimeout(() => {
+      close();
+      ready.reject(new Error("启动动画线程就绪超时，继续打开主窗口"));
+      void worker.terminate().catch(error => console.error("释放启动动画线程失败：", error));
+    }, 5000);
+    try {
+      await ready.promise;
+    } finally {
+      clearTimeout(readyTimeout);
+    }
     return {
       finish() {
         if (!isClosed && !isFinishing) {

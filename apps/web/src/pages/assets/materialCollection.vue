@@ -1,16 +1,20 @@
 <template>
   <section class="materials" aria-label="素材管理">
-    <div class="materialToolbar">
-      <form class="materialSearch" role="search" @submit.prevent="page = 1"><icon-search :size="18" /><input v-model="query" :disabled="saving" aria-label="搜索素材" placeholder="搜索标题、内容、分类、标签或来源" /><button type="submit" :disabled="saving" aria-label="搜索"><icon-search :size="18" /></button></form>
+    <header class="materialHeading">
+      <div class="headingCopy"><h1>仓库</h1><span v-if="!loading">{{ files.length }} 项素材</span></div>
       <div class="materialActions">
         <button :disabled="saving || !filtered.length" title="导出当前筛选结果，包含素材文件" @click="exportAssets">导出素材</button>
         <button type="button" :class="{ active: managing }" :aria-pressed="managing" :disabled="saving" @click="toggleManagement"><icon-adjustments-horizontal :size="16" />{{ managing ? '完成管理' : '资产管理' }}</button>
         <button type="button" class="addMaterial" :disabled="saving" title="上传文件，支持批量选择和导入素材包" @click="importInput?.click()"><icon-plus :size="16" />添加素材</button>
       </div>
+    </header>
+    <div class="materialToolbar">
+      <form class="materialSearch" role="search" @submit.prevent="page = 1"><icon-search :size="18" /><input v-model="query" :disabled="saving" aria-label="搜索素材" placeholder="搜索素材、内容、分类、标签或来源" /><button type="submit" :disabled="saving" aria-label="搜索"><icon-search :size="18" /></button></form>
+      <div class="materialView" role="group" aria-label="素材视图"><button :aria-pressed="view === 'grid'" aria-label="网格视图" title="网格视图" @click="view = 'grid'"><icon-layout-grid :size="17" /></button><button :aria-pressed="view === 'list'" aria-label="列表视图" title="列表视图" @click="view = 'list'"><icon-list :size="17" /></button></div>
     </div>
     <div class="filterToolbar">
       <div class="filterRows">
-        <div class="filterRow"><span>类型</span><nav aria-label="素材类型"><button v-for="item in kinds" :key="item.id" :disabled="saving" :class="{ active: kind === item.id }" :aria-pressed="kind === item.id" @click="kind = item.id">{{ item.label }}</button></nav></div>
+        <div class="filterRow"><nav aria-label="素材类型"><button v-for="item in kinds" :key="item.id" :disabled="saving" :class="{ active: kind === item.id }" :aria-pressed="kind === item.id" @click="kind = item.id">{{ item.label }}</button></nav></div>
         <div v-if="categories.length" class="filterRow"><span>分类</span><nav aria-label="素材分类"><button :disabled="saving" :class="{ active: !category }" :aria-pressed="!category" @click="category = ''">全部</button><button v-for="value in categories" :key="value" :disabled="saving" :class="{ active: category === value }" :aria-pressed="category === value" @click="category = value">{{ value }}</button></nav></div>
         <div v-if="tags.length" class="filterRow"><span>标签</span><nav aria-label="素材标签"><button :disabled="saving" :class="{ active: !tag }" :aria-pressed="!tag" @click="tag = ''">全部</button><button v-for="value in tags" :key="value" :disabled="saving" :class="{ active: tag === value }" :aria-pressed="tag === value" @click="tag = value">{{ value }}</button></nav></div>
       </div>
@@ -46,8 +50,8 @@
     </div>
     <p v-if="loading" class="materialState" role="status">正在读取素材…</p>
     <div v-else-if="loadError" class="materialState" role="alert"><p>{{ loadError }}</p><button @click="loadAssets">重新加载</button></div>
-    <div v-else-if="!filtered.length" class="materialState"><icon-photo :size="34" :strokeWidth="1.5" /><h2>{{ files.length ? '没有找到匹配的素材' : '这里还没有素材' }}</h2><p>{{ files.length ? '试试其他关键词，或清除筛选。' : '添加文字、图片、视频或音频，收藏你的创作素材。' }}</p><button v-if="files.length" @click="query = ''; kind = 'all'; category = ''; tag = ''">清除筛选</button></div>
-    <div v-else class="materialGrid">
+    <div v-else-if="!filtered.length" class="materialState" :class="{ uploadState: !files.length, dragging }" @dragover.prevent @dragenter.prevent="dragging = !files.length && !saving" @dragleave.self="dragging = false" @drop.prevent="dropAssets"><icon-photo v-if="files.length" :size="30" :strokeWidth="1.5" /><icon-upload v-else :size="30" :strokeWidth="1.5" /><h2>{{ files.length ? '没有找到匹配的素材' : '拖入文件，或添加素材' }}</h2><p>{{ files.length ? '试试其他关键词，或清除筛选。' : '收集文字、图片、视频与音频，留给下一次创作。' }}</p><button v-if="files.length" @click="query = ''; kind = 'all'; category = ''; tag = ''">清除筛选</button><button v-else :disabled="saving" @click="importInput?.click()"><icon-plus :size="16" />添加素材</button></div>
+    <div v-else class="materialGrid" :class="{ listView: view === 'list' }">
       <article v-for="entry in paged" :key="entry.path" class="materialCard" :class="{ selected: managing && selectedPaths.includes(entry.path) }">
         <label v-if="managing" class="materialSelection"><input type="checkbox" :checked="selectedPaths.includes(entry.path)" :disabled="saving" :aria-label="`选择 ${titleOf(entry)}`" @change="toggleSelection(entry.path)" /><span>选择素材</span></label>
         <button class="materialPreview" :aria-label="`查看 ${titleOf(entry)}`" @click="openPreview(entry)">
@@ -83,7 +87,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import axios from 'axios';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { IconSearch, IconPhoto, IconMusic, IconFileText, IconPencil, IconDownload, IconDots, IconPlus, IconAdjustmentsHorizontal, IconFolder, IconTag } from '@tabler/icons-vue';
+import { IconSearch, IconPhoto, IconMusic, IconFileText, IconPencil, IconDownload, IconDots, IconPlus, IconAdjustmentsHorizontal, IconFolder, IconTag, IconUpload, IconLayoutGrid, IconList } from '@tabler/icons-vue';
 import saveFile from '@/lib/saveFile';
 import libraryImportDialog from '@/components/libraryImportDialog.vue';
 const libraryVisible = ref(false); const libraryPath = ref('');
@@ -93,6 +97,7 @@ type AssetEntry = { name: string; path: string; type: 'file' | 'directory'; chil
 const entries = ref<AssetEntry[]>([]);
 const query = ref(''); const kind = ref('all'); const category = ref(''); const tag = ref('');
 const page = ref(1); const pageSize = ref(12);
+const view = ref('grid'); const dragging = ref(false);
 const loading = ref(false); const saving = ref(false); const loadError = ref(''); const progress = ref('');
 const importInput = ref<HTMLInputElement>(); const preview = ref<AssetEntry>();
 const editorVisible = ref(false); const editing = ref<AssetEntry>();
@@ -248,6 +253,14 @@ function validMetadata(value: unknown): value is Metadata {
 }
 async function importAssets(event: Event) {
   const input = event.target as HTMLInputElement; const selected = Array.from(input.files ?? []); input.value = '';
+  await importSelected(selected);
+}
+async function dropAssets(event: DragEvent) {
+  dragging.value = false;
+  if (files.value.length) return;
+  await importSelected(Array.from(event.dataTransfer?.files ?? []));
+}
+async function importSelected(selected: File[]) {
   if (!selected.length || saving.value) return;
   saving.value = true; let imported = 0; const failures: string[] = [];
   for (const file of selected) {
@@ -275,11 +288,13 @@ onMounted(loadAssets); onBeforeUnmount(() => controller?.abort());
 <style scoped lang="scss">
 .materials { width: 100%; min-width: 0; margin: 0 auto; color: var(--homeText); }
 .materials button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; color: inherit; background: none; border: 1px solid var(--homeLine); border-radius: var(--ui-radius, 8px); padding: 8px 12px; font-size: 12px; &:hover:not(:disabled) { background: var(--homeRaised); } }
-.materialToolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; }
-.materialSearch { display: flex; align-items: center; flex: 0 1 480px; min-width: 0; height: 40px; border: 1px solid var(--homeLine); background: var(--homeSurface); border-radius: var(--ui-radius, 8px); padding-left: 12px; color: var(--homeMuted); &:focus-within { border-color: var(--homeAccent); outline: 2px solid var(--homeAccent); outline-offset: 2px; } >svg { flex-shrink: 0; } input { flex: 1; min-width: 0; height: 100%; padding: 0 8px; border: 0; outline: none; background: none; color: var(--homeText); font-size: 13px; &::placeholder { color: var(--homeMuted); } &:focus-visible { outline: none; } } button { height: 100%; width: 40px; border: 0; border-radius: 0 var(--ui-radius, 8px) var(--ui-radius, 8px) 0; } }
+.materialHeading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 28px; .headingCopy { display: flex; align-items: baseline; gap: 16px; h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -.025em; } span { color: var(--homeMuted); font-size: 12px; font-variant-numeric: tabular-nums; } } }
+.materialToolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.materialView { display: flex; flex-shrink: 0; border: 1px solid var(--homeLine); border-radius: 4px; overflow: hidden; button { width: 40px; border: 0; border-radius: 0; &[aria-pressed=true] { background: var(--homeText); color: var(--homeBg); } } }
+.materialSearch { display: flex; align-items: center; flex: 1; min-width: 0; height: 38px; border: 1px solid var(--homeLine); background: transparent; border-radius: 4px; padding-left: 12px; color: var(--homeMuted); &:focus-within { border-color: var(--homeAccent); outline: 2px solid var(--homeAccent); outline-offset: 2px; } >svg { flex-shrink: 0; } input { flex: 1; min-width: 0; height: 100%; padding: 0 8px; border: 0; outline: none; background: none; color: var(--homeText); font-size: 13px; &::placeholder { color: var(--homeMuted); } &:focus-visible { outline: none; } } button { height: 100%; width: 40px; border: 0; border-radius: 0; } }
 .filterToolbar { padding-bottom: 20px; margin-bottom: 24px; border-bottom: 1px solid var(--homeLine); }
 .filterRows { display: grid; gap: 8px; min-width: 0; }
-.filterRow { display: flex; gap: 20px; align-items: baseline; font-size: 12px; >span { flex-shrink: 0; color: var(--homeMuted); padding-block: 8px; } nav { display: flex; flex-wrap: wrap; gap: 4px; } button { border-color: transparent; padding: 6px 12px; min-height: 32px; &.active { background: var(--homeSurface); color: var(--homeAccent); border-color: var(--homeLine); } } }
+.filterRow { display: flex; gap: 20px; align-items: baseline; font-size: 12px; >span { flex-shrink: 0; color: var(--homeMuted); padding-block: 8px; } nav { display: flex; flex-wrap: wrap; gap: 24px; } button { position: relative; border: 0; border-radius: 0; padding: 6px 0 12px; min-height: 36px; color: var(--homeMuted); &.active { color: var(--homeText); font-weight: 600; &::after { position: absolute; inset: auto 0 0; height: 2px; background: currentColor; content: ""; } } } }
 .materialActions { display: flex; flex-wrap: wrap; flex-shrink: 0; max-width: 100%; gap: 8px; button { white-space: nowrap; &.active { color: var(--homeAccent); border-color: var(--homeAccent); } } .addMaterial { background: var(--homeAccent); color: var(--homeBg); border-color: transparent; font-weight: 550; &:hover:not(:disabled) { background: var(--homeAccent); filter: brightness(.94); } } }
 .managementPanel { margin-bottom: 24px;
   .selectionToolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 40px; :deep(.el-checkbox) { margin-right: 0; color: var(--homeText); } }
@@ -292,6 +307,7 @@ onMounted(loadAssets); onBeforeUnmount(() => controller?.abort());
   }
 }
 .materialGrid { display: grid; grid-template-columns: repeat(auto-fill,minmax(min(256px,100%),1fr)); gap: 20px; align-items: start; }
+.materialGrid.listView { grid-template-columns: minmax(0, 1fr); gap: 0; .materialCard { display: grid; grid-template-columns: 160px minmax(0, 1fr); border: 0; border-bottom: 1px solid var(--homeLine); border-radius: 0; background: transparent; padding-block: 16px; .materialPreview { align-self: start; border-radius: 4px; } .materialInfo { padding: 0 0 0 24px; } .materialFacts, .materialSource { margin-block: 4px; } .cardActions { margin-top: 12px; padding-top: 8px; } &.selected { background: var(--homeSurface); } } }
 .materialCard { position: relative; min-width: 0; overflow: hidden; background: var(--homeSurface); border: 1px solid var(--homeLine); border-radius: var(--ui-radius-large, 12px); &:hover { border-color: var(--homeMuted); } &.selected { border-color: var(--homeAccent); }
   .materialSelection { position: absolute; top: 8px; left: 8px; z-index: 1; display: flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 10px; background: var(--homeSurface); border: 1px solid var(--homeLine); border-radius: var(--ui-radius-small, 4px); cursor: pointer; font-size: 12px; input { width: 16px; height: 16px; margin: 0; accent-color: var(--homeAccent); } }
   .materialPreview { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 16 / 10; border: 0; padding: 0; border-radius: 0; color: var(--homeMuted); background: var(--homeBg); overflow: hidden; position: relative;
@@ -306,11 +322,11 @@ onMounted(loadAssets); onBeforeUnmount(() => controller?.abort());
   .cardActions { display: flex; align-items: center; gap: 4px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--homeLine); button { border: 0; color: var(--homeMuted); padding: 6px; &:hover { color: var(--homeText); } } >button:first-child { margin-right: auto; padding-left: 0; } .iconAction { width: 36px; } }
 }
 .materialPagination { display: flex; justify-content: center; padding: 24px 0 12px; :deep(.el-pagination) { --el-pagination-bg-color: var(--homeBg); --el-pagination-text-color: var(--homeText); --el-pagination-button-disabled-bg-color: transparent; flex-wrap: wrap; gap: 6px; } }
-.materialState { text-align: center; padding: 80px 16px; color: var(--homeMuted); h2 { font-size: 18px; font-weight: 550; color: var(--homeText); margin: 20px 0 12px; } p { font-size: 13px; line-height: 1.8; margin-bottom: 20px; } }
+.materialState { text-align: center; padding: 64px 16px; color: var(--homeMuted); h2 { font-size: 18px; font-weight: 600; color: var(--homeText); margin: 20px 0 10px; } p { font-size: 14px; line-height: 1.8; margin: 0 0 24px; } &.uploadState { border: 1px dashed var(--homeLine); border-radius: 4px; padding-block: 56px; &.dragging { background: var(--homeSurface); border-color: var(--homeText); } } }
 .operationStatus { font-size: 12px; color: var(--homeMuted); text-align: center; }
 .hiddenInput { display: none; }
 .assetEditor .editorColumns { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .mediaDetail { display: grid; gap: 20px; img, video { width: 100%; max-height: 60dvh; object-fit: contain; } audio { width: 100%; } pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 60dvh; overflow: auto; font: inherit; line-height: 1.8; } .el-button { justify-self: start; } }
-@media(max-width:720px) { .materialToolbar { flex-wrap: wrap; gap: 12px; } .materialSearch { flex-basis: 100%; } .materialActions { width: 100%; justify-content: flex-end; } .filterRow { gap: 12px; button { padding-inline: 10px; min-height: 40px; } } .materials .cardActions button { min-height: 44px; } }
+@media(max-width:720px) { .materialActions { width: 100%; } .filterRow { gap: 12px; nav { gap: 18px; } button { min-height: 40px; } } .materials .cardActions button { min-height: 44px; } .materialGrid.listView .materialCard { grid-template-columns: 96px minmax(0, 1fr); .materialInfo { padding-left: 12px; } } }
 @media(max-width:540px) { .materialGrid { grid-template-columns: minmax(0,1fr); } .assetEditor .editorColumns { grid-template-columns: 1fr; gap: 0; } .managementPanel { .selectionActions { margin-left: 0; flex-basis: 100%; } .organizeForm { padding: 16px; .organizeActions { width: 100%; justify-content: flex-end; } } } .materialCard .materialSelection { min-height: 44px; } }
 </style>

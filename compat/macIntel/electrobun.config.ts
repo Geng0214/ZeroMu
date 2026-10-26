@@ -12,6 +12,7 @@ export default {
       "../../build/server/toolRuntimeWorker.js": "toolRuntimeWorker.js",
       "../../build/server/providerWorker.js": "providerWorker.js",
       "../../build/server/toolSyncClient.js": "toolSyncClient.js",
+      "../../build/server/toolSyncRelay.js": "toolSyncRelay.js",
       "../../build/web": "views/mainview",
       "../../build/tools": "tools",
       "../../build/nodes": "nodes",

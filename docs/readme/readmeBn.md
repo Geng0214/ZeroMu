@@ -127,7 +127,6 @@
 <p align="center">
 <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">ডাউনলোড</a> ·
 <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf"> ব্যবহারকারীর নির্দেশিকা</a> ·
-<a href="https://api.toonflow.net/console/plugIn">প্লাগইন মার্কেটপ্লেস</a> ·
 <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">ডেভেলপার ডকুমেন্টেশন</a> ·
 <a href="https://api.toonflow.net/">অফিশিয়াল মডেল প্ল্যাটফর্ম</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow স্বল্পদৈর্ঘ্য নাটক, অ্যান�
 | 🏠 **স্থানীয় স্থাপনা** | ডেস্কটপ, Docker, এবং সার্ভার স্থাপনার বিকল্পগুলি সহ আপনার নিজস্ব ডিভাইস বা সার্ভারে প্রকল্প এবং সম্পদ রাখুন৷ |
 | 🖼️ **অসীম ক্যানভাস** | একই ক্যানভাসে চিত্রনাট্য, চরিত্র, দৃশ্য ও ভিডিও ক্লিপ সাজিয়ে রাখুন। |
 | 🔌 **MCP** | MCP এর মাধ্যমে বাহ্যিক সরঞ্জাম এবং পরিষেবাগুলি সংযুক্ত করুন৷ |
-| 🧩 **প্লাগইন মার্কেটপ্লেস** | [প্লাগইন মার্কেটপ্লেস](https://api.toonflow.net/console/plugIn) থেকে নোড, টুল ও সৃজনশীল সুবিধা যোগ করুন। |
 | 🤖 **উন্মুক্ত Agent ব্যবস্থা** | প্রম্পট, টুল ও A2A ব্যবহারের উন্মুক্ত সুযোগ নিয়ে Agent-এর আচরণ বদলান এবং বাইরের Agent-এর সঙ্গে কাজ করুন। |
 | 🔧 **নমনীয় মডেল সংযোগ** | তৃতীয় পক্ষের API কনফিগার করুন অথবা নিজের কম্পিউটারে চালু ComfyUI ও LLMs যুক্ত করুন। |
 | 🌐 **বহুভাষিক সমর্থন** | ইন্টারফেসে 21টি ভাষা সমর্থিত। |
@@ -220,7 +218,6 @@ Toonflow স্বল্পদৈর্ঘ্য নাটক, অ্যান�
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow · নোড মেনু ও গ্রুপের কাজ" width="80%" /></a><br /><sub>নোড মেনু ও গ্রুপের কাজ</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow · প্লাগইন মার্কেটপ্লেস" width="80%" /></a><br /><sub>প্লাগইন মার্কেটপ্লেস</sub>
 
 </div>
 
@@ -439,7 +436,6 @@ TF-Router হলো Toonflow-এর নিজস্ব পরিচালিত 
 > 5. নতুন মডিউল
 > অসীম ক্যানভাস - স্থানের চেয়ে বেশি: স্বাধীনতা।
 > অনুপ্রেরণা মোড — নির্মাতাদের জন্য তৈরি।
-> Plugin Hub — দুর্দান্ত প্লাগইনগুলি আবিষ্কার করতে সহায়তা করে৷
 > Skill Hub — অভিজ্ঞতা শেয়ার করা যায়।
 > Provider Hub — যেখানে ইকোসিস্টেম শুরু হয়।
 > সম্পূর্ণ Docker একীকরণ — স্থাপনা অ্যাক্সেসযোগ্য করে তোলে।

@@ -2,8 +2,6 @@
   <nodeSkeleton class="textNode"
     v-bind="nodeProps"
     v-model:bottomVisible="node.selected"
-    :topVisible="node.selected"
-    topWidth="max-content"
     :downloadUrl="downloadUrl"
     :downloadName="`${nodeProps.label || '文本'}.txt`"
     :bottomWidth="720"
@@ -25,13 +23,14 @@
           <promptInput v-model="promptModel" v-model:text="prompt" :references="referenceMentions" :minHeight="160" placeholder="描述想写的内容，输入 @ 引用参考" :expandedLayout="expanded" />
         </template>
         <template #footer>
+          <span v-if="!ai.canGenerate" class="generationUnavailable" role="status">隔离试运行暂未开放生成。</span>
           <el-select v-model="model" class="modelSelect" filterable :loading="modelsLoading" :disabled="generating" placeholder="选择模型" aria-label="生成模型" noDataText="请先在设置中添加模型" placement="top-start" @visible-change="visible => visible && loadModels()">
             <template #prefix><icon-sparkles :size="17" /></template>
             <el-option-group v-for="provider in modelGroups" :key="provider.id" :label="provider.label">
               <el-option v-for="item in provider.models" :key="item.modelId" :label="item.label" :value="JSON.stringify([item.providerId, item.modelId])" />
             </el-option-group>
           </el-select>
-          <el-button class="sendButton" :icon="IconArrowUp" :loading="generating" :disabled="!prompt.trim() || !selectedModel || generating || !textReady || !!referenceHint" title="生成文本" aria-label="生成文本" @click="generateText" />
+          <el-button class="sendButton" :icon="IconArrowUp" :loading="generating" :disabled="!ai.canGenerate || !prompt.trim() || !selectedModel || generating || !textReady || !!referenceHint" :title="ai.canGenerate ? '生成文本' : '隔离试运行暂未开放生成'" aria-label="生成文本" @click="generateText" />
         </template>
       </nodeComposer>
     </template>
@@ -43,10 +42,10 @@
 
 <script setup lang="ts">
 import { textNodeIcon } from "@toonflow/nodes-scaffold/nodeIcons";
-import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { ElButton, ElInput, ElSelect, ElDialog, ElOption, ElOptionGroup, ElMessage, ElMessageBox } from "element-plus";
 import { IconEdit, IconSparkles, IconArrowUp } from "@tabler/icons-vue";
-import { groupNodeModels, nodeSkeleton, nodeComposer, nodeTools, useNode, useNodeReferences, z, type NodeAiModel, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
+import { groupNodeModels, nodeSkeleton, nodeComposer, nodeTools, nodeFileDirectory, useNode, useNodeReferences, z, type NodeAiModel, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import referenceItem from "@toonflow/nodes-scaffold/referenceItem";
 import promptInput from "@toonflow/nodes-scaffold/promptInput";
 
@@ -89,30 +88,35 @@ const textReady = ref(false);
 const initialOutputs = node.data.outputs ?? {};
 // ACT: 加载期间沿用原内联内容，文件加载成功后才从画布快照排除正文。
 Object.defineProperty(outputs.value, "toJSON", { value: () => textReady.value ? {} : initialOutputs });
-const textPath = `assets/${node.id}/content.md`;
+let textPath = `assets/${node.id}/content.md`;
 let textFiles: ReturnType<typeof files.getWorkspaceFiles>;
 let textLoading: Promise<void> | undefined;
 let textSaving = Promise.resolve();
 let textDraftKey = "";
-let textDirty = false;
+const nodeDraftStore = inject<{ get(): Promise<string | null>; set(value: string): Promise<void>; remove(): Promise<void> }>("nodeDraftStore", {
+  get: async () => localStorage.getItem(textDraftKey),
+  set: async value => { localStorage.setItem(textDraftKey, value); },
+  remove: async () => { localStorage.removeItem(textDraftKey); },
+});
+const textDirty = ref(false);
 let textRevision = 0;
-const protectText = (event: BeforeUnloadEvent) => { if (textDirty) { event.preventDefault(); event.returnValue = ""; } };
+const protectText = (event: BeforeUnloadEvent) => { if (textDirty.value) { event.preventDefault(); event.returnValue = ""; } };
 window.addEventListener("beforeunload", protectText);
 onBeforeUnmount(() => window.removeEventListener("beforeunload", protectText));
 function saveText(value: string) {
   const revision = ++textRevision;
-  textDirty = true;
-  try { localStorage.setItem(textDraftKey, value); } catch { /* 写入失败仍继续磁盘保存，关闭页面前保持保护。 */ }
+  textDirty.value = true;
   textSaving = textSaving.catch(() => {}).then(async () => {
+    try { await nodeDraftStore.set(value); } catch { /* 草稿写入失败仍继续磁盘保存，关闭页面前保持保护。 */ }
     await textFiles.write(textPath, value);
     if (revision === textRevision) {
-      textDirty = false;
-      try { if (localStorage.getItem(textDraftKey) === value) localStorage.removeItem(textDraftKey); } catch { /* 不影响已完成的磁盘保存。 */ }
+      textDirty.value = false;
+      try { if (await nodeDraftStore.get() === value) await nodeDraftStore.remove(); } catch { /* 不影响已完成的磁盘保存。 */ }
     }
   });
   return textSaving;
 }
-nodeEvent.on("canUnload", () => !generating.value && !editing.value && textReady.value);
+nodeEvent.on("canUnload", () => !generating.value && !editing.value && textReady.value && !textDirty.value);
 nodeEvent.on("save", async (reason) => {
   await textLoading;
   if (!textReady.value) throw new Error("文本尚未加载，无法保存");
@@ -131,23 +135,25 @@ onMounted(() => { textLoading = loadText(); });
 async function loadText() {
   try {
     if (!node.id || /[\\/]/.test(node.id) || node.id === "." || node.id === "..") throw new Error("节点 ID 不能作为文件夹名称");
-    const sourcePath = data.value.textPath;
-    if (sourcePath !== undefined && (typeof sourcePath !== "string" || sourcePath !== textPath && !/^assets\/production\/[a-f0-9-]{36}\/reference\d+\.md$/i.test(sourcePath))) throw new Error("文本文件路径无效");
     textFiles = files.getWorkspaceFiles();
+    const nodeDirectory = await nodeFileDirectory(textFiles, node.id);
+    textPath = `${nodeDirectory}/content.md`;
+    const sourcePath = data.value.textPath;
+    if (sourcePath !== undefined && (typeof sourcePath !== "string" || sourcePath !== textPath && sourcePath !== `assets/${node.id}/content.md` && sourcePath !== `references/nodes/${node.id}/content.md` && !/^(?:assets\/production|references\/versions)\/[a-f0-9-]{36}\/reference\d+\.md$/i.test(sourcePath))) throw new Error("文本文件路径无效");
     const directory = textFiles.getDirectory?.() ?? (await textFiles.list()).directory;
     textDraftKey = `toonflow.textDraft:${JSON.stringify([directory, textPath])}`;
     let value = data.value.textSnapshot !== undefined ? data.value.textSnapshot : sourcePath ? await textFiles.readText(sourcePath) : outputs.value.text.value;
     if (typeof value !== "string") throw new Error("文本内容无效");
     let backup: string | null = null;
-    try { backup = localStorage.getItem(textDraftKey); } catch { /* 浏览器禁用存储时仍可读取磁盘文件。 */ }
+    try { backup = await nodeDraftStore.get(); } catch { /* 浏览器禁用存储时仍可读取磁盘文件。 */ }
     if (backup !== null && backup !== value) {
       const restore = await ElMessageBox.confirm("发现此文本节点未保存的内容，是否恢复？", "恢复文本", { confirmButtonText: "恢复内容", cancelButtonText: "使用磁盘版本", showClose: false, closeOnClickModal: false, closeOnPressEscape: false }).then(() => true, () => false);
       if (restore) { value = backup; await saveText(value); }
-      else localStorage.removeItem(textDraftKey);
+      else await nodeDraftStore.remove().catch(() => {});
     }
     if (sourcePath !== textPath) {
-      // 固定参考所在的 assets 已存在，不对共享父目录重复加写锁。
-      for (const directory of sourcePath ? [`assets/${node.id}`] : ["assets", `assets/${node.id}`]) {
+      const parts = nodeDirectory.split("/");
+      for (const directory of parts.map((_part, index) => parts.slice(0, index + 1).join("/"))) {
         await textFiles.mkdir(directory).catch((error: { response?: { data?: { data?: { code?: string } } } }) => {
           if (error.response?.data?.data?.code !== "EEXIST") throw error;
         });
@@ -246,6 +252,7 @@ nodeTools.register({
 .textNode {
   --node-handle-opacity: 1;
 }
+.generationUnavailable { color: var(--el-text-color-secondary); font-size: 12px; }
 
 .textEditor {
   &.fullscreen :deep(.el-textarea__inner) {
@@ -262,8 +269,12 @@ nodeTools.register({
   }
 }
 
+.textNode { --nodeWidth: 320px; --nodeCardHeight: 200px; }
 .textContent {
-  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
 
   &.empty {
     display: flex;
@@ -271,13 +282,14 @@ nodeTools.register({
     justify-content: center;
 
     .editButton {
+      align-self: center;
       margin: 0;
     }
   }
 
   .textPreview {
-    min-height: 110px;
-    max-height: 240px;
+    flex: 1;
+    min-height: 0;
     overflow: auto;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -286,6 +298,9 @@ nodeTools.register({
 
   .editButton {
     display: flex;
+    flex-shrink: 0;
+    align-self: flex-end;
+    margin-top: 8px;
     margin-left: auto;
   }
 }

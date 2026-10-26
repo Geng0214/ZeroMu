@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">デスクトップ版をダウンロード</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">ユーザーガイド</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">プラグインマーケット</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">開発者向けドキュメント</a> ·
   <a href="https://api.toonflow.net/">公式モデルプラットフォーム</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow はショートドラマ、モーションコミック、ショート�
 | 🏠 **ローカル環境で運用** | プロジェクトと素材を自分のデバイスやサーバーに保存。デスクトップ、Docker、サーバーへの導入に対応しています。 |
 | 🖼️ **無限キャンバス** | 同じキャンバス上で脚本、キャラクター、シーン、動画クリップを整理できます。 |
 | 🔌 **MCP** | MCP を通じて外部ツールやサービスに接続できます。 |
-| 🧩 **プラグインマーケット** | [プラグインマーケット](https://api.toonflow.net/console/plugIn)からノード、ツール、制作機能を追加できます。 |
 | 🤖 **オープンな Agent** | プロンプト、ツール、A2A のオープンな仕組みにより、Agent の動作のカスタマイズと外部連携に対応します。 |
 | 🔧 **モデルを自由に接続** | サードパーティーの API に加え、ローカルの ComfyUI や LLM も接続できます。 |
 | 🌐 **多言語対応** | 21の表示言語に対応。 |
@@ -220,7 +218,6 @@ Toonflow はショートドラマ、モーションコミック、ショート�
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow ノードメニューとグループ操作" width="80%" /></a><br /><sub>ノードメニューとグループ操作</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow プラグインマーケット" width="80%" /></a><br /><sub>プラグインマーケット</sub>
 
 </div>
 

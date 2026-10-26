@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">ดาวน์โหลดแอป</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">คู่มือการใช้งาน</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">ตลาดปลั๊กอิน</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">เอกสารสำหรับนักพัฒนา</a> ·
   <a href="https://api.toonflow.net/">แพลตฟอร์มโมเดลอย่างเป็นทางการ</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow คือแพลตฟอร์มสร้างสรรค์ด�
 | 🏠 **ติดตั้งในระบบของคุณ** | บันทึกโครงการและสื่อไว้บนอุปกรณ์หรือเซิร์ฟเวอร์ของคุณเอง รองรับการติดตั้งแบบเดสก์ท็อป Docker และเซิร์ฟเวอร์ |
 | 🖼️ **แคนวาสไม่จำกัด** | จัดวางบท ตัวละคร ฉาก และคลิปวิดีโอบนแคนวาสเดียวกัน |
 | 🔌 **MCP** | เชื่อมต่อเครื่องมือและบริการภายนอกผ่าน MCP |
-| 🧩 **ตลาดปลั๊กอิน** | เพิ่มโหนด เครื่องมือ และความสามารถในการสร้างสรรค์ผ่าน[ตลาดปลั๊กอิน](https://api.toonflow.net/console/plugIn) |
 | 🤖 **Agent แบบเปิด** | เปิดให้ปรับแต่งพรอมป์ต์และเครื่องมือ พร้อมรองรับ A2A เพื่อกำหนดพฤติกรรมของ Agent และทำงานร่วมกับ Agent ภายนอก |
 | 🔧 **เชื่อมต่อโมเดลได้อย่างอิสระ** | กำหนดค่า API ของบุคคลที่สาม หรือเชื่อมต่อ ComfyUI และ LLM ที่ทำงานในเครื่อง |
 | 🌐 **รองรับหลายภาษา** | รองรับภาษาของส่วนติดต่อผู้ใช้ 21 ภาษา |
@@ -220,7 +218,6 @@ Toonflow คือแพลตฟอร์มสร้างสรรค์ด�
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="เมนูโหนดและการจัดกลุ่มของ Toonflow" width="80%" /></a><br /><sub>เมนูโหนดและการจัดกลุ่ม</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="ตลาดปลั๊กอินของ Toonflow" width="80%" /></a><br /><sub>ตลาดปลั๊กอิน</sub>
 
 </div>
 
@@ -439,7 +436,6 @@ TF-Router คือแพลตฟอร์มตัวกลางสำหร�
 > 5. โมดูลใหม่
 > แคนวาสไม่จำกัด — ไม่ใช่แค่พื้นที่กว้าง แต่คืออิสระ
 > โหมดแรงบันดาลใจ — สร้างมาเพื่อผู้สร้างสรรค์
-> Plugin Hub — ให้ปลั๊กอินดี ๆ ได้รับการมองเห็น
 > Skill Hub — เพื่อส่งต่อประสบการณ์
 > Provider Hub — จุดเริ่มต้นของระบบนิเวศ
 > การผสาน Docker อย่างครบถ้วน — การติดตั้งจะไม่เป็นอุปสรรคอีกต่อไป

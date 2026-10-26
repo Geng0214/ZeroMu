@@ -36,9 +36,23 @@ export default function useWorkspaceFiles(directory?: MaybeRefOrGetter<string | 
     return data.data;
   }
 
-  async function read(path: string) {
-    const { data } = await client.get<ArrayBuffer>("/read", { params: { directory: getDirectory(), path }, responseType: "arraybuffer" });
+  async function read(path: string, signal?: AbortSignal) {
+    const { data } = await client.get<ArrayBuffer>("/read", { params: { directory: getDirectory(), path }, responseType: "arraybuffer", signal });
     return data;
+  }
+
+  async function readRange(path: string, start: number, length: number, signal?: AbortSignal) {
+    if (!Number.isSafeInteger(start) || start < 0 || !Number.isSafeInteger(length) || length < 1 || length > 4 * 1024 * 1024) throw new Error("文件分段范围无效");
+    const response = await client.get<ArrayBuffer>("/read", {
+      params: { directory: getDirectory(), path }, responseType: "arraybuffer", signal,
+      headers: { Range: `bytes=${start}-${start + length - 1}` }, timeout: 30_000,
+    });
+    const match = /^bytes (\d+)-(\d+)\/(\d+)$/.exec(String(response.headers["content-range"] ?? ""));
+    const total = Number(match?.[3]);
+    if (response.status !== 206 || !match || Number(match[1]) !== start || Number(match[2]) < start || Number(match[2]) >= total
+      || Number(match[2]) - start + 1 !== response.data.byteLength || !Number.isSafeInteger(total) || total > 100 * 1024 * 1024
+      || start >= total || !response.headers.etag) throw new Error("媒体分段读取结果无效或文件超过 100 MB");
+    return { chunk: response.data, total, etag: String(response.headers.etag) };
   }
 
   async function previewUrl(path: string, mimeType?: string) {
@@ -112,27 +126,27 @@ export default function useWorkspaceFiles(directory?: MaybeRefOrGetter<string | 
     invalidateUrls(directory, path);
   }
 
-  function writeJson(path: string, data: unknown, exclusive = false) {
-    return write(path, `${JSON.stringify(data, null, 2)}\n`, exclusive);
+  function writeJson(path: string, data: unknown, exclusive = false, signal?: AbortSignal) {
+    return write(path, `${JSON.stringify(data, null, 2)}\n`, exclusive, signal);
   }
 
-  async function rename(path: string, target: string) {
+  async function rename(path: string, target: string, signal?: AbortSignal) {
     const directory = getDirectory();
-    await client.post("/rename", { directory, path, target });
+    await client.post("/rename", { directory, path, target }, { signal });
     invalidateUrls(directory, path);
     invalidateUrls(directory, target);
   }
 
-  async function remove(path: string, recursive = false) {
+  async function remove(path: string, recursive = false, signal?: AbortSignal) {
     const directory = getDirectory();
-    await client.delete("/remove", { data: { directory, path, recursive } });
+    await client.delete("/remove", { data: { directory, path, recursive }, signal });
     invalidateUrls(directory, path);
   }
 
-  async function mkdir(path: string) {
-    await client.post("/mkdir", { directory: getDirectory(), path });
+  async function mkdir(path: string, signal?: AbortSignal) {
+    await client.post("/mkdir", { directory: getDirectory(), path }, { signal });
   }
 
   // ACT: 当前目录逐次读取；跨 await 或防抖的操作传入目录字符串，固定本次目标。
-  return { getDirectory, list, read, acquireUrl, previewUrl, mediaPreview, readText, readJson, readJsonInfo, write, writeJson, rename, remove, mkdir };
+  return { getDirectory, list, read, readRange, acquireUrl, previewUrl, mediaPreview, readText, readJson, readJsonInfo, write, writeJson, rename, remove, mkdir };
 }

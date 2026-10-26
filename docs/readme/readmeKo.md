@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">다운로드</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">사용 가이드</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">플러그인 마켓</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">개발자 문서</a> ·
   <a href="https://api.toonflow.net/">공식 모델 플랫폼</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow는 숏드라마, 모션 코믹스, 짧은 영상 제작을 위한 오�
 | 🏠 **로컬 배포** | 프로젝트와 자산을 자신의 기기나 서버에 저장하며 데스크톱, Docker, 서버 배포를 지원합니다. |
 | 🖼️ **무한 캔버스** | 하나의 캔버스에서 대본, 캐릭터, 장면, 영상 클립을 정리합니다. |
 | 🔌 **MCP** | MCP를 통해 외부 도구와 서비스에 연결합니다. |
-| 🧩 **플러그인 마켓** | [플러그인 마켓](https://api.toonflow.net/console/plugIn)에서 노드, 도구, 창작 기능을 확장합니다. |
 | 🤖 **개방형 Agent** | 프롬프트, 도구, A2A를 개방하여 Agent 동작을 맞춤 설정하고 외부 Agent와 협업할 수 있습니다. |
 | 🔧 **유연한 모델 연결** | 타사 API를 설정하거나 로컬 ComfyUI 및 LLM에 연결합니다. |
 | 🌐 **다국어 지원** | 21개 인터페이스 언어를 지원합니다. |
@@ -220,7 +218,6 @@ Toonflow는 숏드라마, 모션 코믹스, 짧은 영상 제작을 위한 오�
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow 노드 메뉴와 그룹 작업" width="80%" /></a><br /><sub>노드 메뉴와 그룹 작업</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow 플러그인 마켓" width="80%" /></a><br /><sub>플러그인 마켓</sub>
 
 </div>
 

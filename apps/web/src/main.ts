@@ -54,10 +54,7 @@ async function notifyDesktopReady(failed = false) {
   app.onUnmount(registerDesktopProtocol());
   app.onUnmount(registerDesktopDownloads());
   await nextTick();
-  // ACT: 隐藏的 WebView 不依赖 requestAnimationFrame；等待首页挂载和页面资源就绪。
-  if (document.readyState !== "complete") {
-    await new Promise<void>((resolve) => window.addEventListener("load", () => resolve(), { once: true }));
-  }
+  // ACT: 首页挂载即可结束启动，图片等资源继续加载；隐藏窗口不等待 load 或 requestAnimationFrame。
   await notifyDesktopReady();
   // ACT: 桌面启动后只静默检查一次；失败留待用户手动重试，不阻塞启动或自动下载。
   void checkDesktopUpdate(true).catch(() => {});

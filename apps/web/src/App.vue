@@ -3,7 +3,6 @@
     <config-provider :globalConfig="tdesignLocale">
       <router-view />
       <taskCenter />
-      <ffmpegRequired />
       <updateBox
         v-if="updateBoxBuild && !installFailure"
         v-model="updateBoxVisible"
@@ -53,7 +52,6 @@ import { chatLocale } from "@/lib/i18n";
 import { saveSettings, settings, uiSettings } from "@/stores/settings";
 import { desktopUpdateSnapshot, stopDesktopUpdateObservation } from "@/stores/desktopUpdate";
 import { useMcpControl } from "@/lib/mcpControl";
-import ffmpegRequired from "@/components/settings/ffmpegRequired.vue";
 import updateBox from "@/components/updateBox.vue";
 import taskCenter from "@/components/taskCenter.vue";
 import "element-plus/theme-chalk/dark/css-vars.css";
@@ -135,6 +133,11 @@ watchEffect(() => {
   root.style.colorScheme = dark ? "dark" : "light";
   root.style.fontSize = `${(16 * fontScale) / 100}px`;
   root.style.setProperty("--ui-radius", `${radius}px`);
+  const accentChannels = [1, 3, 5].map(offset => parseInt(primaryColor.slice(offset, offset + 2), 16) / 255)
+    .map(channel => channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4);
+  const accentLuminance = accentChannels[0] * 0.2126 + accentChannels[1] * 0.7152 + accentChannels[2] * 0.0722;
+  root.style.setProperty("--uiAccentColor", primaryColor);
+  root.style.setProperty("--uiAccentContrast", accentLuminance > 0.2 ? "#181818" : "#ffffff");
   root.style.setProperty("--el-color-primary", primaryColor);
   for (let level = 1; level <= 9; level++) {
     root.style.setProperty(

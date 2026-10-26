@@ -39,6 +39,7 @@ export function useNode<T extends NodeOutputs = NodeOutputs>(options: NodeOption
     outputs: outputs.value,
   }));
   const nodeEvent = useNodeEvent();
+  inject<((id: string, events: typeof nodeEvent) => void) | undefined>("nodeFrameLifecycle", undefined)?.(id, nodeEvent);
   const getCanvasContext = inject<(() => { id: string } | undefined) | undefined>("canvas", undefined);
   const { getWorkspaceFiles, uploadFile, removeNodeFiles, useFileUrl, useMediaPreview } = useNodeFiles();
 

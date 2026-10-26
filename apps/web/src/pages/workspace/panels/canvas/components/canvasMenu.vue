@@ -6,10 +6,12 @@
           <template #reference><el-button class="menuIcon canvasTopButton" text aria-label="画布菜单" :aria-expanded="menuVisible" @keydown.esc.stop="menuVisible = false"><icon-menu-2 :size="20" :strokeWidth="1.75" /></el-button></template>
           <div class="canvasMenuActions" @keydown.esc.stop="menuVisible = false">
             <router-link to="/home"><icon-home :size="16" />回到主页</router-link>
-            <router-link to="/canvas"><icon-layout-grid :size="16" />画布仓库</router-link>
+            <router-link to="/canvas"><icon-layout-grid :size="16" />画布管理</router-link>
             <taskButton @click="menuVisible = false" />
           </div>
         </el-popover>
+        <router-link class="canvasProject" to="/projects" :title="'所属项目：' + workspace.project?.name + ' · ' + directory"><span>所属项目</span><strong>{{ workspace.project?.name }}</strong></router-link>
+        <router-link class="canvasManagement" to="/canvas" title="按所属项目管理画布" aria-label="画布管理"><icon-layout-grid :size="16" aria-hidden="true" /><span>画布管理</span></router-link>
         <el-popover v-model:visible="canvasListVisible" trigger="click" placement="bottom-start" :width="300" :showArrow="false" :disabled="!directory" popperClass="canvasPickerPopover"
           :popperOptions="{ strategy: 'fixed', modifiers: [{ name: 'preventOverflow', options: { rootBoundary: 'viewport', tether: false, altAxis: true, padding: 12 } }] }">
           <template #reference>
@@ -66,6 +68,8 @@ import { canvasDraftKey, clearCanvasDraft } from "@/lib/canvasDraft";
 import { validateCanvas, validCanvasName } from "@/pages/canvasLibrary/canvasTransfer";
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import { getCanvasAssetDirectories, isCanvasFile } from "@/pages/workspace/canvasFile";
+import { useWorkspaceStore } from "@/stores/workspace";
+import { canvasFolder } from "@/lib/canvasStorage";
 import createNumberedCanvas from "@/pages/workspace/createCanvas";
 import taskButton from "@/components/taskButton.vue";
 
@@ -77,6 +81,7 @@ const props = defineProps<{
   flushSave: (action?: () => Promise<void>) => Promise<void>;
 }>();
 const emit = defineEmits<{ retrySave: []; loaded: [] }>();
+const workspace = useWorkspaceStore();
 const route = useRoute();
 type Canvas = { id: string; name: string; flow?: Pick<FlowExportObject, "nodes" | "edges" | "viewport"> };
 const canvases = inject<ShallowRef<Canvas[]>>("canvasList", shallowRef<Canvas[]>([]));
@@ -121,12 +126,12 @@ watch(() => props.directory, async (directory, _previous, onCleanup) => {
     if (cancelled) return;
     if (!loaded.length) {
       try {
-        loaded = [await createCanvasFile(directory, "画布1")];
+        loaded = [await createCanvasFile(directory, "无限画布1")];
       } catch (err) {
         if (!axios.isAxiosError<{ data?: { code?: string } }>(err) || err.response?.status !== 409 || err.response.data.data?.code !== "EEXIST") throw err;
         // 同时打开工作区时，读取另一请求刚创建的默认画布，不覆盖同名文件。
         const refreshed = await listCanvases(directory);
-        // 画布1.json 若被其他 JSON 占用，则使用下一个空闲名称，保留原文件。
+        // 无限画布1.json 若被其他 JSON 占用，则使用下一个空闲名称，保留原文件。
         loaded = refreshed.length ? refreshed : [await createCanvasFile(directory)];
       }
     }
@@ -295,14 +300,15 @@ async function createCanvasFile(directory: string, name?: string, signal?: Abort
   const files = useWorkspaceFiles(directory);
   const flow = { nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } };
   checkCanvasDirectory(directory, signal);
-  const id = `${name}.json`;
+  const folder = await canvasFolder(directory);
+  const id = `${folder ? folder + "/" : ""}${name}.json`;
   await files.writeJson(id, { toonflowCanvas: true, ...flow }, true);
   return { id, name, flow };
 }
 
 async function listCanvases(directory: string): Promise<Canvas[]> {
   const files = useWorkspaceFiles(directory);
-  const { entries } = await files.list();
+  const { entries } = await files.list(await canvasFolder(directory));
   const loaded = await Promise.all(entries.filter(entry => entry.type === "file" && /\.json$/i.test(entry.name)).map(async entry => {
     if (!(await isCanvasFile(files, entry.path))) return null;
     return { id: entry.path, name: entry.name.slice(0, -5) };
@@ -373,7 +379,7 @@ async function renameCanvasFile(id: string, name: string, directory: string, sig
   if (name === canvas.name) return;
   await props.flushSave(async () => {
     checkCanvasDirectory(directory, signal);
-    const target = `${name}.json`;
+    const target = id.replace(/[^/]+$/, `${name}.json`);
     await useWorkspaceFiles(directory).rename(id, target);
     checkCanvasDirectory(directory);
     // 文件已改名时先更新保存路径，再响应取消，避免自动保存重新创建旧文件。
@@ -537,6 +543,9 @@ defineExpose({ getCanvases, addCanvas, switchCanvas, renameCanvas, syncDocumentN
     gap: 10px;
     min-width: 0;
 
+    .canvasProject { display: flex; align-items: center; gap: 7px; min-width: 0; max-width: 200px; padding: 8px 4px; color: var(--el-text-color-primary); font-size: 12px; text-decoration: none; span { flex-shrink: 0; color: var(--el-text-color-secondary); } strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; } &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; } }
+    .canvasManagement { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; padding: 8px; border-radius: var(--ui-radius, 8px); background: var(--el-bg-color-overlay); color: var(--el-text-color-primary); font-size: 12px; text-decoration: none; &:hover { background: var(--el-fill-color); } &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: 2px; } }
+
     .canvasTrigger {
       padding: 0;
       min-width: 0;
@@ -568,7 +577,7 @@ defineExpose({ getCanvases, addCanvas, switchCanvas, renameCanvas, syncDocumentN
 }
 @container (max-width: 640px) {
   .canvasMenuPanel.vue-flow__panel { max-width: calc(100% - 78px); }
-  .canvasMenu .menuContent { gap: 6px; .canvasTrigger .canvasName { padding: 0 8px; } .canvasMeta { gap: 6px; } }
+  .canvasMenu .menuContent { gap: 6px; .canvasProject { max-width: 120px; span { display: none; } } .canvasManagement span { display: none; } .canvasTrigger .canvasName { padding: 0 8px; } .canvasMeta { gap: 6px; } }
 }
 </style>
 

@@ -184,6 +184,7 @@
         @selectPlan="selectPlan"
         :models="models"
         :modelsLoading="modelsLoading"
+        :generationEnabled="generationEnabled"
         @loadModels="emit('loadModels')"
         @send="emit('generate')"
         @editInstruction="emit('editInstruction', $event)">
@@ -225,6 +226,7 @@ const props = defineProps<{
   tasks: DirectorGeneration[];
   models: NodeAiModel[];
   modelsLoading: boolean;
+  generationEnabled?: boolean;
   sceneSaving: boolean;
   saveScene: (scene: SceneDocument) => Promise<void>;
   restoreScene: (direction: "undo" | "redo") => Promise<void>;

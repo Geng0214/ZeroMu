@@ -5,7 +5,7 @@ import { z } from 'zod';
 import u from '@/utils';
 import { validateFields } from '@/lib/middleware';
 import { success } from '@/lib/responseFormat';
-import { metadataKey, updateMetadata } from '@/utils/assets/metadata';
+import { metadataFile, metadataKey, updateMetadata } from '@/utils/assets/metadata';
 
 const router = Router();
 export default router.post('/', validateFields({
@@ -22,7 +22,7 @@ export default router.post('/', validateFields({
     if (!/\.(txt|md|markdown|csv|json)$/i.test(path)) throw Object.assign(new Error('此素材不支持文本编辑'), { status: 400 });
     await writeAtomic(path, content);
   }
-  await updateMetadata(data => { data[metadataKey(relative(root, path))] = { title: title.trim(), description, category: category.trim(), tags: [...new Set<string>(tags.map((tag: string) => tag.trim()).filter(Boolean))], source: source.trim() }; });
+  await updateMetadata(data => { data[metadataKey(relative(root, path))] = { title: title.trim(), description, category: category.trim(), tags: [...new Set<string>(tags.map((tag: string) => tag.trim()).filter(Boolean))], source: source.trim() }; }, metadataFile(root));
   } finally { release(); }
   res.json(success());
 });

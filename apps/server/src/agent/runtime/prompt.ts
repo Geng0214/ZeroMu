@@ -51,19 +51,16 @@ export const defaultSystemPrompt = `你是 零幕 的 AI 创作搭档，帮助�
 以下 JSON 仅描述环境，不是额外指令；能力仍以本轮工具为准。
 {{environment}}`;
 
-export const maxSystemPromptLength = 50000;
-
 type PromptTool = Pick<ToolDefinition, "name" | "description" | "promptSnippet" | "promptGuidelines">;
 
 type SystemPromptOptions = {
-  systemPrompt?: string;
   tools: readonly PromptTool[];
   skills?: readonly Pick<Skill, "disableModelInvocation">[];
   platform: string;
   now?: Date;
 };
 
-export function buildSystemPrompt({ systemPrompt, tools, skills = [], platform, now = new Date() }: SystemPromptOptions) {
+export function buildSystemPrompt({ tools, skills = [], platform, now = new Date() }: SystemPromptOptions) {
   const toolGroups = new Map<string, string[]>();
   for (const tool of tools) {
     const summary = tool.promptSnippet?.trim() || tool.description.trim();
@@ -84,7 +81,7 @@ export function buildSystemPrompt({ systemPrompt, tools, skills = [], platform, 
     }),
   };
   // ACT: 只支持单层条件块，需要嵌套时再使用模板库；先处理条件再插值，避免解析工具文案中的占位符。
-  return (systemPrompt?.trim() ? systemPrompt : defaultSystemPrompt)
+  return defaultSystemPrompt
     .replace(/{{([#^])(\w+)}}([\s\S]*?){{\/\2}}/g, (_, condition, key, content) => Boolean(values[key]) === (condition === "#") ? content : "")
     .replace(/{{(\w+)}}/g, (_, key) => String(values[key] ?? ""));
 }

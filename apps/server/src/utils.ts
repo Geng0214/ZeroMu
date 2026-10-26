@@ -20,6 +20,7 @@ import * as agent from "@/agent";
 import * as canvas from "@/agent/bridge/canvas";
 import * as question from "@/agent/bridge/question";
 import * as workspace from "@/utils/workspace";
+import * as workspaceProjects from "@/utils/workspace/projects";
 import * as workspaceFile from "@/utils/workspace/files";
 import * as workspacePreview from "@/utils/workspace/preview";
 import * as skillFile from "@/utils/skills/files";
@@ -56,6 +57,7 @@ export default {
   canvas,
   question,
   workspace,
+  workspaceProjects,
   workspaceFile,
   workspacePreview,
   skillFile,

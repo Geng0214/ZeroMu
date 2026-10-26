@@ -1,18 +1,19 @@
 <template>
-  <header class="appHeader" :class="{ lightHeader: light }">
+  <header class="appHeader" :class="{ lightHeader: light, compactHeader: compact }">
     <router-link class="headerBrand" to="/home" aria-label="零幕首页" :aria-current="route.path === '/home' ? 'page' : undefined">
       <span class="brandMark" aria-hidden="true"><span :style="{ maskImage: `url(${logoUrl})` }"></span></span>
       <strong>零幕</strong>
     </router-link>
-    <nav class="headerNavigation" aria-label="主导航">
+    <nav v-if="!compact" class="headerNavigation" aria-label="主导航">
       <router-link v-for="item in navigation" :key="item.path" :to="destination(item.path)" :class="{ active: route.path === item.path }" :aria-current="route.path === item.path ? 'page' : undefined">
         <component :is="item.icon" :size="17" :strokeWidth="1.7" aria-hidden="true" />
         <span>{{ item.label }}</span>
       </router-link>
     </nav>
+    <router-link v-if="compact" class="projectLocation" to="/projects" :title="workspace.project?.directory || '选择项目文件夹'"><icon-folders :size="15" /><span>{{ workspace.project?.name || '选择项目' }}</span></router-link>
     <div class="headerActions">
       <taskButton />
-      <button type="button" aria-label="模型配置" title="模型配置" @click="emit('settings', 'mediaChannel')"><icon-adjustments-horizontal :size="18" :strokeWidth="1.7" /></button>
+      <button v-if="!compact" type="button" aria-label="模型配置" title="模型配置" @click="emit('settings', 'mediaChannel')"><icon-adjustments-horizontal :size="18" :strokeWidth="1.7" /></button>
       <button type="button" aria-label="设置" title="设置" @click="emit('settings', 'ui')"><icon-settings :size="18" :strokeWidth="1.7" /></button>
       <button type="button" :disabled="themeChanging" :aria-label="light ? '切换深色' : '切换浅色'" :title="light ? '切换深色' : '切换浅色'" @click="toggleTheme"><icon-moon v-if="light" :size="18" :strokeWidth="1.7" /><icon-sun v-else :size="18" :strokeWidth="1.7" /></button>
     </div>
@@ -21,6 +22,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useWorkspaceStore } from '@/stores/workspace';
 import { ElMessage } from 'element-plus';
 import { useRoute } from 'vue-router';
 import { IconLayoutGrid, IconFolders, IconPhoto, IconVideo, IconMusic, IconBook, IconAdjustmentsHorizontal, IconSettings, IconMoon, IconSun } from '@tabler/icons-vue';
@@ -29,9 +31,10 @@ import { saveSettings } from '@/stores/settings';
 import transitionTheme from '@/lib/themeTransition';
 import taskButton from '@/components/taskButton.vue';
 
-const props = withDefaults(defineProps<{ light: boolean; creationPrompt?: string }>(), { creationPrompt: '' });
+const props = withDefaults(defineProps<{ light: boolean; creationPrompt?: string; compact?: boolean }>(), { creationPrompt: '', compact: false });
 const emit = defineEmits<{ settings: [panel: string] }>();
 const themeChanging = ref(false);
+const workspace = useWorkspaceStore();
 const route = useRoute();
 const navigation = [
   { path: '/canvas', label: '无限画布', icon: IconLayoutGrid },
@@ -78,7 +81,7 @@ async function toggleTheme(event: MouseEvent) {
   border-bottom: 1px solid var(--headerLine);
   background: var(--headerBg);
   color: var(--headerText);
-  &.lightHeader { --headerBg: #f4f5f0; --headerText: #292b27; --headerMuted: #62655e; --headerLine: #d0d2ca; --headerHover: #e6e8e1; }
+  &.lightHeader { --headerBg: var(--ui-lightBg); --headerText: var(--ui-lightText); --headerMuted: var(--ui-lightMuted); --headerLine: var(--ui-lightBorder); --headerHover: var(--ui-lightRaised); }
   a, button { -webkit-tap-highlight-color: transparent; }
   a:focus-visible, button:focus-visible { outline: 2px solid var(--headerText); outline-offset: -4px; }
   .headerBrand {
@@ -88,6 +91,7 @@ async function toggleTheme(event: MouseEvent) {
     }
     strong { font-size: 18px; font-weight: 600; line-height: 1; letter-spacing: .02em; white-space: nowrap; }
   }
+  .projectLocation { display: inline-flex; align-items: center; justify-self: start; gap: 8px; min-width: 0; max-width: 260px; color: var(--headerMuted); text-decoration: none; font-size: 12px; padding: 8px 10px; border-left: 1px solid var(--headerLine); span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } &:hover { color: var(--headerText); } }
   .headerNavigation {
     display: flex; align-items: stretch; align-self: stretch; justify-self: center; width: max-content; max-width: 100%; min-width: 0; gap: 6px; margin: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin;
     &::-webkit-scrollbar { display: none; }
@@ -117,5 +121,18 @@ async function toggleTheme(event: MouseEvent) {
     .headerActions button:not(.taskButton) { width: 40px; height: 44px; }
   }
   @media (pointer: coarse) { .headerActions button:not(.taskButton) { width: 44px; height: 44px; } }
+  &.compactHeader {
+    --headerBg: var(--indexBg); --headerText: var(--indexText); --headerMuted: var(--indexMuted); --headerLine: var(--indexLine); --headerHover: var(--indexRaised);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto;
+    min-height: 56px;
+    padding: 0 24px;
+    gap: 16px;
+    .headerBrand { gap: 8px; strong { font-size: 17px; } .brandMark { width: 28px; height: 28px; span { width: 23px; height: 23px; } } }
+    .projectLocation { grid-column: 2; grid-row: 1; }
+    .headerActions { grid-column: 3; grid-row: 1; }
+    :deep(.taskButton) { border-color: transparent; background: transparent; color: var(--headerText); }
+    @media (max-width: 600px) { padding-inline: 16px; }
+  }
 }
 </style>

@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">دانلود</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">راهنمای کاربر</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">بازار افزونه‌ها</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">مستندات توسعه‌دهندگان</a> ·
   <a href="https://api.toonflow.net/">پلتفرم رسمی مدل‌ها</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow پلتفرمی متن‌باز برای خلق سریال‌های کو
 | 🏠 **اجرای محلی** | پروژه‌ها و دارایی‌ها را روی دستگاه یا سرور خود نگه دارید؛ با گزینه‌های برنامهٔ دسکتاپ، Docker و استقرار روی سرور. |
 | 🖼️ **بوم بی‌نهایت** | فیلم‌نامه‌ها، شخصیت‌ها، صحنه‌ها و کلیپ‌های ویدیویی را روی یک بوم سازمان‌دهی کنید. |
 | 🔌 **MCP** | ابزارها و سرویس‌های بیرونی را از طریق MCP متصل کنید. |
-| 🧩 **بازار افزونه‌ها** | گره‌ها، ابزارها و قابلیت‌های خلاقانه را از طریق [بازار افزونه‌ها](https://api.toonflow.net/console/plugIn) گسترش دهید. |
 | 🤖 **Agent باز** | دسترسی باز به پرامپت‌ها، ابزارها و A2A برای سفارشی‌سازی رفتار Agent و همکاری با عامل‌های بیرونی. |
 | 🔧 **اتصال انعطاف‌پذیر مدل‌ها** | APIهای شخص ثالث را پیکربندی کنید یا نمونه‌های محلی ComfyUI و مدل‌های زبانی بزرگ را متصل کنید. |
 | 🌐 **پشتیبانی چندزبانه** | رابط کاربری از 21 زبان پشتیبانی می‌کند. |
@@ -220,7 +218,6 @@ Toonflow پلتفرمی متن‌باز برای خلق سریال‌های کو
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow · منوی گره‌ها و عملیات گروه‌بندی" width="80%" /></a><br /><sub>منوی گره‌ها و عملیات گروه‌بندی</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow · بازار افزونه‌ها" width="80%" /></a><br /><sub>بازار افزونه‌ها</sub>
 
 </div>
 

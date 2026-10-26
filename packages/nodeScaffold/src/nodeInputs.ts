@@ -1,4 +1,4 @@
-import { computed, type ComputedRef } from "vue";
+import { computed, hasInjectionContext, inject, type ComputedRef } from "vue";
 import { useVueFlow } from "@vue-flow/core";
 import type { Connection, Node } from "@vue-flow/core";
 import { isTypeCompatible, type NodeData, type NodeHandle } from "./connection";
@@ -54,6 +54,7 @@ export function getTargetValues(targetId: string, targetHandleId: string, nodes:
 const targetEdgesKey = Symbol.for("toonflow.targetEdges");
 
 export function useNodeInputs(canvas = useVueFlow()) {
+  const frameInputs = hasInjectionContext() ? inject<((nodeId: string, handleId: string) => NodeInputValue[] | undefined) | undefined>("nodeInputSnapshot", undefined) : undefined;
   const flow = canvas as typeof canvas & { [targetEdgesKey]?: ComputedRef<Map<string, Connection[]>> };
   const { nodeLookup } = canvas;
   // ACT: 按画布共享分组，保留重复边和原顺序；不依赖 VueFlow 会合并重复端点的连接索引。
@@ -61,7 +62,7 @@ export function useNodeInputs(canvas = useVueFlow()) {
   if (!flow[targetEdgesKey]) Object.defineProperty(flow, targetEdgesKey, { value: targetEdges });
   return {
     getTargetSources: (targetId: string, targetHandleId: string) => getTargetSources(targetId, targetHandleId, nodeLookup.value, targetEdges.value.get(targetId) ?? []),
-    getTargetValues: (targetId: string, targetHandleId: string) => getTargetValues(targetId, targetHandleId, nodeLookup.value, targetEdges.value.get(targetId) ?? []),
+    getTargetValues: (targetId: string, targetHandleId: string) => frameInputs?.(targetId, targetHandleId) ?? getTargetValues(targetId, targetHandleId, nodeLookup.value, targetEdges.value.get(targetId) ?? []),
     getSourceValue: (sourceId: string, sourceHandleId: string) => getSourceValue(sourceId, sourceHandleId, nodeLookup.value),
   };
 }

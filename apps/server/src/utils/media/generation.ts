@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { join, relative } from "node:path";
 import { mediaProviders, type Provider } from "@toonflow/providers";
 import type { GeneratedMedia, MediaGenerationRequest, MediaModel, MediaReference } from "@toonflow/tools-scaffold/runtime";
+import { hasProjectLayout, projectPath } from "@/utils/workspace/projectLayout";
 import conf from "@/utils/conf";
 import { orderByDefaultModel } from "@/utils/modelDefaults";
 import { getMediaProvider, getMediaProviderApiKey, listMediaProviders, loadMediaProviderSource } from "@/utils/media/provider";
@@ -83,8 +84,8 @@ export async function readReference(cwd: string, reference: MediaReference, medi
   const bytes = await readFile(path, { signal });
   if (!bytes.length || bytes.length > maxMediaSize) invalid("参考媒体为空或超过 100 MB");
   const referencePath = relative(cwd, path).replaceAll("\\", "/");
-  if (referencePath.toLowerCase().startsWith("assets/transfers/")) await verifyTransferFile(cwd, referencePath, bytes);
-  if (referencePath.toLowerCase().startsWith("assets/production/")) {
+  if (/^(assets\/transfers|references\/transfers)\//i.test(referencePath)) await verifyTransferFile(cwd, referencePath, bytes);
+  if (/^(assets\/production|references\/versions)\//i.test(referencePath)) {
     const project = await readProject(cwd);
     const file = project?.assetVersions.flatMap(version => version.files).find(file => process.platform === "win32" ? file.path.toLowerCase() === referencePath.toLowerCase() : file.path === referencePath);
     if (!file || file.hash !== createHash("sha256").update(bytes).digest("hex")) invalid("固定参考版本未登记或内容已改变，请先恢复原版本，再开始生成");
@@ -196,7 +197,7 @@ export async function generateMedia(
 ): Promise<GeneratedMedia[]> {
   const directory = await realpath(cwd);
   // 持久任务在创建记录时保护参考目录，运行表阻止清理；直接调用仍在登记前检查工作区锁。
-  const release = recovery.task ? undefined : lockWorkspaceFiles([join(directory, "studioReferences")]);
+  const release = recovery.task ? undefined : lockWorkspaceFiles([join(directory, projectPath(directory, "studioReferences"))]);
   activeGenerations.set(directory, (activeGenerations.get(directory) ?? 0) + 1);
   release?.();
   try { return await generateMediaFiles(directory, mediaType, recovery.task ? request : await effectiveMediaRequest(mediaType, request), signal, recovery); }

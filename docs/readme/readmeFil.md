@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">I-download</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">Gabay sa Paggamit</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">Pamilihan ng mga Plugin</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">Dokumentasyon para sa mga Developer</a> ·
   <a href="https://api.toonflow.net/">Opisyal na Platform ng mga Modelo</a>
 </p>
@@ -185,7 +184,6 @@ Ang Toonflow ay isang open-source na AI platform para sa maiikling drama, animat
 | 🏠 **Lokal na deployment** | Itago ang mga proyekto at asset sa sarili mong device o server. May mga opsyon para sa desktop, Docker, at server deployment. |
 | 🖼️ **Walang-hanggang canvas** | Ayusin ang mga iskrip, tauhan, tagpuan, at video clip sa iisang canvas. |
 | 🔌 **MCP** | Kumonekta sa mga panlabas na tool at serbisyo sa pamamagitan ng MCP. |
-| 🧩 **Pamilihan ng mga plugin** | Palawakin ang mga node, tool, at kakayahan sa paglikha gamit ang [Pamilihan ng mga Plugin](https://api.toonflow.net/console/plugIn). |
 | 🤖 **Bukas na Agent** | Bukas ang mga prompt, tool, at A2A upang maiangkop ang kilos ng Agent at makipagtulungan sa mga panlabas na Agent. |
 | 🔧 **Malayang pagkonekta ng mga modelo** | Mag-configure ng mga third-party API o kumonekta sa lokal na ComfyUI at mga LLM. |
 | 🌐 **Suporta sa maraming wika** | Sinusuportahan ang 21 wika ng interface. |
@@ -220,7 +218,6 @@ Mga sinusuportahang wika: 简体中文, 繁體中文, English, 日本語, Рус
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow · Menu ng node at pagpapangkat" width="80%" /></a><br /><sub>Menu ng node at pagpapangkat</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow · Pamilihan ng mga Plugin" width="80%" /></a><br /><sub>Pamilihan ng mga Plugin</sub>
 
 </div>
 
@@ -439,7 +436,6 @@ Ang TF-Router ay ang opisyal na gateway ng modelo na sariling pinapatakbo ng Too
 > 5. Mga Bagong Module
 > Walang-hanggang Canvas — higit sa espasyo, kalayaan.
 > Inspiration Mode — ginawa para sa mga tagalikha.
-> Plugin Hub — tumutulong upang matuklasan ang mahuhusay na plugin.
 > Skill Hub — ginagawang naibabahagi ang karanasan.
 > Provider Hub — dito nagsisimula ang ecosystem.
 > Kumpletong pagsasama ng Docker — pinadadali ang deployment.

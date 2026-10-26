@@ -1,10 +1,12 @@
 import axios from 'axios';
 import useWorkspaceFiles from '@/lib/workspaceFiles';
+import { canvasFolder } from '@/lib/canvasStorage';
 import { isCanvasFile } from './canvasFile';
 
 export default async function createCanvas(directory: string, signal?: AbortSignal) {
   const files = useWorkspaceFiles(directory);
-  const entries = (await files.list()).entries.filter(item => item.type === 'file' && /\.json$/i.test(item.name));
+  const folder = await canvasFolder(directory);
+  const entries = (await files.list(folder)).entries.filter(item => item.type === 'file' && /\.json$/i.test(item.name));
   let count = 0;
   let highestNumber = 0;
   for (const entry of entries) {
@@ -18,7 +20,7 @@ export default async function createCanvas(directory: string, signal?: AbortSign
   for (let number = Math.max(count, highestNumber) + 1; ; number++) {
     signal?.throwIfAborted();
     const name = `无限画布${number}`;
-    const id = `${name}.json`;
+    const id = `${folder ? folder + '/' : ''}${name}.json`;
     try {
       await files.write(id, JSON.stringify({ toonflowCanvas: true, ...flow }), true, signal);
       return { id, name, flow };

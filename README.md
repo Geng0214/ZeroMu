@@ -6,6 +6,8 @@
 
 用于 AI 影像与漫剧创作的个人工作台：在画布中组织角色、场景、分镜与生成结果，通过模型渠道连接第三方 API。
 
+[总开发计划 plan](./docs/plan.md) · [当前进度](./docs/progress.md) · [文档目录](./docs/readme.md)
+
 ## 本地运行
 
 项目使用 Bun。首次安装或更新前端后先构建，日常在一个终端启动前后端：
@@ -22,7 +24,7 @@ bun run start:local
 
 ## Windows 桌面版
 
-当前优先完善 Windows x64 本地创作工具，商业 API 服务在后续阶段建设。具体安排见 [桌面计划](./docs/windowsDesktopPlan.md)、[工作与验收清单](./docs/windowsDesktopChecklist.md) 和 [安全检查记录](./docs/desktopSecurityReview.md)。
+当前优先完善 Windows x64 本地创作工具，商业 API 服务在后续阶段建设。具体安排见 [总计划](./docs/plan.md)、[验收清单](./docs/acceptance.md) 和 [技术与安全边界](./docs/architecture.md)。
 
 ```powershell
 bun install
@@ -31,7 +33,7 @@ bun run typecheck
 bun run package:desktop
 ```
 
-打包需要 NSIS；非默认位置可通过 `NSIS_PATH` 指向 `makensis.exe`。安装包输出到 `build/desktop/artifacts/`。当前产物为未签名开发验收包，正式发布前仍需完成原生安装、真实模型和跨版本更新验收。
+打包需要 NSIS；非默认位置可通过 `NSIS_PATH` 指向 `makensis.exe`。安装包输出到 `build/desktop/artifacts/`。当前产物为未签名开发验收包；本机安装与更新已有记录，最新候选、真实作品、干净机器及发行门槛仍需继续验收，范围见 [当前进度](./docs/progress.md)。
 
 零幕使用独立标识 `local.zeromu.desktop` 与 `zeromu://` 启动协议。首次安装使用独立目录，已有 Toonflow 配置与项目不自动迁移或删除。本机后端只监听回环地址，不应作为公网 API 服务开放。
 
@@ -50,12 +52,16 @@ bun run package:desktop
 
 为兼容既有项目、插件和本地配置，`@toonflow/*` 包名、文件格式标记和内部数据标识继续沿用；桌面安装身份与外部启动协议使用零幕独立名称。TF-Router 等第三方服务仍以其真实名称显示。
 
+<a id="languages"></a>
+
+上游多语言介绍见 [历史语言目录](./docs/archive/previousIndex.md#项目介绍)，未视为与当前零幕功能同步的译版。此入口保留旧文档链接兼容。
+
 ## 目录与版本管理
 
 - `apps/`：网页、后端和桌面应用。
 - `packages/`：共享模块、节点、工具与正式徽标。
-- `docs/`：开发资料与 [GitHub 上传步骤](./docs/githubSetup.md)。
-- [本次检查记录与后续功能建议](./docs/projectReview.md)。
+- `docs/`：[文档目录](./docs/readme.md)，集中维护计划、进度、验收、开发、设计和技术边界；旧记录在 `docs/archive/`。
+- [开发与 GitHub 版本管理](./docs/development.md)。
 - [品牌说明](./docs/branding/brand.json) 与当前界面预览：
 
 ![零幕首页](./docs/branding/homePreview.jpg)

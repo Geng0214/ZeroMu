@@ -18,7 +18,7 @@
           <keep-alive v-else include="personalization">
             <component
               :is="activePanel.component"
-              v-bind="['pluginMarket', 'personalization'].includes(activePanel.id) ? { visible } : {}" />
+              v-bind="activePanel.id === 'personalization' ? { visible } : {}" />
           </keep-alive>
         </div>
       </section>
@@ -33,7 +33,6 @@ import panelStatus from "./panelStatus.vue";
 import {
   IconPalette,
   IconSettings,
-  IconBuildingStore,
   IconInfoCircle,
   IconUserCog,
   IconServer,
@@ -47,12 +46,6 @@ const settingsPanels = [
   { id: "general", label: "画布设置", icon: IconSettings, component: loadPanel(() => import("./panels/general/index.vue")) },
   { id: "mediaChannel", label: "模型配置", icon: IconServer, component: loadPanel(() => import("./panels/mediaChannel/index.vue")) },
   { id: "personalization", label: "创作偏好", icon: IconUserCog, component: loadPanel(() => import("./panels/personalization.vue")) },
-  {
-    id: "pluginMarket",
-    label: "扩展管理",
-    icon: IconBuildingStore,
-    component: loadPanel(() => import("./panels/pluginMarket/index.vue")),
-  },
   { id: "about", label: "关于零幕", icon: IconInfoCircle, component: loadPanel(() => import("./panels/about.vue")) },
 ];
 const props = defineProps<{ initialPanel?: string }>();
@@ -74,6 +67,7 @@ watch(() => [visible.value, props.initialPanel] as const, ([isOpen, panel]) => {
 
 <style lang="scss" scoped>
 .settings {
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(152px, 10.5rem) minmax(0, 1fr);
   height: min(76vh, calc(100dvh - 124px));
@@ -219,6 +213,7 @@ watch(() => [visible.value, props.initialPanel] as const, ([isOpen, panel]) => {
   border-radius: var(--ui-radius-large, 12px);
   background: var(--el-bg-color);
   .el-dialog__header { padding-bottom: 24px; }
+  .el-dialog__body { display: flex; flex-direction: column; overflow: hidden; }
 }
 .dark .settingsDialog.el-dialog { --el-text-color-secondary: #a8abb2; --el-text-color-placeholder: #9ca0a8; }
 .channelSettingsPicker.el-dialog { background: var(--el-bg-color); border: 1px solid var(--el-border-color); border-radius: var(--ui-radius-large, 12px); }

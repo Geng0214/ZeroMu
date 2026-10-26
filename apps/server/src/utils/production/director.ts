@@ -1,3 +1,4 @@
+import { projectPath } from "@/utils/workspace/projectLayout";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { MediaGenerationRequest, MediaTaskSource } from "@toonflow/tools-scaffold/runtime";
@@ -127,7 +128,7 @@ export async function applyDirectorOperation(directory: string, project: Project
   }
   const shot = project.shots.find(shot => shot.shotId === capture.shotId && !shot.archived);
   if (!shot) fail("目标镜头已归档，场景快照仍被保留，请重新选择镜头");
-  const bytes = await readProjectFile(directory, operation.mediaPath).catch((cause: NodeJS.ErrnoException) => { if (cause.code !== "ENOENT") throw cause; return readProjectFile(directory, `assets/production/${stableId(capture.directorShotId + ":reference")}/reference0.${capture.mediaType === "image" ? "png" : "mp4"}`); });
+  const bytes = await readProjectFile(directory, operation.mediaPath).catch((cause: NodeJS.ErrnoException) => { if (cause.code !== "ENOENT") throw cause; return readProjectFile(directory, projectPath(directory, `assets/production/${stableId(capture.directorShotId + ":reference")}/reference0.${capture.mediaType === "image" ? "png" : "mp4"}`)); });
   if (digest(bytes) !== operation.mediaHash) fail("参考文件内容已改变，请保留原文件并重新生成参考");
   if (capture.mediaType === "image" ? !bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) : bytes.subarray(4, 8).toString() !== "ftyp") fail("导演参考需要实际 PNG 图片或 MP4 视频", 400);
   const assetId = stableId(JSON.stringify([project.projectId, capture.canvasId, capture.nodeId, capture.anchorId, capture.mediaType]));

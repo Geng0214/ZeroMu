@@ -6,9 +6,9 @@
       <p v-if="selected?.type === 'text'">文本模型在此保留媒体能力为空；对话参数仍由文本模型设置管理。</p>
       <label>能力声明（JSON）<textarea v-model="draft" aria-label="模型能力声明" rows="13" spellcheck="false" maxlength="1048576" :disabled="saving || !selected" @input="error = ''" /></label>
       <details><summary>可填写的能力字段</summary><dl><dt>mode</dt><dd>text、singleImage、multiReference，或视频的首尾帧模式与 imageReference:数量 / videoReference:数量 / audioReference:数量 组合。</dd><dt>imageSizes / imageRatios / videoRatios</dt><dd>渠道明确支持的尺寸档位及宽高比数组。</dd><dt>imageSizeRange</dt><dd>自定义图片宽高范围：min、max、step，单位像素；仅在渠道支持任意对齐尺寸时填写。</dd><dt>maxImageCount / imageReferenceLimit / imageQualities</dt><dd>图片生成数量上限、参考图片数量上限、low / medium / high 中实际支持的画质数组。</dd><dt>durationResolutionMap / audio</dt><dd>每组 duration 秒数数组与 resolution 档位数组；视频声音为 true、false 或 optional。</dd><dt>voices / audioFormats / audioSpeedRange</dt><dd>音色数组中的每项为 title 与 voice；支持的格式数组；语速范围为 min 与 max。</dd></dl></details>
-      <p v-if="error || saveError" class="capabilityError" role="alert">{{ error || saveError }}</p>
+      <p v-if="error" class="capabilityError" role="alert">{{ error }}</p>
     </div>
-    <template #footer><el-button :disabled="saving" @click="visible = false">取消</el-button><el-button type="primary" :loading="saving" :disabled="!selected" @click="save">保存模型能力</el-button></template>
+    <template #footer><el-button :disabled="saving" @click="visible = false">取消</el-button><el-button type="primary" :loading="saving" :disabled="!selected" @click="save">应用</el-button></template>
   </el-dialog>
 </template>
 
@@ -16,7 +16,7 @@
 import { computed, ref, watch } from "vue";
 import { mediaCapabilityFields } from "@toonflow/providers/mediaCapabilities";
 import type { MediaChannelModel, MediaChannelRow } from "./types";
-const props = defineProps<{ channel: MediaChannelRow; saving?: boolean; saveError?: string }>();
+const props = defineProps<{ channel: MediaChannelRow; saving?: boolean }>();
 const emit = defineEmits<{ save: [models: MediaChannelModel[]] }>();
 const visible = defineModel<boolean>({ default: false });
 const selectedId = ref(""); const draft = ref(""); const error = ref(""); const drafts = new Map<string, string>();

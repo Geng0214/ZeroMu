@@ -27,7 +27,7 @@
       <el-dropdown-menu
         ref="menuList"
         class="nodeMenu"
-        :aria-label="menuLevel === 'selection' ? '选区操作' : menuLevel === 'arrange' ? '整理选中节点' : menuLevel === 'actions' ? '操作菜单' : '添加节点'">
+        :aria-label="menuLevel === 'selection' ? '选区操作' : menuLevel === 'arrange' ? '整理选中节点' : menuLevel === 'actions' ? '操作菜单' : '添加节点和资源'">
         <template v-if="menuLevel === 'selection'">
           <el-dropdown-item v-if="associatedShot" command="productionShot">查看关联分镜 · {{ associatedShot.title }}</el-dropdown-item>
           <el-dropdown-item command="duplicateSelection" :icon="IconCopyPlus" :disabled="selectionBusy || deleting || !selectedNodes.length">
@@ -67,30 +67,65 @@
         </template>
         <template v-else>
           <el-dropdown-item v-if="!directNodes" command="actions" :icon="IconChevronLeft">返回操作菜单</el-dropdown-item>
-          <el-dropdown-item v-else disabled>添加节点</el-dropdown-item>
+          <el-dropdown-item v-else-if="!showChooserSections" disabled>添加节点</el-dropdown-item>
+          <el-dropdown-item v-if="showChooserSections" disabled class="sectionTitle">添加节点</el-dropdown-item>
           <el-dropdown-item v-if="preparingNodes" disabled>正在读取可连接节点…</el-dropdown-item>
           <el-dropdown-item v-for="node in filteredNodes" :key="node.type" :command="node.type">
             <component :is="node.icon" class="nodeTypeIcon" :size="20" />
             {{ node.label }}
           </el-dropdown-item>
           <el-dropdown-item v-if="!preparingNodes && (pendingHandle || pendingGroup.length) && !filteredNodes.length" disabled>没有可连接的节点</el-dropdown-item>
+          <el-dropdown-item v-if="showChooserSections" command="smartEdit" :icon="IconScissors">智能剪辑</el-dropdown-item>
+          <template v-if="showChooserSections">
+            <el-divider />
+            <el-dropdown-item disabled class="sectionTitle">添加资源</el-dropdown-item>
+            <el-dropdown-item command="upload" :icon="IconUpload" :disabled="!uploadFiles">上传</el-dropdown-item>
+            <el-dropdown-item command="generationHistory" :icon="IconHistory" :disabled="historyLoading">从生成历史选择</el-dropdown-item>
+          </template>
         </template>
       </el-dropdown-menu>
     </template>
   </el-dropdown>
+  <el-dialog v-model="historyVisible" class="historyDialog" title="从生成历史选择" width="min(760px, calc(100vw - 32px))" alignCenter appendToBody destroyOnClose>
+    <p v-if="historyLoading" role="status">正在读取当前画布的生成历史…</p>
+    <el-alert v-else-if="historyError" :title="historyError" type="error" :closable="false" />
+    <el-empty v-else-if="!historyItems.length" description="当前画布还没有可复用的图片、视频或音频生成结果" />
+    <div v-else class="historyPicker">
+      <div class="historyList" role="listbox" aria-label="生成历史文件">
+        <button v-for="item in historyItems" :key="item.path" type="button" class="historyItem" :class="{ selected: selectedHistory?.path === item.path }" :aria-pressed="selectedHistory?.path === item.path" @click="selectedHistory = item">
+          <component :is="historyIcons[item.kind]" :size="18" />
+          <span><strong>{{ item.name }}</strong><small>{{ item.nodeLabel }} · {{ item.kind === 'image' ? '图片' : item.kind === 'video' ? '视频' : '音频' }}</small></span>
+        </button>
+      </div>
+      <div class="historyPreview" aria-label="生成结果预览">
+        <el-alert v-if="historyPreviewError" :title="historyPreviewError" type="error" :closable="false" />
+        <img v-else-if="historyPreviewUrl && selectedHistory?.kind === 'image'" :src="historyPreviewUrl" :alt="selectedHistory.name" />
+        <video v-else-if="historyPreviewUrl && selectedHistory?.kind === 'video'" :src="historyPreviewUrl" controls playsinline preload="metadata" />
+        <audio v-else-if="historyPreviewUrl" :src="historyPreviewUrl" controls preload="metadata" />
+        <span v-else>选择一项预览</span>
+      </div>
+    </div>
+    <template #footer>
+      <el-button @click="historyVisible = false">取消</el-button>
+      <el-button type="primary" :loading="historyAdding" :disabled="!selectedHistory || historyLoading" @click="addHistoryAsset">添加到画布</el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup lang="ts">
 import { getNodeIcon } from "@toonflow/nodes-scaffold/nodeIcons";
 import { newGenerationData } from "@/lib/creationPreferences";
-import { computed, inject, nextTick, onBeforeUnmount, ref, shallowRef, type Component } from "vue";
+import { computed, inject, nextTick, onBeforeUnmount, ref, shallowRef, watch, type Component } from "vue";
 import { useProductionStore } from "@/stores/production";
 import type { CanvasContext } from "@toonflow/tool-canvas/runtime";
 import { useVueFlow, type ConnectingHandle, type GraphNode, type HandleType } from "@vue-flow/core";
 import { isTypeCompatible, validateConnection, type NodeHandle } from "@toonflow/nodes-scaffold/connection";
 import { useNodeEvent } from "@toonflow/nodes-scaffold/nodeEvent";
-import { ElMessage } from "element-plus";
+import { ElAlert, ElButton, ElDialog, ElEmpty, ElMessage } from "element-plus";
 import type { DropdownInstance } from "element-plus";
+import { IconHistory, IconMusic, IconPhoto, IconScissors, IconVideo } from "@tabler/icons-vue";
+import useWorkspaceFiles from "@/lib/workspaceFiles";
+import { importCanvasFiles } from "../canvasDrop";
 import selectionHandle from "./selectionHandle.vue";
 import { getSelectionConnections } from "../selectionConnections";
 import { getSelectionRoots, getSelectionTree } from "../selectionNodes";
@@ -111,8 +146,9 @@ import {
   IconLayoutGrid,
 } from "@tabler/icons-vue";
 
-const { remoteNodes = [], loadNodes, pasteNode, uploadFiles, canUndo = false, canRedo = false, selectionBusy = false, batchHistory } = defineProps<{
+const { remoteNodes = [], directory, loadNodes, pasteNode, uploadFiles, canUndo = false, canRedo = false, selectionBusy = false, batchHistory } = defineProps<{
   remoteNodes?: { type: string; label: string }[];
+  directory?: string;
   loadNodes: (types: string[]) => Promise<void>;
   pasteNode?: (position: { x: number; y: number }) => Promise<boolean>;
   uploadFiles?: (position: { x: number; y: number }) => void;
@@ -146,6 +182,27 @@ const selectionHandleRef = ref<InstanceType<typeof selectionHandle>>();
 const groupHandleRefs = ref<InstanceType<typeof selectionHandle>[]>([]);
 const groups = computed(() => flow.getNodes.value.filter(node => node.type === "canvasGroup" && !node.hidden));
 const singleGroupSelected = computed(() => flow.getSelectedNodes.value.length === 1 && flow.getSelectedNodes.value[0]?.type === "canvasGroup");
+const showChooserSections = computed(() => !!directory && !pendingHandle.value && !pendingGroup.value.length && !selectedNodes.value.length);
+const historyVisible = ref(false);
+const historyLoading = ref(false);
+const historyAdding = ref(false);
+const historyError = ref("");
+const historyPreviewError = ref("");
+const historyPreviewUrl = ref("");
+const historyItems = ref<HistoryItem[]>([]);
+const selectedHistory = ref<HistoryItem>();
+const historyIcons = { image: IconPhoto, video: IconVideo, audio: IconMusic };
+type HistoryKind = keyof typeof historyIcons;
+type HistoryItem = { path: string; name: string; mimeType: string; kind: HistoryKind; nodeId: string; nodeLabel: string };
+const historyMimeTypes: Record<string, string> = {
+  avif: "image/avif", apng: "image/apng", bmp: "image/bmp", gif: "image/gif", ico: "image/x-icon", jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", svg: "image/svg+xml", tif: "image/tiff", tiff: "image/tiff", webp: "image/webp",
+  avi: "video/x-msvideo", m4v: "video/mp4", mkv: "video/x-matroska", mov: "video/quicktime", mp4: "video/mp4", ogv: "video/ogg", webm: "video/webm",
+  aac: "audio/aac", flac: "audio/flac", m4a: "audio/mp4", mp3: "audio/mpeg", ogg: "audio/ogg", opus: "audio/opus", wav: "audio/wav",
+};
+let historyRequest = 0;
+let historyController: AbortController | undefined;
+let historyImportController: AbortController | undefined;
+let releaseHistoryPreview: (() => void) | undefined;
 const canArrangeSelection = computed(() => {
   const nodes = getSelectionRoots(selectedNodes.value, flow.getNodes.value);
   return !selectionBusy && !deleting.value && nodes.length > 1
@@ -176,6 +233,80 @@ const filteredNodes = computed(() => {
     return handles?.some((item) => item.type !== port.type && isTypeCompatible(port.dataType, item.dataType));
   });
 });
+watch(historyVisible, visible => {
+  if (visible) void loadGenerationHistory();
+  else { historyController?.abort(); historyImportController?.abort(); historyRequest++; historyLoading.value = false; }
+});
+watch([historyVisible, selectedHistory, () => directory], async ([visible, item, path], _, onCleanup) => {
+  releaseHistoryPreview?.();
+  releaseHistoryPreview = undefined;
+  historyPreviewUrl.value = "";
+  historyPreviewError.value = "";
+  if (!visible || !item || !path) return;
+  const preview = useWorkspaceFiles(path).acquireUrl(item.path, item.mimeType);
+  releaseHistoryPreview = preview.release;
+  let current = true;
+  onCleanup(() => { current = false; preview.release(); if (releaseHistoryPreview === preview.release) releaseHistoryPreview = undefined; });
+  try { const url = await preview.url; if (current) historyPreviewUrl.value = url; }
+  catch (error) { if (current) historyPreviewError.value = error instanceof Error ? error.message : "生成结果预览失败"; }
+}, { flush: "sync" });
+
+async function loadGenerationHistory() {
+  const path = directory;
+  if (!path) return;
+  historyController?.abort();
+  const controller = historyController = new AbortController();
+  const request = ++historyRequest;
+  historyLoading.value = true;
+  historyError.value = "";
+  historyItems.value = [];
+  selectedHistory.value = undefined;
+  const files = useWorkspaceFiles(path);
+  const sources = flow.getNodes.value.filter(node => ["remote-imageNode", "remote-videoNode", "remote-audioNode"].includes(node.type) && node.id && node.id !== "." && node.id !== ".." && !/[\\/]/.test(node.id));
+  const items: HistoryItem[] = [];
+  try {
+    for (const node of sources) {
+      const kind = node.type === "remote-imageNode" ? "image" : node.type === "remote-videoNode" ? "video" : "audio";
+      let entries: Awaited<ReturnType<typeof files.list>>["entries"];
+      try { entries = (await files.list(`assets/${node.id}`, controller.signal)).entries; }
+      catch (error) {
+        if (controller.signal.aborted) return;
+        if ((error as { response?: { status?: number } })?.response?.status === 404) continue;
+        throw error;
+      }
+      for (const entry of entries) {
+        const mimeType = historyMimeTypes[entry.name.split(".").at(-1)?.toLowerCase() ?? ""];
+        if (entry.type !== "file" || !mimeType?.startsWith(`${kind}/`)) continue;
+        items.push({ path: entry.path, name: entry.name, mimeType, kind, nodeId: node.id, nodeLabel: String(node.data.label || node.id) });
+      }
+    }
+    if (controller.signal.aborted || request !== historyRequest || path !== directory) return;
+    historyItems.value = items.sort((left, right) => right.path.localeCompare(left.path, "zh-CN", { numeric: true }));
+    selectedHistory.value = historyItems.value[0];
+  } catch (error) {
+    if (!controller.signal.aborted && request === historyRequest) historyError.value = error instanceof Error ? error.message : "读取生成历史失败";
+  } finally { if (!controller.signal.aborted && request === historyRequest) historyLoading.value = false; }
+}
+
+async function addHistoryAsset() {
+  const item = selectedHistory.value;
+  const path = directory;
+  if (!item || !path || historyAdding.value) return;
+  if (!flow.findNode(item.nodeId)) { historyError.value = "生成来源节点已删除，请重新读取历史"; return; }
+  const controller = historyImportController = new AbortController();
+  historyAdding.value = true;
+  historyError.value = "";
+  try {
+    const content = await useWorkspaceFiles(path).read(item.path, controller.signal);
+    if (controller.signal.aborted || path !== directory || !flow.findNode(item.nodeId)) throw new Error("画布或生成来源已变化，请重新选择历史文件");
+    const file = new File([content], item.name, { type: item.mimeType });
+    const action = () => importCanvasFiles([file], { ...nodePosition }, { directory: path, availableNodes: remoteNodes, signal: controller.signal, flow });
+    if (batchHistory) await batchHistory(action); else await action();
+    if (!controller.signal.aborted && path === directory) historyVisible.value = false;
+  } catch (error) {
+    if (!controller.signal.aborted) { historyError.value = error instanceof Error ? error.message : "添加生成结果失败"; ElMessage.error(historyError.value); }
+  } finally { if (historyImportController === controller) { historyImportController = undefined; historyAdding.value = false; } }
+}
 
 function clearSelectionHandles() {
   selectionHandleRef.value?.clear();
@@ -202,6 +333,7 @@ function startSelectionConnection() {
 }
 
 onBeforeUnmount(clearConnection);
+onBeforeUnmount(() => { historyRequest++; historyController?.abort(); historyImportController?.abort(); releaseHistoryPreview?.(); });
 flow.onConnectStart(() => {
   pendingHandle.value = undefined;
   clearConnection();
@@ -267,6 +399,32 @@ defineExpose({ openMenu, deleteSelection });
 
 async function handleCommand(command: unknown) {
   if (command === "productionShot" && associatedShot.value) { menu.value?.handleClose(); production.openShot(associatedShot.value.shotId); return; }
+  if (command === "smartEdit") {
+    menu.value?.handleClose();
+    const createNode = async () => {
+      const id = crypto.randomUUID();
+      const order = flow.getNodes.value.filter(node => node.type === "smartEdit").length + 1;
+      flow.removeSelectedElements();
+      flow.nodesSelectionActive.value = false;
+      addNodes({
+        id,
+        type: "smartEdit",
+        position: { ...nodePosition },
+        data: {
+          label: `智能剪辑 ${order}`,
+          handles: [{ id: "video", type: "target", dataType: "VIDEO", label: "视频输入" } satisfies NodeHandle],
+          outputs: {},
+        },
+      });
+      await nextTick();
+      const created = flow.findNode(id);
+      if (created) flow.addSelectedNodes([created]);
+    };
+    try { if (batchHistory) await batchHistory(createNode); else await createNode(); }
+    catch (error) { ElMessage.error(error instanceof Error ? error.message : "添加智能剪辑节点失败"); }
+    return;
+  }
+  if (command === "generationHistory") { menu.value?.handleClose(); historyVisible.value = true; return; }
   if (command === "nodes" || command === "actions" || command === "selection" || command === "arrange") {
     if (command === "arrange" && !canArrangeSelection.value) return;
     menuLevel.value = command;
@@ -435,8 +593,36 @@ async function deleteSelection(selection = selectedNodes.value) {
     margin: 4px 0;
   }
 
+  .sectionTitle { height: 24px; color: var(--el-text-color-secondary); font-size: 12px; cursor: default; }
+
   .nextIcon {
     margin-left: auto;
   }
+}
+
+.historyPicker {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(0, 1.6fr);
+  gap: 16px;
+  min-height: 300px;
+
+  .historyList { max-height: 360px; overflow: auto; }
+  .historyItem { display: flex; width: 100%; align-items: center; gap: 10px; padding: 10px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--el-text-color-primary); text-align: left; cursor: pointer;
+    &:hover, &.selected { background: var(--el-fill-color-light); }
+    &.selected { border-color: var(--el-color-primary-light-5); }
+    span { min-width: 0; display: grid; gap: 4px; }
+    strong, small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    strong { font-size: 13px; font-weight: 500; }
+    small { color: var(--el-text-color-secondary); font-size: 11px; }
+    &:focus-visible { outline: 2px solid var(--el-color-primary); outline-offset: -2px; }
+  }
+  .historyPreview { display: grid; min-height: 300px; place-items: center; overflow: hidden; border-radius: 6px; background: var(--el-fill-color-darker); color: var(--el-text-color-secondary);
+    img, video { max-width: 100%; max-height: 360px; object-fit: contain; }
+    audio { width: min(100%, 440px); }
+  }
+}
+
+@media (max-width: 620px) {
+  .historyPicker { grid-template-columns: 1fr; .historyList { max-height: 180px; } .historyPreview { min-height: 180px; } }
 }
 </style>

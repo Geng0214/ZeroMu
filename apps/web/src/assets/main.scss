@@ -1,3 +1,6 @@
+@use "./lightTheme";
+@use "./indexTheme";
+
 html:root {
   --app-font-family: "Segoe UI", "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
   --app-gutter: clamp(12px, 2vw, 32px);
@@ -21,6 +24,25 @@ html:root {
   --td-brand-color-light-hover: var(--el-color-primary-light-8);
   --td-text-color-brand: var(--el-color-primary);
   --td-text-color-link: var(--el-color-primary);
+
+  .el-switch {
+    --el-switch-on-color: var(--uiAccentColor, var(--el-color-primary));
+    --el-switch-off-color: color-mix(in srgb, var(--el-text-color-primary) 16%, var(--el-bg-color));
+    --el-switch-border-color: color-mix(in srgb, var(--el-text-color-primary) 55%, var(--el-bg-color));
+
+    .el-switch__action { background-color: var(--el-text-color-primary); }
+    .el-switch__inner-wrapper { color: var(--el-text-color-primary); }
+
+    &.is-checked {
+      .el-switch__action { background-color: var(--uiAccentContrast); }
+      .el-switch__inner-wrapper { color: var(--uiAccentContrast); }
+    }
+
+    .el-switch__input:focus-visible ~ .el-switch__core {
+      outline-color: var(--el-text-color-primary);
+      outline-offset: 3px;
+    }
+  }
 
   .el-card {
     --el-card-border-radius: var(--ui-radius-large);
@@ -75,6 +97,10 @@ button, input, select, textarea {
   margin-bottom: 12px;
   display: flex;
   flex-direction: column;
+  &.is-align-center {
+    max-height: calc(100dvh - 24px);
+    margin-block: auto;
+  }
   .el-dialog__header, .el-dialog__footer { flex-shrink: 0; }
   .el-dialog__body { min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
 }

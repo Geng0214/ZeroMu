@@ -2,17 +2,10 @@
   <nodeSkeleton class="mediaNode"
     v-bind="nodeProps"
     v-model:bottomVisible="node.selected"
-    :topVisible="node.selected"
-    topWidth="max-content"
     :downloadUrl="exporting ? '' : previewUrl"
     :downloadName="outputFile?.url.split(/[\\/]/).at(-1)"
     @fullscreen="player?.enterFullscreen()"
-    :bottomWidth="720"
-    :style="{ width: previewUrl && videoWidth ? `${videoWidth + 18}px` : undefined }">
-    <template #topActions>
-      <mediaHistory mediaType="video" :current="outputFile" :disabled="generating || deleting || exporting || uploading" @select="outputs.video = { dataType: 'VIDEO', value: $event }" />
-      <el-button :icon="IconTransfer" :loading="uploading" :disabled="generating || deleting || exporting" text title="替换视频" aria-label="替换视频" @click.stop="fileInput?.click()" />
-    </template>
+    :bottomWidth="720">
     <input ref="fileInput" type="file" accept="video/*" hidden aria-label="选择视频" :disabled="generating || deleting || exporting || uploading" @change="replaceOutput" />
     <div v-loading="generating || uploading" class="videoContent nopan" :aria-busy="generating || uploading">
       <div v-if="exporting" class="exportLoading" role="status" aria-label="视频导出中">
@@ -28,7 +21,7 @@
         lazy
         label="视频"
         @loadedmetadata="resizeVideo" />
-      <div v-else-if="outputFile" class="mediaEmpty" role="status"><span class="emptyHint">正在准备视频缩略图…</span></div>
+      <div v-else-if="outputFile" class="mediaEmpty" role="status"><span class="emptyHint">{{ previewInfo ? '视频文件无法读取，请重新上传' : '正在加载视频…' }}</span></div>
       <div v-else class="mediaEmpty">
         <el-button class="uploadButton nodrag" text :disabled="generating || deleting || exporting || uploading" aria-label="上传视频" @dblclick.stop @click.stop="fileInput?.click()">
           <span class="uploadPrompt"><icon-upload :size="32" stroke="1.5" aria-hidden="true" /><span>上传视频</span></span>
@@ -81,13 +74,15 @@
             :ratios="ratioOptions"
             :model="selectedModel"
             :disabled="generating || deleting || exporting || !selectedModel" />
+          <cameraControl v-model="data.camera" video :disabled="generating || deleting || uploading || exporting" />
           <el-button
             class="sendButton"
             :icon="generating ? IconPlayerStop : IconArrowUp"
-            :disabled="deleting || uploading || exporting || (!generating && (!generationPrompt || !selectedModel || !!capabilityError))"
-            :title="generating ? '停止生成' : '生成视频'"
+            :disabled="deleting || uploading || exporting || (!generating && (!ai.canGenerate || !generationPrompt || !selectedModel || !!capabilityError))"
+            :title="generating ? '停止生成' : ai.canGenerate ? '生成视频' : '隔离试运行暂未开放生成'"
             :aria-label="generating ? '停止生成' : '生成视频'"
             @click="generating ? generationController?.abort() : startGeneration().catch((error) => showNodeError(error, '视频生成失败'))" />
+          <p v-if="!ai.canGenerate" class="generationUnavailable" role="status">隔离试运行暂未开放生成。</p>
         </template>
       </nodeComposer>
     </template>
@@ -98,12 +93,11 @@
 import { videoNodeIcon } from "@toonflow/nodes-scaffold/nodeIcons";
 import { computed, nextTick, onMounted, onScopeDispose, ref, watch } from "vue";
 import { ElButton, ElSelect, ElOption, ElOptionGroup, ElLoading, ElProgress } from "element-plus";
-import { IconUpload, IconSparkles, IconArrowUp, IconPlayerStop, IconTransfer } from "@tabler/icons-vue";
-import { getMediaCapabilityError, groupNodeModels, nodeSkeleton, nodeComposer, nodeTools, showNodeError, useNode, useNodeGeneration, useNodeReferences, z, type NodeMediaModel, type NodeVideoRequest, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
+import { IconUpload, IconSparkles, IconArrowUp, IconPlayerStop } from "@tabler/icons-vue";
+import { appendCameraPrompt, cameraControl, cameraSettingsSchema, readCameraSettings, getMediaCapabilityError, groupNodeModels, nodeSkeleton, nodeComposer, nodeTools, showNodeError, useNode, useNodeGeneration, useNodeReferences, z, type CameraSettings, type NodeMediaModel, type NodeVideoRequest, type NodeHandle } from "@toonflow/nodes-scaffold/runtime";
 import promptInput from "@toonflow/nodes-scaffold/promptInput";
 import videoPlayer from "@toonflow/nodes-scaffold/videoPlayer";
 import referenceItem from "@toonflow/nodes-scaffold/referenceItem";
-import mediaHistory from "@toonflow/nodes-scaffold/mediaHistory";
 import generationSettings from "./components/generationSettings.vue";
 
 defineOptions({
@@ -121,7 +115,7 @@ const { id, node, nodeProps, nodeEvent, outputs, files, ai, updateNodeInternals 
 // ACT: 保留旧类型、节点 ID 和文件引用，只统一内置默认标题。
 if (["视频素材", "视频生成"].includes(String(node.data.label))) node.data.label = "视频";
 type PromptModel = NonNullable<InstanceType<typeof promptInput>["$props"]["modelValue"]>;
-const data = computed(() => node.data as { prompt: string; promptModel: PromptModel; model: string; duration?: number; resolution: string; ratio: string; mode: string; generateAudio: boolean });
+const data = computed(() => node.data as { prompt: string; promptModel: PromptModel; model: string; duration?: number; resolution: string; ratio: string; mode: string; generateAudio: boolean; camera?: CameraSettings });
 data.value.prompt ??= "";
 data.value.promptModel ??= [];
 data.value.model ??= "";
@@ -137,7 +131,6 @@ const fileInput = ref<HTMLInputElement>();
 let disposed = false;
 const deleting = ref(false);
 const player = ref<InstanceType<typeof videoPlayer>>();
-const videoWidth = ref(0);
 const exportProgress = computed(() => (node.data as typeof node.data & { exportProgress?: number }).exportProgress);
 const exporting = computed(() => typeof exportProgress.value === "number");
 let generationController: AbortController | undefined;
@@ -211,7 +204,6 @@ const generationPrompt = computed(() =>
 const outputFile = computed(() => outputs.value.video?.dataType === "VIDEO" ? outputs.value.video.value : undefined);
 const previewInfo = files.useMediaPreview(outputFile);
 const previewUrl = computed(() => previewInfo.value?.originalUrl || "");
-watch(previewInfo, async info => { if (!info?.width || !info.height) return; videoWidth.value = Math.max(180, 240 * info.width / info.height); await nextTick(); updateNodeInternals(); });
 
 onMounted(() => loadModels().catch((error) => showNodeError(error, "模型读取失败")));
 onScopeDispose(() => {
@@ -262,7 +254,7 @@ const generationInput = computed<Omit<NodeVideoRequest, "directory">>(() => {
   return {
     providerId: choice?.providerId ?? "",
     modelId: choice?.modelId ?? "",
-    prompt: generationPrompt.value,
+    prompt: appendCameraPrompt(generationPrompt.value, data.value.camera, true),
     mode: selectedMode.value,
     duration: data.value.duration,
     resolution: data.value.resolution || undefined,
@@ -330,7 +322,6 @@ nodeEvent.on("delete", async () => {
 async function resizeVideo(event: Event) {
   const video = event.currentTarget as HTMLVideoElement;
   if (!video.videoWidth || !video.videoHeight) return;
-  videoWidth.value = Math.max(180, (240 * video.videoWidth) / video.videoHeight);
   await nextTick();
   updateNodeInternals();
 }
@@ -369,6 +360,7 @@ function getConfig() {
       ratio: data.value.ratio,
       mode: selectedMode.value,
       generateAudio: data.value.generateAudio,
+      camera: readCameraSettings(data.value.camera),
     },
     models: models.value,
     ratios: ratioOptions.value,
@@ -392,6 +384,7 @@ nodeTools.register({
   name: "setConfig",
   description: "修改此视频生成节点的模型、时长、分辨率、比例、模式或声音；先用 getConfig 查询能力，providerId 与 modelId 必须同时提供；mode 使用返回的原始字符串或数组，须匹配当前引用；不修改提示词、不启动生成",
   parameters: z.strictObject({
+    camera: cameraSettingsSchema.optional(),
     providerId: z.string().min(1).optional(),
     modelId: z.string().min(1).optional(),
     duration: z.number().positive().optional(),
@@ -424,6 +417,7 @@ nodeTools.register({
     if (args.ratio !== undefined) data.value.ratio = args.ratio;
     if (args.mode !== undefined) data.value.mode = JSON.stringify(args.mode);
     if (args.generateAudio !== undefined) data.value.generateAudio = args.generateAudio;
+    if (args.camera !== undefined) data.value.camera = args.camera;
     return getConfig();
   },
 });
@@ -452,13 +446,15 @@ nodeTools.register({
 </script>
 
 <style scoped lang="scss">
-.mediaNode { --node-handle-opacity: 1; }
+.mediaNode { --node-handle-opacity: 1; --nodeWidth: 384px; --nodeCardHeight: 216px; }
+.generationUnavailable { color: var(--el-text-color-secondary); font-size: 12px; }
 .mediaEmpty {
   display: grid;
   place-content: center;
   justify-items: center;
   gap: 4px;
-  min-height: 144px;
+  min-height: 0;
+  height: 100%;
   .uploadButton {
     height: auto;
     min-height: 76px;
@@ -474,9 +470,13 @@ nodeTools.register({
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 144px;
+  min-height: 0;
+  height: 100%;
   overflow: hidden;
   border-radius: var(--el-border-radius-base);
+
+  :deep(.videoPlayer) { height: 100%; }
+  :deep(.posterButton), :deep(.posterButton img), :deep(.videoPreview:not(:fullscreen)) { height: 100%; min-height: 0; max-height: 100%; }
 
 
   .exportLoading { display: grid; justify-items: center; gap: 12px; padding: 20px; color: var(--el-text-color-secondary); }

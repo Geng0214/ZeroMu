@@ -5,7 +5,7 @@ import { z } from "zod";
 import u from "@/utils";
 import { validateFields } from "@/lib/middleware";
 import { success } from "@/lib/responseFormat";
-import { metadataKey, updateMetadata } from "@/utils/assets/metadata";
+import { metadataFile, metadataKey, updateMetadata } from "@/utils/assets/metadata";
 
 const router = Router();
 
@@ -36,7 +36,7 @@ export default router.post("/", validateFields({
         return { key, metadata: { ...current, ...(category === undefined ? {} : { category: category.trim() }), tags: nextTags } };
       });
       for (const { key, metadata } of updates) data[key] = metadata;
-    });
+    }, metadataFile(root));
   } finally { release(); }
   res.json(success({ count: targets.length }));
 });

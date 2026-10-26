@@ -1,27 +1,28 @@
 <template>
-<main class="studioHome" :class="{ lightHome }">
-  <button class="skipLink" @click="selectMode(currentMode)">跳到创作输入框</button>
-  <appHeader :light="lightHome" :creationPrompt="prompt" @settings="openSettings" />
-  <div class="homeContent">
-    <section class="showcase" aria-label="创作灵感推荐" aria-roledescription="轮播图">
-      <div class="slideStage"><article v-for="(slide, index) in slides" :key="slide.title" class="featureSlide" :class="slidePosition(index)" :aria-hidden="index !== activeSlide">
-        <img v-if="slide.image" class="sceneImage" :src="slide.image" alt="" :fetchpriority="index === 0 ? 'high' : 'auto'" />
-        <div v-else class="storyFrames" aria-hidden="true"><span>构思</span><i></i><span>分镜</span><i></i><span>成片</span></div>
-        <div class="slideShade"></div><div class="slideCopy"><h1 v-if="index === 0">{{ slide.title }}</h1><h2 v-else>{{ slide.title }}</h2><p>{{ slide.detail }}</p><button :tabindex="index === activeSlide ? 0 : -1" @click="selectMode(slide.mode)">{{ slide.action }}<icon-arrow-right :size="17" /></button></div>
-      </article><button class="carouselArrow previous" aria-label="上一条推荐" @click="changeSlide(-1)"><icon-chevron-left :size="22" /></button><button class="carouselArrow next" aria-label="下一条推荐" @click="changeSlide(1)"><icon-chevron-right :size="22" /></button></div>
-      <div class="slideDots" aria-label="选择推荐"><button v-for="(slide, index) in slides" :key="slide.title" :class="{ active: index === activeSlide }" :aria-label="slide.title" :aria-pressed="index === activeSlide" @click="activeSlide = index"></button></div>
-    </section>
-    <section id="creationComposer" ref="composerSection" class="creationComposer" aria-label="创作输入框">
-      <div class="composerModes" aria-label="创作类型"><button v-for="mode in modes" :key="mode.id" :class="{ active: currentMode === mode.id }" :aria-pressed="currentMode === mode.id" @click="selectMode(mode.id)">{{ mode.id === 'home' ? '自由创作' : mode.label }}</button></div>
-      <div class="promptCard"><attachmentList v-if="promptAttachments.length" :attachments="promptAttachments" removable restorable :disabled="creating || opening" @remove="promptAttachments.splice($event, 1)" @restore="restoreAttachment" /><el-input ref="promptInput" v-model="prompt" type="textarea" :rows="3" resize="none" :disabled="creating || opening" :placeholder="promptPlaceholder" aria-label="创作描述" @paste.capture="pasteText" /><div class="composerFooter"><router-link class="openCanvases" to="/canvas"><icon-layout-grid :size="16" />打开已有画布</router-link><div class="sendActions"><modelPopover v-model="selectedModel" v-model:reasoningEffort="reasoningEffort" :disabled="creating || opening" /><el-button class="sendButton" type="primary" circle :icon="IconArrowUp" :loading="creating" :disabled="creating || opening" aria-label="开始创作" @click="createCanvasFromPrompt" /></div></div></div>
-    </section>
-    <footer class="homeFooter">
-      <p class="footerSignature"><span>零幕 ZEROMU</span><small>从零开始，创造第一幕。</small></p>
-      <div class="footerLinks"><el-badge isDot :hidden="!hasDesktopUpdate"><button @click="openSettings('about')"><icon-info-circle :size="18" />关于零幕</button></el-badge></div>
-    </footer>
-  </div>
-  <settings v-model="settingsVisible" :initialPanel="settingsPanel" />
-</main>
+  <libraryShell :settingsHandler="openSettings">
+    <div class="studioHome">
+      <button class="skipLink" @click="selectMode(currentMode)">跳到创作输入框</button>
+      <div class="homeContent">
+        <section class="showcase" aria-label="创作灵感推荐" aria-roledescription="轮播图">
+          <div class="slideStage"><article v-for="(slide, index) in slides" :key="slide.title" class="featureSlide" :class="slidePosition(index)" :aria-hidden="index !== activeSlide">
+            <img v-if="slide.image" class="sceneImage" :src="slide.image" alt="" :fetchpriority="index === 0 ? 'high' : 'auto'" />
+            <div v-else class="storyFrames" aria-hidden="true"><span>构思</span><i></i><span>分镜</span><i></i><span>成片</span></div>
+            <div class="slideShade"></div><div class="slideCopy"><h1 v-if="index === 0">{{ slide.title }}</h1><h2 v-else>{{ slide.title }}</h2><p>{{ slide.detail }}</p><button :tabindex="index === activeSlide ? 0 : -1" @click="selectMode(slide.mode)">{{ slide.action }}<icon-arrow-right :size="17" /></button></div>
+          </article><button class="carouselArrow previous" aria-label="上一条推荐" @click="changeSlide(-1)"><icon-chevron-left :size="22" /></button><button class="carouselArrow next" aria-label="下一条推荐" @click="changeSlide(1)"><icon-chevron-right :size="22" /></button></div>
+          <div class="slideDots" aria-label="选择推荐"><button v-for="(slide, index) in slides" :key="slide.title" :class="{ active: index === activeSlide }" :aria-label="slide.title" :aria-pressed="index === activeSlide" @click="activeSlide = index"></button></div>
+        </section>
+        <section id="creationComposer" ref="composerSection" class="creationComposer" aria-label="创作输入框">
+          <div class="composerModes" aria-label="创作类型"><button v-for="mode in modes" :key="mode.id" :class="{ active: currentMode === mode.id }" :aria-pressed="currentMode === mode.id" :disabled="creating || opening" @click="selectMode(mode.id)">{{ mode.id === 'home' ? '自由创作' : mode.label }}</button></div>
+          <div class="promptCard"><attachmentList v-if="promptAttachments.length" :attachments="promptAttachments" removable restorable :disabled="creating || opening" @remove="promptAttachments.splice($event, 1)" @restore="restoreAttachment" /><el-input ref="promptInput" v-model="prompt" type="textarea" :rows="3" resize="none" :disabled="creating || opening" :placeholder="promptPlaceholder" aria-label="创作描述" @paste.capture="pasteText" /><div class="composerFooter"><router-link class="openCanvases" to="/canvas"><icon-layout-grid :size="16" />打开已有画布</router-link><div class="sendActions"><modelPopover v-model="selectedModel" v-model:reasoningEffort="reasoningEffort" :disabled="creating || opening" /><el-button class="sendButton" type="primary" circle :icon="IconArrowUp" :loading="creating" :disabled="creating || opening" aria-label="开始创作" @click="createCanvasFromPrompt" /></div></div></div>
+        </section>
+        <footer class="homeFooter">
+          <p class="footerSignature"><span>零幕 ZEROMU</span><small>从零开始，创造第一幕。</small></p>
+          <div class="footerLinks"><el-badge isDot :hidden="!hasDesktopUpdate"><button @click="openSettings('about')"><icon-info-circle :size="18" />关于零幕</button></el-badge></div>
+        </footer>
+      </div>
+      <settings v-model="settingsVisible" :initialPanel="settingsPanel" />
+    </div>
+  </libraryShell>
 </template>
 
 <script setup lang="ts">
@@ -37,13 +38,12 @@ import modelPopover from "@/components/modelPopover.vue";
 import attachmentList from "@/components/agent/attachmentList.vue";
 import { createPastedTextFile, readTextAttachment } from "@/components/agent/textAttachments";
 import type { AgentAttachment } from "@/components/agent/types";
-import appHeader from "@/components/appHeader.vue";
+import libraryShell from "@/components/libraryShell.vue";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { hasDesktopUpdate } from "@/stores/desktopUpdate";
 import { ensureCanvasDirectory } from "@/lib/canvasStorage";
 import createNumberedCanvas from "@/pages/workspace/createCanvas";
 import settings from "@/components/settings/index.vue";
-import { settings as appSettings } from "@/stores/settings";
 import mountainScene from "./assets/mountainScene.png";
 import cityScene from "./assets/cityScene.png";
 
@@ -57,11 +57,11 @@ const promptInput = ref<InputInstance>();
 const promptAttachments = ref<AgentAttachment[]>([]);
 const workspaceStore = useWorkspaceStore();
 const settingsPanel = ref("ui");
-const lightHome = computed(() => appSettings.value.homeTheme === "light");
 const activeSlide = ref(0);
 const composerSection = ref<HTMLElement>();
 const modes = [
   { id: "home", label: "无限画布", icon: IconLayoutGrid, placeholder: "描述创作目标，让零幕陪你完成第一幕…" },
+  { id: "director", label: "导演台", icon: IconVideo, placeholder: "描述故事、题材、目标受众或已有剧本，让导演助手规划创作方向…" },
   { id: "image", label: "生图创作", icon: IconPhoto, placeholder: "描述画面主体、风格与光线，让想象成为画面…" },
   { id: "video", label: "视频创作", icon: IconVideo, placeholder: "描述镜头、动作与节奏，开始你的短片创作…" },
   { id: "audio", label: "音频创作", icon: IconMusic, placeholder: "输入旁白或对白，为故事生成声音…" },
@@ -123,6 +123,7 @@ async function restoreAttachment(index: number) {
 
 async function createCanvasFromPrompt() {
   if (creating.value || opening.value) return;
+  if (!workspaceStore.project) { await router.push({ path: "/projects", query: { next: "/home" } }); return; }
   if ((prompt.value.trim() || promptAttachments.value.length) && !selectedModel.value) {
     openSettings("mediaChannel");
     return ElMessage.warning("请先添加一个文本模型，用于驱动创作助手");
@@ -133,7 +134,10 @@ async function createCanvasFromPrompt() {
     await workspaceStore.openProject(directory);
     const canvas = await createNumberedCanvas(workspaceStore.project!.directory);
     if ((prompt.value.trim() || promptAttachments.value.length)) {
-      workspaceStore.pendingAgentMessage = { directory: workspaceStore.project!.directory, prompt: currentMode.value === "home" ? prompt.value : `创作方向：${modes.find(mode => mode.id === currentMode.value)?.label}。\n${prompt.value}`, attachments: [...promptAttachments.value], model: selectedModel.value, reasoningEffort: reasoningEffort.value };
+      const agentPrompt = currentMode.value === "director"
+        ? `请以 AI 导演身份，根据我的目标协助构思、编写或改编剧本、规划分镜并优化镜头提示词；先提供可审阅的方案，再按我的指示组织画布制作。\n创作要求：\n${prompt.value}`
+        : currentMode.value === "home" ? prompt.value : `创作方向：${modes.find(mode => mode.id === currentMode.value)?.label}。\n${prompt.value}`;
+      workspaceStore.pendingAgentMessage = { directory: workspaceStore.project!.directory, prompt: agentPrompt, attachments: [...promptAttachments.value], model: selectedModel.value, reasoningEffort: reasoningEffort.value };
     }
     await router.push({ path: "/workspace", query: { canvas: canvas.id } });
   } catch (err) {
@@ -148,18 +152,15 @@ async function createCanvasFromPrompt() {
 
 <style lang="scss" scoped>
 .studioHome {
-  --homeBg: #101111; --homeSurface: #202120; --homeRaised: #292b29; --homeText: #f1f1ec; --homeMuted: #aaada6; --homeLine: #373a36; --homeAccent: #b6dec9; --homeDot: #343732;
-  --el-bg-color: var(--homeSurface); --el-bg-color-overlay: var(--homeRaised); --el-fill-color-blank: var(--homeSurface); --el-fill-color-light: var(--homeRaised); --el-fill-color: var(--homeRaised); --el-text-color-primary: var(--homeText); --el-text-color-regular: var(--homeMuted); --el-text-color-placeholder: var(--homeMuted); --el-text-color-secondary: var(--homeMuted); --el-border-color: var(--homeLine); --el-border-color-light: var(--homeLine); --el-color-primary: var(--homeAccent);
-  height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; background-color: var(--homeBg); color: var(--homeText); color-scheme: dark;
-  &.lightHome { --homeBg: #f4f5f0; --homeSurface: #fff; --homeRaised: #e7eae3; --homeText: #202820; --homeMuted: #54604f; --homeLine: #ccd2c7; --homeAccent: #23644d; --homeDot: #d2d7cc; color-scheme: light; }
+  width: 100%; max-width: 1400px; min-width: 0; flex: 1 0 auto; display: flex; flex-direction: column; margin: 0 auto;
   button { font: inherit; cursor: pointer; } button:disabled { cursor: not-allowed; opacity: .5; } button:focus-visible, a:focus-visible { outline: 2px solid var(--homeAccent); outline-offset: 5px; }
-  ::selection { background: #b6dec9; color: #15271e; } h1,h2,h3,p { margin: 0; }
+  h1, h2, h3, p { margin: 0; }
   .skipLink { position: absolute; top: -80px; left: 20px; z-index: 10; padding: 12px; background: var(--homeSurface); color: var(--homeText); &:focus { top: 12px; } }
-  .homeContent { box-sizing: border-box; width: 100%; max-width: 1400px; flex: 1; min-height: 0; min-width: 0; margin: 0 auto; padding: clamp(12px,3dvh,32px) clamp(16px,3vw,40px) 12px; display: grid; grid-template-rows: auto auto minmax(min-content,1fr); gap: clamp(12px,2dvh,20px); overflow: auto; scrollbar-width: thin; scrollbar-color: var(--homeLine) transparent; }
+  .homeContent { box-sizing: border-box; width: 100%; max-width: 1400px; flex: 1; min-height: 0; min-width: 0; margin: 0 auto; padding: clamp(4px,1dvh,12px) 0 0; display: grid; grid-template-rows: auto auto minmax(min-content,1fr); gap: clamp(12px,2dvh,20px); }
   .showcase { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
   .slideStage { --slideWidth: min(100%, clamp(560px, 62%, 760px)); flex: 0 0 auto; height: clamp(200px,36dvh,340px); min-height: min-content; position: relative; display: grid; }
   .featureSlide {
-    grid-area: 1 / 1; position: relative; width: var(--slideWidth); min-width: 0; min-height: 240px; left: calc((100% - var(--slideWidth)) / 2); display: flex; align-items: flex-end; overflow: hidden; border-radius: calc(var(--ui-radius, 8px) * 2); background: #192b24;
+    grid-area: 1 / 1; position: relative; width: var(--slideWidth); min-width: 0; min-height: 240px; left: calc((100% - var(--slideWidth)) / 2); display: flex; align-items: flex-end; overflow: hidden; border-radius: 16px; background: #192b24;
     transition: left .45s ease-out, transform .45s ease-out, filter .45s ease-out;
     .sceneImage { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
     &.centerSlide { z-index: 2; transform: scale(1); filter: brightness(1); }
@@ -173,7 +174,7 @@ async function createCanvasFromPrompt() {
   .slideDots { display: flex; justify-content: center; gap: 8px; padding-top: 8px; flex-shrink: 0; button { padding: 8px 0; width: 8px; background: none; border: 0; &::after { content: ''; display: block; height: 5px; border-radius: 4px; background: var(--homeMuted); opacity: .45; } &.active { width: 24px; &::after { opacity: 1; background: var(--homeText); } } } }
   .creationComposer { width: 100%; max-width: 800px; min-width: 0; margin: 0 auto; scroll-margin-top: 24px; }
   .composerModes { display: flex; flex-wrap: wrap; gap: 6px 22px; margin: 0 6px 12px; button { padding: 4px 0; background: none; border: 0; color: var(--homeMuted); font-size: 12px; white-space: nowrap; &.active { color: var(--homeAccent); } } }
-  .promptCard { border: 1px solid var(--homeLine); border-radius: calc(var(--ui-radius, 8px) * 2); background: var(--homeSurface); padding: 18px; &:focus-within { border-color: var(--homeAccent); } :deep(.el-textarea__inner) { background: transparent; color: var(--homeText); box-shadow: none; padding: 0; height: clamp(48px,10dvh,88px); min-height: 48px !important; font-size: 14px; line-height: 1.8; caret-color: var(--homeAccent); &::placeholder { color: var(--homeMuted); } } }
+  .promptCard { border: 1px solid var(--homeLine); border-radius: 16px; background: var(--homeSurface); padding: 18px; &:focus-within { border-color: var(--homeAccent); } :deep(.el-textarea__inner) { background: transparent; color: var(--homeText); box-shadow: none; padding: 0; height: clamp(48px,10dvh,88px); min-height: 48px !important; font-size: 14px; line-height: 1.8; caret-color: var(--homeAccent); &::placeholder { color: var(--homeMuted); } } }
   .composerFooter { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-top: 12px; min-width: 0; }
   .openCanvases { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; color: var(--homeMuted); font-size: 12px; text-decoration: none; white-space: nowrap; &:hover { color: var(--homeAccent); } }
   .sendActions { display: flex; min-width: 0; align-items: center; gap: 12px; justify-content: flex-end; :deep(.modelPopover) { max-width: 240px; } .sendButton { background: var(--homeAccent); border-color: var(--homeAccent); color: var(--homeBg); flex-shrink: 0; width: 36px; height: 36px; } }

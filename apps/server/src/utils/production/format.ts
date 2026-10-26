@@ -33,7 +33,7 @@ export function assertProductionPath(directory: string, paths: string[], include
   for (const value of paths) {
     const raw = relative(directory, resolve(directory, value)).replaceAll("\\", "/");
     const path = process.platform === "win32" ? raw.toLowerCase() : raw;
-    const reserved = [projectFileName, "studioDrafts", "assets/production", "assets/transfers", "projectBackups", "productionTransfers", "productionExports", "productionTasks", "productionBatches", "productionImageEdits", "productionTemplateInputs", "productionLibraryImports", "projectPackages", "projectImports", "projectImportState.json"].map(value => process.platform === "win32" ? value.toLowerCase() : value);
+    const reserved = [projectFileName, "references/versions", "references/transfers", "projectData/layout.json", "projectData/drafts", "projectData/backups", "projectData/tasks", "projectData/cache", "projectData/history/transfers", "projectData/history/imageEdits", "projectData/history/templateInputs", "projectData/history/libraryImports", "exports", "studioDrafts", "assets/production", "assets/transfers", "projectBackups", "productionTransfers", "productionExports", "productionTasks", "productionBatches", "productionImageEdits", "productionTemplateInputs", "productionLibraryImports", "projectPackages", "projectImports", "projectImportState.json"].map(value => process.platform === "win32" ? value.toLowerCase() : value);
     if (reserved.some(target => path === target || path.startsWith(`${target}/`) || includeParents && target.startsWith(`${path}/`))) {
       throw Object.assign(new Error("制作记录、工作站草稿、固定版本和恢复备份由对应功能管理，请通过分镜、工作站、素材版本或快照操作修改"), { status: 409 });
     }

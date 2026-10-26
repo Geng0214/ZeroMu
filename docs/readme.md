@@ -1,54 +1,31 @@
-# Toonflow 文档目录
+# 零幕文档
 
-[返回项目首页](../README.md)
+更新：2026-10-24。先看计划与进度；需要执行开发或验收时再查对应说明。
 
-## 项目介绍
-
-| README 语言 | 入口 |
+| 文档 | 用途 |
 | --- | --- |
-| 简体中文 | [README](../README.md) |
-| 繁體中文 | [README](./readme/readmeZhTw.md) |
-| English | [README](./readme/readmeEn.md) |
-| 日本語 | [README](./readme/readmeJa.md) |
-| Русский | [README](./readme/readmeRu.md) |
-| Tiếng Việt | [README](./readme/readmeVi.md) |
-| ไทย | [README](./readme/readmeTh.md) |
-| 한국어 | [README](./readme/readmeKo.md) |
-| हिन्दी | [README](./readme/readmeHi.md) |
-| Bahasa Indonesia | [README](./readme/readmeId.md) |
-| Bahasa Melayu | [README](./readme/readmeMs.md) |
-| Filipino | [README](./readme/readmeFil.md) |
-| বাংলা | [README](./readme/readmeBn.md) |
-| اردو | [README](./readme/readmeUr.md) |
-| தமிழ் | [README](./readme/readmeTa.md) |
-| తెలుగు | [README](./readme/readmeTe.md) |
-| मराठी | [README](./readme/readmeMr.md) |
-| ਪੰਜਾਬੀ | [README](./readme/readmePa.md) |
-| العربية | [README](./readme/readmeAr.md) |
-| فارسی | [README](./readme/readmeFa.md) |
-| Türkçe | [README](./readme/readmeTr.md) |
+| [plan：总开发计划](plan.md) | 唯一的整体目标、24 项功能差距、扩充阶段、排期与完成标准 |
+| [当前进度](progress.md) | 已实现、已验证、尚未完成，以及接下来做什么 |
+| [验收清单](acceptance.md) | 实际安装、真实媒体、数据恢复、性能与发行门槛 |
+| [开发指南](development.md) | 启动、构建、扩展、版本管理与发布入口 |
+| [设计约定](design.md) | 页面职责、导航、视觉与交互原则 |
+| [技术与安全边界](architecture.md) | 数据归属、任务、插件、凭据与桌面边界 |
+| [创作使用说明](guides/creation.md) | 素材版本、候选、模板、本机媒体与项目包 |
+| [渠道与费用](guides/channels.md) | 已验证的渠道范围、未知提交、预算与限制 |
+| [历史归档](archive/readme.md) | 整理前的计划、逐批日志与专项原始记录 |
 
-项目介绍提供以上 21 种语言版本，与[应用支持的语言](../README.md#languages)保持一致。
+## 阅读与维护规则
 
-## 使用与开发
+- 目标只在 `plan.md` 维护，状态只在 `progress.md` 汇总，验收结论附证据与版本。
+- 新一轮实施更新上述文档相应条目；不再同时向多份计划追加相同批次日志。
+- 归档是历史快照，不继续追加。其“已完成”“待完成”和版本均以原记录日期为限。
+- `work/`、`build/` 下的日志、截图、项目与安装包是本机证据，被 Git 忽略；仓库文档不等于携带全部验收材料。
+- 子包说明保留在实现旁：节点、工具、团队、MCP、更新服务和多语言文档不搬动。`SKILL.md`、Agent 成员与知识资料参与运行，不纳入开发文档合并。
 
-- [使用教程](https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf)：日常操作与创作流程。
-- [开发与扩展指南](./development.md)：源码运行、插件扩展、桌面打包和更新发布。
-- [贡献指南](../CONTRIBUTING.md)与[开发规范](../AGENTS.md)：参与项目的约定。
-- [多语言维护说明](../packages/i18n/readme.md)：字典抽取、动态文案、前后端接入和语言回退。
-- [多语言回归记录](../packages/i18n/regression.md)：已完成的检查与已知范围。
-- [MCP 接入说明](../packages/mcp/README.md)：外部客户端连接与工具能力。
+## 其他入口
 
-## 目录约定
+- [项目首页](../README.md)、[贡献指南](../CONTRIBUTING.md)、[开发规范](../AGENTS.md)、[许可](../LICENSE)。
+- [MCP](../packages/mcp/README.md)、[多语言维护](../packages/i18n/readme.md)、[更新服务](../apps/updateServer/readme.md)。
+- [上游多语言介绍](archive/previousIndex.md#项目介绍)：保留作参考，未视为与当前零幕功能同步的译版。
 
-```text
-docs/
-  readme.md          文档入口
-  development.md     开发与扩展指南
-  readme/            各语言项目介绍
-  images/            标识、认证与社区图片
-    screenshots/     产品截图
-    sponsors/        赞助商图片
-```
-
-各子包的实现与维护说明保留在对应 `packages/` 目录。更新项目介绍时，以根目录 `README.md` 为准同步其余二十份译版；图片统一复用 `images/`，移动文件时同时更新 Markdown 和 HTML 中的相对链接。
+本次整理将原来平铺的 45 份文档保留到归档，日常入口收敛为 6 份主题正文、2 份使用说明和本目录；未改动程序、凭据或项目数据。

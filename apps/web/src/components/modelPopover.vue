@@ -32,9 +32,10 @@
             </el-option-group>
           </el-select>
         </el-form-item>
-        <el-form-item label="推理等级">
+        <fieldset class="reasoningField">
+          <legend>推理等级</legend>
           <el-segmented v-model="reasoningEffort" :options="reasoningOptions" :disabled="disabled" block aria-label="推理等级" />
-        </el-form-item>
+        </fieldset>
       </el-form>
     </el-popover>
   </div>
@@ -115,6 +116,18 @@ watch(() => !props.active || props.disabled, close => { if (close) visible.value
         margin-bottom: 10px;
         font-weight: 500;
         color: var(--el-text-color-primary);
+      }
+    }
+    .reasoningField {
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      border: 0;
+
+      legend {
+        margin-bottom: 10px;
+        color: var(--el-text-color-primary);
+        font-weight: 500;
       }
       .el-segmented {
         width: 100%;

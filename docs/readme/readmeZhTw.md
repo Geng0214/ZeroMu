@@ -127,7 +127,6 @@
 <p align="center">
   <a href="https://github.com/HBAI-Ltd/Toonflow-app/releases">下載桌面版</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/RXFqdgR2Xo0dXZxGfd0cZCGgnwf">使用教學</a> ·
-  <a href="https://api.toonflow.net/console/plugIn">外掛市集</a> ·
   <a href="https://qcn7xdsqgc4z.feishu.cn/docx/KNBNd9naqolsy6xjAOCcEAkqnRd">開發者文件</a> ·
   <a href="https://api.toonflow.net/">官方模型平台</a>
 </p>
@@ -185,7 +184,6 @@ Toonflow 是面向短劇、動態漫畫與短影片製作的開源 AI 創作平�
 | 🏠 **本機部署** | 專案與素材儲存在自己的裝置或伺服器，支援桌面、Docker 與伺服器部署。 |
 | 🖼️ **無限畫布** | 在同一張畫布中組織劇本、角色、場景與影片片段。 |
 | 🔌 **MCP** | 透過 MCP 連接外部工具與服務。 |
-| 🧩 **外掛市集** | 透過[外掛市集](https://api.toonflow.net/console/plugIn)擴充節點、工具與創作功能。 |
 | 🤖 **開放 Agent** | 開放提示詞、工具與 A2A，支援自訂 Agent 行為及外部協作。 |
 | 🔧 **自由串接模型** | 設定第三方 API，也可串接本機 ComfyUI 和 LLM。 |
 | 🌐 **多語言支援** | 支援 21 種介面語言。 |
@@ -220,7 +218,6 @@ Toonflow 是面向短劇、動態漫畫與短影片製作的開源 AI 創作平�
 
 <a href="../images/screenshots/nodeMenu.png"><img src="../images/screenshots/nodeMenu.png" alt="Toonflow 節點選單與群組操作" width="80%" /></a><br /><sub>節點選單與群組操作</sub>
 
-<a href="../images/screenshots/pluginMarket.png"><img src="../images/screenshots/pluginMarket.png" alt="Toonflow 外掛市集" width="80%" /></a><br /><sub>外掛市集</sub>
 
 </div>
 

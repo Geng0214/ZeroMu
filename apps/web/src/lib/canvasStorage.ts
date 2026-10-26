@@ -1,28 +1,21 @@
-import axios from 'axios';
-import useWorkspaceFiles from './workspaceFiles';
+import { projectCanvasFolder } from './projectPaths';
 import { useWorkspaceStore } from '@/stores/workspace';
 
-// 保留旧存储目录，移除界面上的项目层级，避免迁移破坏素材引用。
-export function canvasDirectories() {
+export function canvasProjects() {
   const workspace = useWorkspaceStore();
-  return [...new Set([workspace.project?.directory, ...workspace.projectList.map(item => item.directory)].filter((path): path is string => !!path))];
+  const projects = [...workspace.projectList, ...(workspace.project ? [workspace.project] : [])];
+  return [...new Map(projects.map(project => [project.directory, project])).values()];
 }
-
-let preparing: Promise<string> | undefined;
-export function ensureCanvasDirectory(): Promise<string> {
-  if (preparing) return preparing;
-  preparing = (async () => {
-    const workspace = useWorkspaceStore();
-    const existing = canvasDirectories()[0];
-    if (existing) return existing;
-    const { data } = await axios.get<{ data: { absolutePath: string; directories: { name: string }[] } }>('/api/workspaces/list');
-    const root = data.data.absolutePath;
-    if (!data.data.directories.some(item => item.name === 'canvases')) {
-      try { await useWorkspaceFiles(root).mkdir('canvases'); }
-      catch (error) { if (!axios.isAxiosError(error) || error.response?.status !== 409 || error.response.data?.data?.code !== 'EEXIST') throw error; }
-    }
-    await workspace.openProject(`${root.replace(/[\\/]$/, '')}/canvases`);
-    return workspace.project!.directory;
-  })().finally(() => { preparing = undefined; });
-  return preparing;
+export async function canvasFolder(directory: string) {
+  return projectCanvasFolder(directory);
+}
+export async function ensureCanvasDirectory(): Promise<string> {
+  const workspace = useWorkspaceStore();
+  await workspace.initialize();
+  if (!workspace.project) {
+    const { default: router } = await import('@/router');
+    await router.push({ path: '/projects', query: { next: '/canvas' } });
+    throw new Error('请先打开工作空间');
+  }
+  return workspace.project.directory;
 }

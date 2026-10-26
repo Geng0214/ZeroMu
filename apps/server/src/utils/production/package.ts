@@ -1,3 +1,4 @@
+import { hasProjectLayout, projectCanvasFolder, projectPath } from "@/utils/workspace/projectLayout";
 import { pendingLibraryImports, libraryFolder } from "./library";
 import { createWriteStream, link, lstat, mkdir, readFile, readdir, realpath, rename, rm, statfs, withFileAccess, writeAtomic } from "@toonflow/file";
 import { basename, dirname, join, resolve } from "node:path";
@@ -21,6 +22,7 @@ const manifestSchema = z.strictObject({ zeromuPackage: z.literal(true), format: 
 export type ProjectPackageManifest = z.infer<typeof manifestSchema>;
 type PackageJob = { jobId: string; directory: string; kind: "export" | "import"; status: "running" | "completed" | "failed" | "cancelled"; phase: string; bytes: number; totalBytes: number; createdAt: number; path?: string; targetParent?: string; folderName?: string; resultDirectory?: string; error?: string; warnings: string[] };
 const live = new Map<string, { job: PackageJob; controller: AbortController }>();
+export function hasRunningPackage(directory: string) { return [...live.values()].some(({ job }) => job.directory === directory); }
 const jobsDirectory = () => join(dirname(conf.path), "projectTransferJobs");
 function invalid(message: string, status = 422): never { throw Object.assign(new Error(message), { status }); }
 async function saveJob(job: PackageJob) { await mkdir(jobsDirectory(), { recursive: true }); await writeAtomic(join(jobsDirectory(), `${job.jobId}.json`), JSON.stringify(job, null, 2)); }
@@ -49,7 +51,7 @@ function mediaReference(value: string, key: string, directory = "") {
   const path = root && normalized.toLowerCase().startsWith(root.toLowerCase() + "/") ? normalized.slice(root.length + 1) : normalized;
   const pathField = /^(?:path|url|textPath|modelPath|filePath|src)$/i.test(key);
   if (pathField && /^(?:https?:|file:|blob:|[a-z]:[\\/])/i.test(path)) invalid("画布引用外部文件或临时链接，请先在原节点保存为项目内媒体后再打包");
-  if (/^(assets|productionExports)\//.test(path) || pathField && relativePathSchema.safeParse(path).success) return portablePath(path);
+  if (/^(assets|productionExports|media|references|exports)\//.test(path) || pathField && relativePathSchema.safeParse(path).success) return portablePath(path);
 }
 function validateMediaReferences(value: unknown, paths: Set<string>, key = "") {
   if (Array.isArray(value)) { for (const item of value) validateMediaReferences(item, paths, key); return; }
@@ -70,7 +72,7 @@ async function canvasFiles(directory: string) {
       if (result.length > 10000) invalid("画布数量超过上限");
     }
   }
-  await visit("", 0); return result;
+  await visit(projectCanvasFolder(directory), 0); return result;
 }
 async function collectPackage(directory: string, job: PackageJob, signal: AbortSignal) {
   const project = await readProject(directory); if (!project) invalid("请先建立制作记录", 404); inspectCredentials(project);
@@ -120,6 +122,7 @@ async function collectPackage(directory: string, job: PackageJob, signal: AbortS
     if (path) { const target = await resolveWorkspacePath(directory, path, true); const info = await lstat(target.path).catch((error: NodeJS.ErrnoException) => { if (optional && error.code === "ENOENT") return null; throw error; }); if (info?.isDirectory()) await tree(path, optional); else if (info) await add(path, false, optional); }
   }
   await add(projectFileName);
+  if (hasProjectLayout(directory)) await add("projectData/layout.json");
   if (JSON.stringify(project) !== JSON.stringify(await readProject(directory))) invalid("制作记录在归集开始时变化，请保存后重新打包", 409);
   for (const version of project.assetVersions) {
     if (version.taskId) tasks.add(version.taskId);
@@ -127,7 +130,7 @@ async function collectPackage(directory: string, job: PackageJob, signal: AbortS
       await add(file.path);
       if (files.get(keyForPath(`project/${file.path}`))!.hash !== file.hash) invalid("固定版本内容已改变，不能打包", 409);
     }
-    await add(`assets/production/${version.versionId}/versionManifest.json`, false, true);
+    await add(projectPath(directory, `assets/production/${version.versionId}/versionManifest.json`), false, true);
   }
   const canvases = [...new Set([...project.canvases.map(canvas => canvas.canvasId), ...await canvasFiles(directory)])];
   for (const path of canvases) {
@@ -135,8 +138,9 @@ async function collectPackage(directory: string, job: PackageJob, signal: AbortS
     const checked = canvasSchema.parse(value);
     for (const node of checked.nodes) { if (node.type?.startsWith("remote-")) nodeTypes.add(node.type); if (/^[a-zA-Z0-9-]+$/.test(node.id)) await tree(`assets/${node.id}`, true); await references(node.data); }
   }
-  await tree("productionTransfers", true); await tree("projectBackups", true);
-  for (const [kind, path] of [["image", "studioImageHistory.json"], ["video", "studioVideoHistory.json"], ["audio", "studioAudioHistory.json"]] as const) {
+  await tree(projectPath(directory, "productionTransfers"), true); await tree(projectPath(directory, "projectBackups"), true);
+  for (const [kind, historyFile] of [["image", "studioImageHistory.json"], ["video", "studioVideoHistory.json"], ["audio", "studioAudioHistory.json"]] as const) {
+    const path = hasProjectLayout(directory) ? `projectData/history/${historyFile}` : historyFile;
     const target = await resolveWorkspacePath(directory, path, true);
     const info = await lstat(target.path).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; });
     if (!info) continue;
@@ -159,7 +163,7 @@ async function collectPackage(directory: string, job: PackageJob, signal: AbortS
     await references(history, "", true);
   }
   for (const kind of ["image", "video", "audio"] as const) {
-    const folder = `studioDrafts/${kind}`;
+    const folder = projectPath(directory, `studioDrafts/${kind}`);
     const draft = await readDraft({ root: directory, path: folder });
     if (!draft.value) continue;
     const path = `${folder}/draft.json`;
@@ -179,19 +183,19 @@ async function collectPackage(directory: string, job: PackageJob, signal: AbortS
   }
   const pendingAssets = await pendingLibraryImports(directory);
   if (pendingAssets.warnings.length) invalid("待完成素材带入记录无法完整读取，请保留项目并修复后再打包", 422);
-  for (const operation of pendingAssets.items) { await tree(libraryFolder(operation.importId)); warnings.push("项目包保留了待完成的全局素材带入；若副本尚未写完，需要重新选择原素材核对"); }
+  for (const operation of pendingAssets.items) { await tree(libraryFolder(directory, operation.importId)); warnings.push("项目包保留了待完成的全局素材带入；若副本尚未写完，需要重新选择原素材核对"); }
   const pendingApplications = await pendingTemplates(directory);
   if (pendingApplications.warnings.length) invalid("待完成模板记录无法完整读取，请保留项目并修复后再打包", 422);
-  for (const input of pendingApplications.items) { await tree(templateFolder(input.applicationId)); await references(input.mediaBindings, "", true); warnings.push("项目包保留了待完成模板输入，导入后须重新预览并核对模型与参考文件后继续"); }
-  const batchFolder = await resolveWorkspacePath(directory, "productionBatches", true);
+  for (const input of pendingApplications.items) { await tree(templateFolder(directory, input.applicationId)); await references(input.mediaBindings, "", true); warnings.push("项目包保留了待完成模板输入，导入后须重新预览并核对模型与参考文件后继续"); }
+  const batchFolder = await resolveWorkspacePath(directory, projectPath(directory, "productionBatches"), true);
   const batchFiles = await readdir(batchFolder.path).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return []; throw cause; });
   for (const file of batchFiles) if (/^[a-f0-9-]{36}\.json$/i.test(file)) {
     const batch = (await readBatch(directory, file.slice(0, -5)))!;
-    await add(`productionBatches/${file}`);
+    await add(projectPath(directory, `productionBatches/${file}`));
     const { directory: _directory, ...record } = batch;
     const archived = { ...record, archived: true }; inspectCredentials(archived);
     const bytes = Buffer.from(JSON.stringify(archived, null, 2));
-    files.set(keyForPath(`project/productionBatches/${file}`), { name: `project/productionBatches/${file}`, bytes, size: bytes.length, hash: hashBytes(bytes) });
+    files.set(keyForPath(`project/${projectPath(directory, `productionBatches/${file}`)}`), { name: `project/${projectPath(directory, `productionBatches/${file}`)}`, bytes, size: bytes.length, hash: hashBytes(bytes) });
     await references(record, "", true);
   }
   for (const record of project.exports) {
@@ -204,10 +208,11 @@ async function collectPackage(directory: string, job: PackageJob, signal: AbortS
     if (["queued", "submitting", "running", "downloading"].includes(task.status)) invalid("当前项目仍有进行中媒体任务，请核对完成后再打包", 409);
     const { directory: _directory, ...record } = task;
     const receipt = { ...record, archiveProjectId: project.projectId, canResume: false, canCancel: false, archived: true }; inspectCredentials(receipt);
-    const bytes = Buffer.from(JSON.stringify(receipt, null, 2)); const name = `project/productionTasks/${id}.json`; files.set(keyForPath(name), { name, bytes, size: bytes.length, hash: hashBytes(bytes) });
+    const bytes = Buffer.from(JSON.stringify(receipt, null, 2)); const name = `project/${projectPath(directory, `productionTasks/${id}.json`)}`; files.set(keyForPath(name), { name, bytes, size: bytes.length, hash: hashBytes(bytes) });
     await references(task.request, "", true); await references(task.results, "", true);
   } catch (error) { if ((error as NodeJS.ErrnoException & { status?: number }).code === "ENOENT" || (error as { status?: number }).status === 404) warnings.push(`任务 ${id} 原记录不可用，素材版本或候选中的固定生成依据仍保留`); else throw error; }
-  await tree("productionTasks", true);
+  await tree(projectPath(directory, "productionTasks"), true);
+  if (hasProjectLayout(directory)) { await tree("assets", true); await tree("media", true); await tree("references", true); await tree("projectData/history", true); }
   const totalBytes = [...files.values()].reduce((sum, file) => sum + file.size, 0); if (totalBytes > maxArchiveBytes - 32 * 1024 ** 2) invalid("项目包超过当前 3 GB 上限", 413);
   const manifest: ProjectPackageManifest = { zeromuPackage: true, format: 1, packageId: job.jobId, projectId: project.projectId, name: project.name, revision: project.revision, createdAt: job.createdAt, totalBytes, files: [...files.values()].map(file => ({ path: file.name.slice(8), size: file.size, hash: file.hash })), dependencies: { nodes: [...nodeTypes], models: [...models.values()] }, warnings: [...new Set(warnings)] };
   job.totalBytes = totalBytes; job.warnings = manifest.warnings; return { manifest, files: [...files.values()], sourceHashes, sourceProjectHash };
@@ -249,20 +254,20 @@ export async function exportPackage(directory: string, expectedRevision: number,
   return runJob(job, async controller => {
     const { manifest, files, sourceHashes, sourceProjectHash } = await collectPackage(directory, job, controller.signal);
     const disk = await statfs(directory); if (disk.bavail * disk.bsize < manifest.totalBytes + 64 * 1024 ** 2) invalid("打包磁盘空间不足", 507);
-    const folder = (await resolveWorkspacePath(directory, `projectPackages/${jobId}`, true)).path; await mkdir(folder, { recursive: true });
+    const folder = (await resolveWorkspacePath(directory, projectPath(directory, `projectPackages/${jobId}`), true)).path; await mkdir(folder, { recursive: true });
     const bytes = Buffer.from(JSON.stringify(manifest, null, 2)); if (bytes.length > 20 * 1024 ** 2) invalid("项目包清单超过 20 MB", 413); job.totalBytes += bytes.length; const partial = join(folder, "partial.zip"); job.phase = "写入项目包";
     await writeArchive(partial, [{ name: "packageManifest.json", bytes, size: bytes.length, hash: hashBytes(bytes) }, ...files], controller.signal, bytes => { job.bytes = bytes; });
     job.phase = "核对来源";
     if (await hashFile(join(directory, projectFileName), controller.signal) !== sourceProjectHash) invalid("项目制作记录在归集期间变化，请重新打包", 409);
     for (const [path, hash] of sourceHashes) if (await hashFile(join(directory, path), controller.signal) !== hash) invalid("项目文件在归集期间变化，请重新打包", 409);
     controller.signal.throwIfAborted(); await packageIndex(partial); await rename(partial, join(folder, "project.zeromu.zip"));
-    job.path = `projectPackages/${jobId}/project.zeromu.zip`;
+    job.path = projectPath(directory, `projectPackages/${jobId}/project.zeromu.zip`);
   });
   });
 }
 export async function uploadPackage(directory: string, uploadId: string, request: Request) {
   if (!request.is("application/octet-stream")) invalid("请上传项目包文件原始内容", 400);
-  const path = `projectImports/${uploadId}.zip`; const target = await resolveWorkspacePath(directory, path, true); await mkdir(dirname(target.path), { recursive: true }); let bytes = 0;
+  const path = projectPath(directory, `projectImports/${uploadId}.zip`); const target = await resolveWorkspacePath(directory, path, true); await mkdir(dirname(target.path), { recursive: true }); let bytes = 0;
   const disk = await statfs(directory); const length = Number(request.get("content-length")); if (length > maxArchiveBytes || length > disk.bavail * disk.bsize - 64 * 1024 ** 2) invalid("项目包过大或磁盘空间不足", 413);
   const limit = Math.min(maxArchiveBytes, disk.bavail * disk.bsize - 64 * 1024 ** 2);
   await pipeline(request, new Transform({ transform(chunk: Buffer, _encoding, done) { bytes += chunk.length; done(bytes > limit ? Object.assign(new Error("项目包过大或磁盘空间不足"), { status: 413 }) : null, chunk); } }), createWriteStream(target.path + ".partial", { flags: "wx", mode: 0o600 }));
@@ -294,7 +299,7 @@ export async function importPackage(directory: string, path: string, targetParen
       for (const canvas of project.canvases) if (!manifest.files.some(file => file.path === canvas.canvasId)) invalid("项目登记画布缺失");
       for (const record of project.exports) if (record.status === "completed" && record.path && record.outputHash && filesByPath.get(record.path)?.hash !== record.outputHash) invalid("完成成片缺失或摘要不一致");
       const paths = new Set(manifest.files.map(file => file.path));
-      for (const file of manifest.files.filter(file => /\.json$/i.test(file.path))) { if (file.size > 20 * 1024 ** 2) invalid("项目包 JSON 文件超过读取上限"); const value = JSON.parse(await readFile(join(stage, file.path), "utf8")); inspectCredentials(value); if (value.toonflowCanvas || project.canvases.some(canvas => canvas.canvasId === file.path)) { const canvas = canvasSchema.parse(value); if (!file.path.startsWith("projectBackups/")) for (const node of canvas.nodes) validateMediaReferences(node.data, paths); } }
+      for (const file of manifest.files.filter(file => /\.json$/i.test(file.path))) { if (file.size > 20 * 1024 ** 2) invalid("项目包 JSON 文件超过读取上限"); const value = JSON.parse(await readFile(join(stage, file.path), "utf8")); inspectCredentials(value); if (value.toonflowCanvas || project.canvases.some(canvas => canvas.canvasId === file.path)) { const canvas = canvasSchema.parse(value); if (!file.path.startsWith(projectPath(directory, "projectBackups/"))) for (const node of canvas.nodes) validateMediaReferences(node.data, paths); } }
       await archivedTasks(stage);
       const batches = await listBatches(stage); if (batches.some(batch => batch.state !== "archived")) invalid("迁移批次须为只读历史，不能导入可执行批次");
       controller.signal.throwIfAborted(); job.phase = "提交独立目录"; const release = lockWorkspaceFiles([final]);

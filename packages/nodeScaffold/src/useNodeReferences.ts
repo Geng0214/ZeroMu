@@ -1,4 +1,5 @@
-import { computed, ref } from "vue";
+import { computed, inject, ref } from "vue";
+import { ElMessage } from "element-plus";
 import { useNode, useVueFlow } from "@vue-flow/core";
 import type { NodeData } from "./connection";
 import { useNodeEvent } from "./nodeEvent";
@@ -7,6 +8,7 @@ import type { NodeInputValue } from "./values";
 export function useNodeReferences(handleId = "in") {
   const { id, node } = useNode<NodeData & { referenceOrder?: Record<string, string[]> }>();
   const { removeEdges } = useVueFlow();
+  const removeFrameReference = inject<((handleId: string, source: string, sourceHandle: string) => Promise<void>) | undefined>("nodeRemoveReference", undefined);
   const inputValues = ref<NodeInputValue[]>([]);
   const previews = ref(new Map<string, string>());
   const refList = computed({
@@ -42,6 +44,10 @@ export function useNodeReferences(handleId = "in") {
   }
 
   function removeReference(item: NodeInputValue) {
+    if (removeFrameReference) {
+      void removeFrameReference(handleId, item.source, item.sourceHandle).catch(error => ElMessage.error(error instanceof Error ? error.message : "移除引用失败"));
+      return;
+    }
     removeEdges(edges => edges.filter(edge =>
       edge.target === id && edge.targetHandle === handleId && edge.source === item.source && edge.sourceHandle === item.sourceHandle
     ));

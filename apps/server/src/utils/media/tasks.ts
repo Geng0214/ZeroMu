@@ -4,6 +4,7 @@ import { isDeepStrictEqual } from "node:util";
 import { setTimeout } from "node:timers/promises";
 import { z } from "zod";
 import type { GeneratedMedia, MediaGenerationRequest, MediaTaskRecord, MediaTaskSource } from "@toonflow/tools-scaffold/runtime";
+import { hasProjectLayout, projectPath } from "@/utils/workspace/projectLayout";
 import conf from "@/utils/conf";
 import { currentProviderRevision, effectiveMediaRequest, generateMedia, isGeneratingMedia } from "@/utils/media/generation";
 import { lockWorkspaceFiles, resolveWorkspacePath } from "@/utils/workspace/files";
@@ -61,6 +62,16 @@ async function writeTask(task: MediaTask) {
   task.updatedAt = Date.now();
   await writeAtomic(taskPath(task.id), JSON.stringify(task), { mode: 0o600 });
   indexTask(task);
+  await saveProjectTask(task);
+}
+async function saveProjectTask(task: MediaTask) {
+  if (hasProjectLayout(task.directory) && task.source.projectId) {
+    const path = await resolveWorkspacePath(task.directory, `projectData/tasks/${task.id}.json`, true);
+    await mkdir(dirname(path.path), { recursive: true });
+    const { directory: _directory, ...record } = view(task);
+    const snapshot = { ...record, archived: true, archiveProjectId: task.source.projectId };
+    await writeAtomic(path.path, JSON.stringify(snapshot), { mode: 0o600 });
+  }
 }
 function interruption(task: Pick<MediaTaskRecord, "id" | "status" | "canResume" | "error">) {
   if (!activeStatuses.has(task.status) || running.has(task.id) || queued.get(task.id)?.status === "queued") return { status: task.status, error: task.error };
@@ -87,6 +98,7 @@ async function readTask(id: string, directory?: string) {
   const task = JSON.parse(await readFile(taskPath(id), "utf8")) as MediaTask;
   if (!taskSchema.safeParse(task).success || task.id !== id) throw Object.assign(new Error(`任务记录 ${id}.json 损坏，请先备份并检查该文件`), { status: 422 });
   if (directory !== undefined && task.directory !== directory) throw Object.assign(new Error("任务不属于当前项目"), { status: 403 });
+  if (directory !== undefined && task.source?.projectId && task.source.projectId !== (await readProject(directory))?.projectId) throw Object.assign(new Error("任务不属于当前项目"), { status: 403 });
   task.source ??= { kind: "studio" };
   task.updatedAt ??= task.createdAt;
   task.phase ??= "generation";
@@ -109,7 +121,7 @@ function execute(task: MediaTask) {
             const policy = await readCostPolicy();
             task.cost ??= newTaskCost({ kind: "unknown", reason: "旧任务没有保存提交时的单价依据" });
             assertCurrentQuote(task.cost.quote, quoteMediaCost(policy, task.mediaType, task.request));
-            assertMediaBudget(policy, task.directory, indexedCostTasks(task.directory).filter(item => item.id !== task.id), [view(task)], [...invalidTasks]);
+            assertMediaBudget(policy, task.directory, (await indexedCostTasks(task.directory)).filter(item => item.id !== task.id), [view(task)], [...invalidTasks]);
             task.cost.submittedAt = Date.now();
             await writeTask(task);
           });
@@ -193,8 +205,8 @@ export async function startTask(id: string, directory: string, mediaType: MediaT
   if (!z.uuid().safeParse(id).success) throw Object.assign(new Error("任务编号无效"), { status: 400 });
   source = sourceSchema.parse(source);
   if (source.kind === "batch" && (!prepared || !source.batchId || !source.batchItemId || !source.shotId)) throw Object.assign(new Error("批次任务须通过已确认的批次提交"), { status: 403 });
-  return withFileAccess([join(directory, "studioReferences"), costAdmissionPath()], "write", async () => {
-    const release = lockWorkspaceFiles([join(directory, "studioReferences")]);
+  return withFileAccess([join(directory, projectPath(directory, "studioReferences")), costAdmissionPath()], "write", async () => {
+    const release = lockWorkspaceFiles([join(directory, projectPath(directory, "studioReferences"))]);
     try {
       await mkdir(taskDirectory(), { recursive: true });
       // 已有编号先按原始输入返回；镜头之后归档或改引用不影响原任务的重放。
@@ -204,6 +216,7 @@ export async function startTask(id: string, directory: string, mediaType: MediaT
         return view(prior);
       }
       const project = await readProject(directory);
+      if (!project) throw Object.assign(new Error("请先打开一个项目"), { status: 409 });
       if (source.projectId && source.projectId !== project?.projectId) throw Object.assign(new Error("任务归属的项目标识不匹配"), { status: 409 });
       const contextualSource = await directorTaskSource(directory, project, await backgroundRemovalTaskSource(directory, project, source, request), request);
       const shot = contextualSource.shotId ? project?.shots.find(item => item.shotId === contextualSource.shotId && !item.archived)
@@ -222,7 +235,7 @@ export async function startTask(id: string, directory: string, mediaType: MediaT
       await ensureTaskIndex();
       const policy = await readCostPolicy();
       task.cost = newTaskCost(prepared?.quote ?? quoteMediaCost(policy, mediaType, task.request));
-      if (task.status === "queued") try { assertMediaBudget(policy, directory, indexedCostTasks(directory), [view(task)], [...invalidTasks]); }
+      if (task.status === "queued") try { assertMediaBudget(policy, directory, await indexedCostTasks(directory), [view(task)], [...invalidTasks]); }
       catch (cause) { task.status = "failed"; task.error = cause instanceof Error ? cause.message : "预算校验失败"; }
       try { await writeAtomic(taskPath(id), JSON.stringify(task), { exclusive: true, mode: 0o600 }); }
       catch (cause) {
@@ -232,6 +245,7 @@ export async function startTask(id: string, directory: string, mediaType: MediaT
         return view(current);
       }
       indexTask(task);
+      await saveProjectTask(task);
       if (task.status === "queued") { queued.set(id, task); scheduleQueuedTasks(); }
       return view(task);
     } finally { release(); }
@@ -256,16 +270,23 @@ async function initializeTaskIndex() {
   }
 }
 async function ensureTaskIndex() { indexing ??= initializeTaskIndex().catch(cause => { indexing = undefined; throw cause; }); await indexing; }
-function indexedCostTasks(directory: string) { return [...taskIndex.values()].filter(item => item.directory === directory).map(item => item.task); }
+async function indexedCostTasks(directory: string) {
+  const project = await readProject(directory);
+  return [...taskIndex.values()].filter(item => item.directory === directory && (!item.task.source.projectId || item.task.source.projectId === project?.projectId)).map(item => item.task);
+}
+export async function hasActiveProjectTasks(directory: string) {
+  await ensureTaskIndex();
+  return isGeneratingMedia(directory) || [...taskIndex].some(([id, item]) => item.directory === directory && (running.has(id) || queued.has(id) || collections.has(id)));
+}
 export async function projectMediaCosts(directory: string) {
   await ensureTaskIndex();
   const policy = await readCostPolicy();
-  return { summary: summarizeMediaCosts(indexedCostTasks(directory), policy.budgets.find(item => item.directory === directory)), warnings: [...invalidTasks].map(file => `任务记录 ${file} 损坏，预算占用可能不完整`) };
+  return { summary: summarizeMediaCosts(await indexedCostTasks(directory), policy.budgets.find(item => item.directory === directory)), warnings: [...invalidTasks].map(file => `任务记录 ${file} 损坏，预算占用可能不完整`) };
 }
 export async function checkBatchBudget(directory: string, items: { taskId: string; quote?: MediaCostQuote }[]) {
   return withFileAccess([costAdmissionPath()], "write", async () => {
     await ensureTaskIndex();
-    const policy = await readCostPolicy(); const tasks = indexedCostTasks(directory);
+    const policy = await readCostPolicy(); const tasks = await indexedCostTasks(directory);
     const pending = items.filter(item => !tasks.some(task => task.id === item.taskId)).map(item => ({ id: item.taskId, cost: newTaskCost(item.quote ?? { kind: "unknown", reason: "旧批次没有保存单价依据" }), status: "queued" as const, phase: "validation" as const, createdAt: Date.now() }));
     if (!pending.length) return;
     assertMediaBudget(policy, directory, tasks, pending, [...invalidTasks]);
@@ -289,7 +310,7 @@ export async function getTask(id: string, directory: string) {
   if (!z.uuid().safeParse(id).success) throw Object.assign(new Error("任务编号无效"), { status: 400 });
   const cached = taskIndex.get(id);
   if (cached) {
-    if (cached.directory !== directory) { const archived = await archivedTask(id, directory); if (archived) return archived; throw Object.assign(new Error("任务不属于当前项目"), { status: 403 }); }
+    if (cached.directory !== directory || cached.task.source.projectId && cached.task.source.projectId !== (await readProject(directory))?.projectId) { const archived = await archivedTask(id, directory); if (archived) return archived; throw Object.assign(new Error("任务不属于当前项目"), { status: 403 }); }
     return { ...cached.task, ...interruption(cached.task) };
   }
   let task: MediaTask;
@@ -300,7 +321,7 @@ export async function getTask(id: string, directory: string) {
 }
 const archivedTaskSchema = z.object({ id: z.uuid(), archiveProjectId: z.uuid(), archived: z.literal(true), mediaType: z.enum(["image", "video", "audio"]), source: sourceSchema, request: taskSchema.shape.request, createdAt: z.number().finite(), updatedAt: z.number().finite(), status: z.enum(["queued", "submitting", "running", "downloading", "unknown", "interrupted", "completed", "partial", "failed", "cancelled"]), phase: z.enum(["validation", "submission", "generation", "download"]), error: z.string().optional(), results: z.array(z.object({ path: z.string(), mimeType: z.string(), mediaType: z.enum(["image", "video", "audio"]) }).passthrough()).max(10000) }).passthrough();
 async function archivedTask(id: string, directory: string): Promise<MediaTaskRecord | null> {
-  const path = await resolveWorkspacePath(directory, `productionTasks/${id}.json`, true);
+  const path = await resolveWorkspacePath(directory, projectPath(directory, `productionTasks/${id}.json`), true);
   const info = await lstat(path.path).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; }); if (!info) return null;
   if (!info.isFile() || info.size > 8 * 1024 * 1024) throw Object.assign(new Error("迁移任务记录无效"), { status: 422 });
   const saved = archivedTaskSchema.parse(JSON.parse(await readFile(path.path, "utf8"))); const project = await readProject(directory);
@@ -309,7 +330,7 @@ async function archivedTask(id: string, directory: string): Promise<MediaTaskRec
   const incomplete = !["completed", "failed", "cancelled"].includes(saved.status);
   return { ...saved, directory, archived: true, status: incomplete ? "unknown" : saved.status, canResume: false, canCancel: false, collectionPending: false, collectionError: undefined, error: incomplete ? "这是迁移的历史任务，请在原机器核对未完成提交；本机不会继续原付费请求" : saved.error } as MediaTaskRecord;
 }
-export async function archivedTasks(directory: string) { const folder = await resolveWorkspacePath(directory, "productionTasks", true); const names = await readdir(folder.path).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return []; throw error; }); const result: MediaTaskRecord[] = []; for (const name of names) if (/^[a-f0-9-]{36}\.json$/i.test(name)) { const task = await archivedTask(name.slice(0, -5), directory); if (task) result.push(task); } return result; }
+export async function archivedTasks(directory: string) { const folder = await resolveWorkspacePath(directory, projectPath(directory, "productionTasks"), true); const names = await readdir(folder.path).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return []; throw error; }); const result: MediaTaskRecord[] = []; for (const name of names) if (/^[a-f0-9-]{36}\.json$/i.test(name)) { const task = await archivedTask(name.slice(0, -5), directory); if (task) result.push(task); } return result; }
 export async function waitForTask(id: string, directory: string, signal?: AbortSignal) {
   while (true) {
     signal?.throwIfAborted();
@@ -359,7 +380,8 @@ export async function listTasks(directory: string, mediaType?: MediaTask["mediaT
   // ACT: 单进程写入同步维护轻量索引，启动时只读一遍记录；外部手工修复后重启服务重建。
   indexing ??= initializeTaskIndex().catch(cause => { indexing = undefined; throw cause; });
   await indexing;
-  const current = [...taskIndex.values()].filter(item => item.directory === directory).map(({ task }) => ({ ...task, ...interruption(task) }));
+  const project = await readProject(directory);
+  const current = [...taskIndex.values()].filter(item => item.directory === directory && (!item.task.source.projectId || item.task.source.projectId === project?.projectId)).map(({ task }) => ({ ...task, ...interruption(task) }));
   const tasks = [...current, ...await archivedTasks(directory).then(tasks => tasks.filter(task => !current.some(item => item.id === task.id)))].filter(task => !mediaType || task.mediaType === mediaType).sort((a, b) => b.createdAt - a.createdAt || a.id.localeCompare(b.id));
   return { tasks: tasks.slice(offset, offset + limit), total: tasks.length, runningCount: tasks.filter(task => activeStatuses.has(task.status)).length,
     attentionCount: tasks.filter(task => !!task.collectionError || ["unknown", "interrupted", "partial", "failed"].includes(task.status)).length,
@@ -400,7 +422,7 @@ export async function cleanupReferences(directory: string) {
   }
   const release = lockWorkspaceFiles([directory]);
   try {
-    const root = (await resolveWorkspacePath(directory, "studioReferences")).path;
+    const root = (await resolveWorkspacePath(directory, projectPath(directory, "studioReferences"))).path;
     const entries = await readdir(root, { withFileTypes: true }).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return []; throw cause; });
     const candidates: string[] = [];
     for (const entry of entries) if (entry.isFile() && /^[a-f0-9-]{36}$/i.test(entry.name)) {
@@ -410,7 +432,7 @@ export async function cleanupReferences(directory: string) {
     if (!candidates.length) return { removed: 0 };
     const retained = new Set<string>();
     function collect(text: string) {
-      for (const match of text.matchAll(/studioReferences(?:[\\/]|%2f|%5c)+([a-f0-9-]{36})/gi)) retained.add(match[1]!.toLowerCase());
+      for (const match of text.matchAll(/(?:studioReferences|references(?:[\\/]|%2f|%5c)+studio)(?:[\\/]|%2f|%5c)+([a-f0-9-]{36})/gi)) retained.add(match[1]!.toLowerCase());
     }
     for (const item of taskIndex.values()) if (item.directory === directory) collect(JSON.stringify(item.task.request));
     async function scan(path: string) {

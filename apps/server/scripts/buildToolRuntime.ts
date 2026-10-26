@@ -4,7 +4,7 @@ export default async function buildToolRuntime() {
   const projectDirectory = resolve(import.meta.dirname, "../../..");
   const result = await Bun.build({
     entrypoints: [
-      ...["toolConfigWorker", "toolRuntimeWorker", "toolSyncClient"].map(name => resolve(projectDirectory, `apps/server/src/utils/plugins/${name}.ts`)),
+      ...["toolConfigWorker", "toolRuntimeWorker", "toolSyncClient", "toolSyncRelay"].map(name => resolve(projectDirectory, `apps/server/src/utils/plugins/${name}.ts`)),
       resolve(projectDirectory, "apps/server/src/utils/media/providerWorker.ts"),
     ],
     outdir: resolve(projectDirectory, "build/server"),

@@ -63,11 +63,13 @@ export function createSplashPlayer(assetDir: string, width: number, height: numb
       if (!segment || !Number.isFinite(segment.tm) || !Number.isFinite(segment.dr) || segment.tm < 0 || segment.dr <= 0 || segment.tm + segment.dr > total[0]!) throw new Error(`启动动画缺少有效的 ${name} 阶段`);
       return segment;
     }
+    const intro = definition.markers?.some((marker) => marker.cm === "intro") ? getSegment("intro") : undefined;
     const loading = getSegment("loading"), ready = getSegment("ready");
     const frameDelay = 1000 / definition.fr;
+    const introDuration = (intro?.dr ?? 0) * frameDelay;
     const loopDuration = loading.dr * frameDelay;
-    // ACT: 页面已就绪时保留完整收尾帧，但最多播放 600ms，避免额外等待原动画的 2.2 秒。
-    const readyDuration = Math.min(ready.dr * frameDelay, 600);
+    // ACT: 入场仅播一次；等待圆点不表示进度，页面就绪后完整播放最多 300ms 的退场。
+    const readyDuration = Math.min(ready.dr * frameDelay, 300);
     const readyFrameDelay = readyDuration / ready.dr;
     let readyAt = Infinity;
     const canvas = tvg.tvg_swcanvas_create(1);
@@ -82,7 +84,9 @@ export function createSplashPlayer(assetDir: string, width: number, height: numb
       if (isClosed) throw new Error("启动动画已关闭");
       const readyElapsed = elapsedMs - readyAt;
       const frameIndex = readyElapsed < 0
-        ? loading.tm + elapsedMs % loopDuration / frameDelay
+        ? intro && elapsedMs < introDuration
+          ? intro.tm + elapsedMs / frameDelay
+          : loading.tm + (elapsedMs - introDuration) % loopDuration / frameDelay
         : Math.min(ready.tm + readyElapsed / readyFrameDelay, ready.tm + ready.dr - 1);
       const status = tvg.tvg_animation_set_frame(animation, frameIndex);
       if (status !== 2) check(status); // 同帧或差值不足 0.001 时返回 InsufficientCondition。
@@ -96,8 +100,8 @@ export function createSplashPlayer(assetDir: string, width: number, height: numb
       draw,
       finish(elapsedMs: number) {
         if (isClosed) return;
-        // 与原 loading 页一致：就绪后立即停止描边并填充，重复通知不重播。
-        if (readyAt === Infinity) readyAt = elapsedMs;
+        // 快速启动也从完整入场衔接退场，避免半透明文字突然跳成完整标志；重复通知不重播。
+        if (readyAt === Infinity) readyAt = Math.max(elapsedMs, introDuration);
       },
       close,
     };

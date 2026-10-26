@@ -1,4 +1,4 @@
-import { onScopeDispose } from "vue";
+import { inject, onScopeDispose } from "vue";
 import { runAgentLoop, type AgentTool, type AgentToolResult } from "@earendil-works/pi-agent-core";
 import { createAssistantMessageEventStream, type AssistantMessage, type Context, type Message, type Model } from "@earendil-works/pi-ai";
 import { EventSourceParserStream } from "eventsource-parser/stream";
@@ -148,18 +148,26 @@ async function requestModel(input: NodeAiRequest, context: Context, model: Model
 
 export function useNodeAi(source?: () => MediaTaskSource, onTask?: (taskId: string) => void) {
   const controller = new AbortController();
+  type NodeAiBridge = { canGenerate?: boolean; getModels(signal?: AbortSignal): Promise<NodeAiModel[]>; getMediaModels(signal?: AbortSignal): Promise<NodeMediaModel[]> };
+  const frameHost = globalThis as typeof globalThis & { toonflowNodeHost?: { nodeAiBridge?: NodeAiBridge } };
+  const nodeAiBridge = inject<NodeAiBridge | undefined>("nodeAiBridge", undefined) ?? (globalThis.origin === "null" ? frameHost.toonflowNodeHost?.nodeAiBridge : undefined);
+  const generationDisabled = inject<boolean>("nodeGenerationDisabled", false);
+  const canGenerate = !generationDisabled && (globalThis.origin !== "null" || nodeAiBridge?.canGenerate === true);
   onScopeDispose(() => controller.abort());
   const requestSignal = (signal?: AbortSignal) => signal ? AbortSignal.any([controller.signal, signal]) : controller.signal;
 
   async function getModels(signal?: AbortSignal) {
-    return readModels<NodeAiModel>("/api/ai/models", requestSignal(signal));
+    if (globalThis.origin === "null" && !nodeAiBridge) throw new Error("节点模型列表未连接到宿主");
+    return nodeAiBridge ? nodeAiBridge.getModels(requestSignal(signal)) : readModels<NodeAiModel>("/api/ai/models", requestSignal(signal));
   }
 
   async function getMediaModels(signal?: AbortSignal) {
-    return readModels<NodeMediaModel>("/api/ai/media/models", requestSignal(signal));
+    if (globalThis.origin === "null" && !nodeAiBridge) throw new Error("节点媒体模型列表未连接到宿主");
+    return nodeAiBridge ? nodeAiBridge.getMediaModels(requestSignal(signal)) : readModels<NodeMediaModel>("/api/ai/media/models", requestSignal(signal));
   }
 
   async function generateMedia<T extends "image" | "video" | "audio">(mediaType: T, input: NodeImageRequest | NodeVideoRequest | NodeAudioRequest, signal?: AbortSignal) {
+    if (!canGenerate) throw new Error("当前节点环境已关闭生成");
     const callSignal = requestSignal(signal);
     callSignal.throwIfAborted();
     const { directory, ...request } = input;
@@ -199,6 +207,7 @@ export function useNodeAi(source?: () => MediaTaskSource, onTask?: (taskId: stri
   }
 
   async function generate(input: NodeAiRequest): Promise<NodeAiResult> {
+    if (!canGenerate) throw new Error("当前节点环境已关闭生成");
     const signal = requestSignal(input.signal);
     const callSignal = input.tools?.length ? AbortSignal.any([signal, AbortSignal.timeout(600000)]) : signal;
     const { providerId, modelId, prompt, systemPrompt, onEvent } = input;
@@ -248,5 +257,5 @@ export function useNodeAi(source?: () => MediaTaskSource, onTask?: (taskId: stri
     return { text, ...(reasoning ? { reasoning } : {}) };
   }
 
-  return { getModels, getMediaModels, generateImage, generateVideo, generateAudio, generate };
+  return { canGenerate, getModels, getMediaModels, generateImage, generateVideo, generateAudio, generate };
 }
