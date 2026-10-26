@@ -11,9 +11,8 @@ on:
       ref:
         description: 留空使用当前选择的版本；ARM 签名要求与所选工作流版本为同一提交
         type: string
-  push:
-    tags:
-      - "v*"
+  # 零幕当前未配置 macOS 签名与公证 secrets，打 tag 即自动发布会白烧三平台 runner。
+  # 需要发布时手动 workflow_dispatch；恢复自动触发前先补齐 MACOS_* secrets 与 G18 签名闭环。
 
 permissions:
   contents: read
@@ -124,7 +123,7 @@ jobs:
         with:
           tag_name: v${{ needs.build.outputs.version }}
           target_commitish: ${{ needs.build.outputs.commit }}
-          name: Toonflow ${{ needs.build.outputs.version }}
+          name: 零幕 ZEROMU ${{ needs.build.outputs.version }}
           make_latest: true
           body_path: releaseBody.md
           generate_release_notes: true

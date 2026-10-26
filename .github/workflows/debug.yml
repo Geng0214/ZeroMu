@@ -262,7 +262,7 @@ jobs:
           await write(join(process.env.inspectionDirectory, "app.tar"), Bun.zstdDecompressSync(await file(join(directory, archives[0])).arrayBuffer()));
           '
           tar -xf "$inspectionDirectory/app.tar" -C "$inspectionDirectory"
-          app="$inspectionDirectory/toonflow.app"
+          app="$inspectionDirectory/zeromu.app"
           test -s "$app/Contents/Resources/AppIcon.icns"
           test -s "$app/Contents/Resources/app/bun/index.js"
           test -x "$app/Contents/MacOS/bun"
@@ -274,8 +274,8 @@ jobs:
             verifyMacArtifact "$dmg"
             hdiutil attach "$dmg" -readonly -nobrowse -mountpoint "$mountDirectory"
             trap 'hdiutil detach "$mountDirectory"' EXIT
-            test -x "$mountDirectory/toonflow.app/Contents/MacOS/launcher"
-            verifyMacArtifact "$mountDirectory/toonflow.app"
+            test -x "$mountDirectory/zeromu.app/Contents/MacOS/launcher"
+            verifyMacArtifact "$mountDirectory/zeromu.app"
             hdiutil detach "$mountDirectory"
             trap - EXIT
           done
@@ -293,4 +293,4 @@ jobs:
           artifactUrl: ${{ steps.artifact.outputs.artifact-url }}
           artifactTarget: ${{ matrix.target }}
         run: |
-          printf '[下载 Toonflow %s · %s](%s)\n' "$appVersion" "$artifactTarget" "$artifactUrl" >> "$GITHUB_STEP_SUMMARY"
+          printf '[下载零幕 %s · %s](%s)\n' "$appVersion" "$artifactTarget" "$artifactUrl" >> "$GITHUB_STEP_SUMMARY"

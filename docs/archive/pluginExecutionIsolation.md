@@ -39,7 +39,7 @@ Agent 运行结束释放工具集；MCP 目录先保留参数与说明，再释�
 | 环境及修订 | 两份内存源码快照分别保留 first / second，子 PID 与宿主不同，没有环境哨兵或应用数据目录，宿主全局标记未改变。`environmentAndRevisions.json` |
 | Agent 与团队装配 | 实际工具集 34 项、技能目录及合成画布回调通过。实际 storyboardTeam 资料与内置只读 workspace 私有工具装配通过，释放后拒绝再次运行；模型调用为零。`agentToolSet.json`、`teamConstruction.json` |
 | 编译 HTTP/MCP | 46 工具目录、write/edit/read/ls/skillOperator 和 FFprobe 通过；并发 62 次实际设置读取全为 200，单次观测最大 21 ms。非法工具配置 400 且设置字节保持，无凭证 401。相关分轮范围见下文。`compiledHttpMcpFinal.json`、`compiledHttpMcpVerified.json` |
-| 仓库外冷运行 | 目录 `C:\Users\LOCALUSER\AppData\Local\Temp\zeromuToolExecutionTR3TLL` 及各祖先无 node_modules。实际安装目录的 Bun 1.4.0 宿主使用 --no-install，在 Resources/app/bun 与同级工作进程布局下完成 46 工具及上述六类调用。临时 MCP 关闭返回 200，之后访问 401，宿主退出 0、stderr 为空。`coldFixture.json`、`coldRuntime.json` |
+| 仓库外冷运行 | 目录 `%LOCALAPPDATA%\Temp\zeromuToolExecutionTR3TLL`（本机临时目录，绝对路径与账户标识已隐去）及各祖先无 node_modules。实际安装目录的 Bun 1.4.0 宿主使用 --no-install，在 Resources/app/bun 与同级工作进程布局下完成 46 工具及上述六类调用。临时 MCP 关闭返回 200，之后访问 401，宿主退出 0、stderr 为空。`coldFixture.json`、`coldRuntime.json` |
 
 server、桌面及 FFmpeg 类型检查通过，最终 server/MCP 构建退出 0。新增执行工作进程与同步客户端均已加入常规构建及 Windows/Intel Mac 资源复制清单；没有据此声称 Mac 已运行。
 

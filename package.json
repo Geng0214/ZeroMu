@@ -1,16 +1,16 @@
 {
   "name": "zeromu",
   "description": "零幕 ZEROMU：从零开始，创造第一幕。基于 Toonflow 的 AI 影像与漫剧创作工作台。",
-  "author": "HBAI-Ltd <ltlctools@outlook.com>",
+  "author": "Geng0214",
+  "contributors": [{ "name": "HBAI-Ltd", "email": "ltlctools@outlook.com", "role": "upstream author (Toonflow)" }],
   "license": "MIT",
-  "homepage": "https://github.com/HBAI-Ltd/Toonflow-app#readme",
+  "homepage": "https://github.com/Geng0214/ZeroMu#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/HBAI-Ltd/Toonflow-app.git"
+    "url": "git+https://github.com/Geng0214/ZeroMu.git"
   },
   "bugs": {
-    "url": "https://github.com/HBAI-Ltd/Toonflow-app/issues",
-    "email": "ltlctools@outlook.com"
+    "url": "https://github.com/Geng0214/ZeroMu/issues"
   },
   "type": "module",
   "packageManager": "bun@1.3.14",
