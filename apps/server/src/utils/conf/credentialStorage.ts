@@ -81,13 +81,18 @@ export async function createCredentialStorage(initial: unknown) {
     }
   }
 
+  // 按字段名保护的通用密钥；MCP 访问凭证只在 settings.mcp.token 出现，按路径匹配避免误伤其它同名 token 字段。
+  const protectedNames = ["apiKey", "pluginMarketApiKey"];
+  const protectedPaths = ["/settings/mcp/token"];
+
   function transform(value: unknown, encrypt: boolean, path = ""): unknown {
     if (isProtectedCredential(value)) return encrypt ? value : unprotect(value, path);
     if (Array.isArray(value)) return value.map((item, index) => transform(item, encrypt, `${path}/${index}`));
     if (!record(value)) return value;
     return Object.fromEntries(Object.entries(value).map(([name, item]) => {
       const location = `${path}/${name.replaceAll("~", "~0").replaceAll("/", "~1")}`;
-      return [name, encrypt && ["apiKey", "pluginMarketApiKey"].includes(name) && typeof item === "string" && item ? protect(item, location) : transform(item, encrypt, location)];
+      const secret = typeof item === "string" && !!item && (protectedNames.includes(name) || protectedPaths.includes(location));
+      return [name, encrypt && secret ? protect(item, location) : transform(item, encrypt, location)];
     }));
   }
 
