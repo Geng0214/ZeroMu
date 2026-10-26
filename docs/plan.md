@@ -188,9 +188,9 @@ R2 的原生蒙版适配可依赖 R3 的 ComfyUI 路径，届时先交付蒙版�
 
 以下三项都是「规则与现状矛盾」或「影响对外形态」的决策，各自给出选项与推荐，确认后按对应里程碑排期，不在文档里先行假定结论。
 
-1. 自动化回归与仓库禁令冲突。`AGENTS.md` 明确禁止新增测试文件与自动检查入口，但仓库已跟踪 `apps/web/src/lib/nodeFrameFiles.test.ts`、`packages/nodeScaffold/src/workspaceFiles.test.ts` 和根 `package.json` 的 `test:node-isolation`；`docs/acceptance.md` 一面重申禁令，一面把该回归的 6 项 24 断言当作隔离文件桥的验收证据。选项：保留并把它写成显式特例（只允许这一处既成事实，不开放新框架），或删文件删入口并把验收证据改为一次性手工核查记录。推荐前者——删除会让既有证据失效，收益只有规则一致性。
-2. 插件安装路径。设置里的插件市场面板与本地文件安装入口已删除，而 `zeromu://install` 协议注册、`/api/desktop/plugins/install` 与 `utils/plugins/install.ts` 全链路仍完整可用；`pluginMarketApiKey` 只剩服务端两处加解密与脱敏在处理一个没有界面的字段；跨桌面与 Web 五个文件、14 处的事件名仍是 `toonflow:install-plugin` 与 `toonflow:plugin-installed`。选项：补一个最小的本地文件安装入口，或确认「仅协议安装」为有意设计并在文档写明当前安装方式，事件名重命名单独排期（纯品牌收益，需桌面与 Web 同批修改）。
-3. 公开历史中的本机标识。工作树已在 `2cbc218` 清理干净，但 `018a812` 等历史提交的文件内容仍含本机绝对路径、Windows 用户名与机器名，七个提交的元数据仍含个人邮箱。彻底清除需要 `git filter-repo`（本机未安装）重写给历史并强推 main。当前仓库 fork 0、Release 0，是代价最低的窗口；一旦有人 clone 或 fork 就无法再收回。
+1. 自动化回归与仓库禁令冲突【已裁决：严格执行禁令】。原 `AGENTS.md` 禁止新增测试文件与自动检查入口，但仓库跟踪了 `apps/web/src/lib/nodeFrameFiles.test.ts`、`packages/nodeScaffold/src/workspaceFiles.test.ts` 和根 `package.json` 的 `test:node-isolation`。2026-10-26 按决定删除这两个文件与脚本入口：删除前确认除自身外无任何代码引用，被测模块 `nodeFrameFiles.ts`、`workspaceFiles.ts` 仍被隔离视图与多个节点组件正常使用。代价要记清——隔离文件桥与上传范围的 6 项 24 断言自动化证据自此失效，该两处修复只剩类型检查、构建与浏览器手工核查支撑，历史结果在进度与验收记录中保留为当时证据。
+2. 插件安装路径【已裁决：仅协议安装，文档写明】。设置里的插件市场面板与本地文件安装入口已删除，`zeromu://install` 协议注册、`/api/desktop/plugins/install` 与 `utils/plugins/install.ts` 全链路保留可用，即当前安装方式只有外部链接唤起桌面确认。`pluginMarketApiKey` 暂不清除：历史 `settings.json` 里该字段已是密文信封，`credentialStorage` 的解密分支不依赖白名单，但 `credentialSettings` 的脱敏依赖它；移除白名单会让这个仍可能存在的凭据失去脱敏，收益只有整洁。跨桌面与 Web 五个文件、14 处的 `toonflow:install-plugin` 与 `toonflow:plugin-installed` 事件名同样保留，属纯品牌改名，需两端同批修改，单独排期。
+3. 公开历史中的本机标识【执行中】。工作树已在 `2cbc218` 清理，但历史提交内容与七个提交元数据仍含本机绝对路径、Windows 用户名、机器名与个人邮箱。按决定执行历史重写：先做全量 bundle 备份，用 `git-filter-repo` 以 blob 回调只改写命中的三个文档、以 mailmap 只替换本人邮箱（不动上游贡献者身份），验证全历史无残留后重挂 origin/upstream 并强推 main。重写后所有提交号变化，旧的工作副本需重新 clone，不能直接 pull。
 
 ## 复用与实现边界
 

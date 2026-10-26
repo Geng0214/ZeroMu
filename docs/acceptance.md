@@ -46,7 +46,7 @@
 | 媒体原件保护 | 真实 `useNodeFiles` 在缺少保留配置时删除临时样本，补齐配置后保留原内容 | 修前（本机 `work/r0Audit/mediaBefore.json`，验证记录仅本机留存，未随仓库分发）、修后（本机 `work/r0Audit/mediaAfter.json`，验证记录仅本机留存，未随仓库分发）；Vue 模块级核对，不计删除/撤销 UI 全链路通过 |
 | 生命周期与数据同步 | 修前保存在发送数据前完成；修后保存/复制等待确认，在途新数据继续同步，失败抛出且保持待同步状态 | 受控消息记录（本机 `work/r0Audit/syncCheck.json`，验证记录仅本机留存，未随仓库分发）；内联执行源文件相关逻辑，未新增测试文件，不是原生端到端验收 |
 | 搬迁后的 Windows 入口 | 卸载项、协议和两份快捷方式回读均不再含失效旧路径 | 修前（本机 `work/r0Audit/registrationBefore.json`，验证记录仅本机留存，未随仓库分发）、修后（本机 `work/r0Audit/registrationAfter.json`，验证记录仅本机留存，未随仓库分发）；快捷方式已备份，未运行 launcher 或安装器 |
-| 类型与既有回归 | 全仓 `bun run typecheck` 退出 0，修改后 Web `bun run typecheck` 再次退出 0；已有 `bun run test:node-isolation` 为 6 pass / 24 expect | 既有回归覆盖文件桥和上传范围，不能替代上述两处修复的针对性核对 |
+| 类型与既有回归 | 全仓 `bun run typecheck` 退出 0，修改后 Web `bun run typecheck` 再次退出 0；原 `bun run test:node-isolation`（6 pass / 24 expect）已于 2026-10-26 按仓库禁令移除，当时结果保留为历史证据 | 既有回归覆盖文件桥和上传范围，不能替代上述两处修复的针对性核对；移除后该两处修复只能靠类型检查、构建与浏览器手工核查支撑 |
 | 构建与安装资源保持 | Web 执行 `bun run build --outDir ../../work/r0Audit/webBuild` 退出 0；1,522 份安装程序资源摘要未变 | 安装资源复核（本机 `work/r0Audit/installedAfter.json`，验证记录仅本机留存，未随仓库分发）；独立前端生产构建仍有非阻断体积等警告，没有新桌面安装构建号，本轮代码修复未安装 |
 
 R0 按本阶段范围完成。后续候选须纳入修复并复核产物；原生观感、文件选择器和人工交互仍由用户最终试用，真实付费生成未执行，以下扩充范围和全局发布门槛保持待验。

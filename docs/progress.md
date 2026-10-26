@@ -1,5 +1,13 @@
 # 当前开发进度
 
+## 2026-10-26 移除自动化回归入口与本轮对外整改
+
+按仓库禁令执行：删除 `apps/web/src/lib/nodeFrameFiles.test.ts`、`packages/nodeScaffold/src/workspaceFiles.test.ts` 与根 `package.json` 的 `test:node-isolation`。删除前确认这两个文件除自身外没有任何引用，被测模块 `nodeFrameFiles.ts` 与 `workspaceFiles.ts` 仍被隔离节点视图、媒体历史、参考卡与视频播放器正常使用，功能不受影响。
+
+需要如实记录的代价：隔离文件桥与上传范围的 6 项 24 断言从此不能重跑，相关修复的证据退化为类型检查、构建与浏览器手工核查；历史结果仍保留在本页与验收清单作为当时证据。同一轮里还确认了两项现状：插件安装只保留 `zeromu://` 协议链路（设置内的市场与本地文件入口已删除），`toonflow:*` 安装事件名与 `pluginMarketApiKey` 暂不清除，理由见计划文档的裁决记录。
+
+验证：全仓 `bun run typecheck` 28 个包退出码 0，无 `error TS`；`package.json` 移除脚本后仍可解析；`grep` 确认仓库内不再有 `test:node-isolation` 与两个 `.test.ts` 的引用残留（文档中的历史记述除外）。未执行桌面构建与安装。
+
 ## 2026-10-26 公开仓库对外状态与版本链核查
 
 本轮不改功能，只核对「源码 / 构建 / 安装 / 运行」四类状态是否可分辨，并修掉公开仓库里面向外说错的东西。
