@@ -9,6 +9,8 @@ import { useTaskCenterStore } from "./taskCenter";
 export type Project = { directory: string; name: string; lastOpenedAt: number; projectId?: string; layout?: "organized" | "legacy"; canvasCount?: number; updatedAt?: number };
 type WorkspaceRoot = { directory: string; name: string; workspaceId: string };
 type WorkspaceState = { workspace: WorkspaceRoot | null; projects: Project[]; project: Project | null; recoverableProjects?: Project[]; issues: string[] };
+export type TrashEntry = { name: string; projectName: string; directory: string; deletedAt: number };
+type TrashState = { directory: string; entries: TrashEntry[] };
 const headers = { "x-toonflow-workspace": "1" };
 
 export const useWorkspaceStore = defineStore("workspace", () => {
@@ -20,6 +22,8 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   const issues = ref<string[]>([]);
   const startupError = ref("");
   const lastCanvas = ref<{ directory: string; canvasId: string }>();
+  const trashEntries = ref<TrashEntry[]>([]);
+  const trashDirectory = ref("");
   const pendingAgentMessage = ref<{ directory: string; prompt: string; attachments?: AgentAttachment[]; model: string; reasoningEffort: string } | null>(null);
   let initializing: Promise<void> | undefined;
 
@@ -101,6 +105,22 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     const lastCanvasDeleted = lastCanvas.value?.directory === path;
     applyState(data.data);
     if (lastCanvasDeleted) lastCanvas.value = undefined;
+    await refreshTrash().catch(() => undefined);
   }
-  return { workspaceRoot, project, projectList, legacyProjects, recoverableProjects, issues, startupError, lastCanvas, pendingAgentMessage, initialize, refresh, selectWorkspace, openProject, createProject, importProject, renameProject, deleteProject };
+  // 删除项目会移入工作空间内的回收目录，这里提供列表、还原与彻底删除。
+  async function refreshTrash() {
+    const { data } = await axios.get<{ data: TrashState }>("/api/workspace/trash", { headers });
+    trashDirectory.value = data.data.directory;
+    trashEntries.value = data.data.entries;
+  }
+  async function restoreTrash(name: string) {
+    const { data } = await axios.post<{ data: WorkspaceState }>("/api/workspace/restoreTrash", { name }, { headers });
+    applyState(data.data);
+    await refreshTrash();
+  }
+  async function removeTrash(name: string) {
+    const { data } = await axios.post<{ data: TrashState }>("/api/workspace/removeTrash", { name }, { headers });
+    trashEntries.value = data.data.entries;
+  }
+  return { workspaceRoot, project, projectList, legacyProjects, recoverableProjects, issues, startupError, lastCanvas, pendingAgentMessage, trashEntries, trashDirectory, initialize, refresh, selectWorkspace, openProject, createProject, importProject, renameProject, deleteProject, refreshTrash, restoreTrash, removeTrash };
 }, { persist: { key: "toonflow.projectList", pick: ["project", "projectList", "legacyProjects", "lastCanvas"] } });

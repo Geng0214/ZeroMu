@@ -1,5 +1,15 @@
 # 当前开发进度
 
+## 2026-10-26 项目删除可恢复与回收目录界面
+
+删除项目不再递归销毁原件：`deleteWorkspaceProject` 改为把项目文件夹整体移入 `<工作空间>/zeromuTrash/<项目名>-<yyyyMMddHHmmss>`，沿用既有的 409 防错目标、projectId 复核与受保护目录校验；改名失败即报错，不降级为删除。回收目录本身不含 `zeromuProject.json`，因此不会被工作空间一层枚举当成项目。
+
+新增回收目录界面：`/api/workspace/trash`（列表）、`restoreTrash`（还原）、`removeTrash`（彻底删除）三个接口，按「一个接口一个文件」放在 `apps/server/src/routes/workspace/`，并用 `bun run routes` 重新生成路由表（172 个 import 与 172 个磁盘路由文件一致）。工作空间页在回收条目存在时显示一个可折叠面板，带还原与彻底删除，条目名跟随项目搜索框过滤；越界条目名返回 400，条目不存在返回 409。
+
+过程中修掉两个真实缺陷：`本机用户名` 时间戳最初生成成 `2026-10-26172027`（含连字符）而剥离正则要求 14 位纯数字，导致还原名一直带着时间戳，改为生成纯数字并在还原与展示两处反复剥离到基础名；样式里误用的 `--homeSoft` 不是本页既有变量，换成 `--homeSurface`，否则会静默没有 hover 背景。
+
+验证：`bun run --filter '@toonflow/server' --filter '@toonflow/web' typecheck` 均退出 0。用独立 `TOONFLOW_DATA_DIR` + `NODE_ENV=dev` 实例端到端跑完整生命周期——新建并在项目内写入哨兵文件、删除后回收目录出现条目且哨兵文件在条目内、还原后项目列表恢复且目录内容（`keep.txt`、`projectData`、`zeromuProject.json`、`无限画布1.json`）完整、再次删除并彻底删除后条目归零且磁盘目录消失；连做三轮「删除→还原」目录名稳定回到原名；`../../escape` 作为条目名返回 400，不存在条目返回 409。临时数据目录与测试进程已清理，3000 端口已释放。界面观感与真实项目的删除还原由用户最终试用。
+
 ## 2026-10-26 移除自动化回归入口与本轮对外整改
 
 按仓库禁令执行：删除 `apps/web/src/lib/nodeFrameFiles.test.ts`、`packages/nodeScaffold/src/workspaceFiles.test.ts` 与根 `package.json` 的 `test:node-isolation`。删除前确认这两个文件除自身外没有任何引用，被测模块 `nodeFrameFiles.ts` 与 `workspaceFiles.ts` 仍被隔离节点视图、媒体历史、参考卡与视频播放器正常使用，功能不受影响。

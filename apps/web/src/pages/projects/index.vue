@@ -32,6 +32,19 @@
       </div>
       <div v-else-if="query && allProjects.length" class="emptyProjects"><icon-search :size="30" :strokeWidth="1.4" /><h2>没有找到相关项目</h2><button @click="query = ''">清空搜索</button></div>
       <div v-else-if="!error && !workspace.startupError && !workspace.issues.length" class="emptyProjects"><icon-folder :size="36" :strokeWidth="1.2" /><h2>从你的第一个项目开始</h2><p>选择工作空间创建项目，或添加已有项目文件夹。</p><button class="primaryAction" :disabled="busy" @click="startCreate"><icon-plus :size="16" />新建项目</button></div>
+      <section v-if="workspace.trashEntries.length" class="trashPanel" aria-labelledby="trashTitle">
+        <header class="trashHeader">
+          <div><h2 id="trashTitle">回收目录 <span>{{ workspace.trashEntries.length }}</span></h2><p>删除的项目先移到这里，可随时还原；彻底删除后无法恢复。</p></div>
+          <button :disabled="busy" :aria-expanded="showTrash" @click="showTrash = !showTrash">{{ showTrash ? "收起" : "查看" }}</button>
+        </header>
+        <div v-if="showTrash" class="trashList">
+          <div v-for="item in visibleTrash" :key="item.name" class="trashRow">
+            <span class="trashIdentity"><strong>{{ item.projectName }}</strong><span class="trashPath" :title="item.directory">{{ item.directory }}</span></span>
+            <time class="trashDate" :datetime="new Date(item.deletedAt).toISOString()">{{ formatDate(item.deletedAt) }}</time>
+            <span class="trashActions"><button :disabled="busy" :aria-label="'还原项目 ' + item.projectName" @click="restore(item)"><icon-rotate :size="15" />还原</button><button class="deleteAction" :disabled="busy" :aria-label="'彻底删除 ' + item.projectName" @click="purge(item)"><icon-trash :size="15" />彻底删除</button></span>
+          </div>
+        </div>
+      </section>
       <p v-if="busy && !loading" class="operationStatus" role="status">{{ operation }}</p>
     </section>
     <workspacePicker ref="picker" hideTrigger />
@@ -42,19 +55,20 @@
 import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { IconFolder, IconFolderPlus, IconPlus, IconPencil, IconTrash, IconSearch, IconRefresh, IconX } from "@tabler/icons-vue";
+import { IconFolder, IconFolderPlus, IconPlus, IconPencil, IconTrash, IconSearch, IconRefresh, IconRotate, IconX } from "@tabler/icons-vue";
 import axios from "axios";
 import libraryShell from "@/components/libraryShell.vue";
 import workspacePicker from "@/pages/home/workspacePicker.vue";
-import { useWorkspaceStore, type Project } from "@/stores/workspace";
+import { useWorkspaceStore, type Project, type TrashEntry } from "@/stores/workspace";
 
 const workspace = useWorkspaceStore();
 const router = useRouter();
 const route = useRoute();
 const picker = ref<InstanceType<typeof workspacePicker>>();
-const query = ref(""), busy = ref(false), loading = ref(false), error = ref(""), operation = ref("");
+const query = ref(""), busy = ref(false), loading = ref(false), error = ref(""), operation = ref(""), showTrash = ref(false);
 const allProjects = computed(() => [...workspace.projectList, ...workspace.recoverableProjects].sort((a, b) => Number(b.directory === workspace.project?.directory) - Number(a.directory === workspace.project?.directory) || (b.updatedAt ?? 0) - (a.updatedAt ?? 0) || a.name.localeCompare(b.name, "zh-CN")));
 const visibleProjects = computed(() => allProjects.value.filter(item => (item.name + " " + item.directory).toLocaleLowerCase().includes(query.value.trim().toLocaleLowerCase())));
+const visibleTrash = computed(() => workspace.trashEntries.filter(item => (item.projectName + " " + item.directory).toLocaleLowerCase().includes(query.value.trim().toLocaleLowerCase())));
 function formatDate(value?: number) { return value ? new Date(value).toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" }) : "—"; }
 function errorText(cause: unknown) { return axios.isAxiosError(cause) ? cause.response?.data?.message || cause.message : cause instanceof Error ? cause.message : "操作失败"; }
 async function run(label: string, action: () => Promise<void>) {
@@ -113,7 +127,26 @@ async function importFolder() {
     else ElMessage.success("项目已添加");
   });
 }
-onMounted(reload);
+async function restore(item: TrashEntry) {
+  await run("正在还原项目…", async () => {
+    await workspace.restoreTrash(item.name);
+    query.value = "";
+    ElMessage.success(`项目“${item.projectName}”已还原到工作空间`);
+  });
+}
+async function purge(item: TrashEntry) {
+  await run("正在彻底删除…", async () => {
+    const confirmed = await ElMessageBox.confirm(`彻底删除回收条目“${item.projectName}”？该文件夹会从磁盘移除，无法恢复：\n${item.directory}`, "彻底删除回收条目", { confirmButtonText: "彻底删除", cancelButtonText: "保留", type: "warning", closeOnClickModal: false }).then(() => true, () => false);
+    if (!confirmed) return;
+    await workspace.removeTrash(item.name);
+    ElMessage.success("回收条目已彻底删除");
+  });
+}
+onMounted(async () => {
+  await reload();
+  // 回收目录读取失败不影响项目列表，折叠起来即可。
+  await workspace.refreshTrash().catch(() => undefined);
+});
 </script>
 
 <style scoped lang="scss">
@@ -134,6 +167,16 @@ onMounted(reload);
   .emptyProjects { display: grid; justify-items: center; padding: 86px 20px; text-align: center; >svg { color: var(--homeMuted); margin-bottom: 20px; } h2 { margin: 0; font-size: 19px; font-weight: 500; } p { margin: 14px 0 24px; color: var(--homeMuted); font-size: 13px; } button { margin-top: 18px; } }
   .feedback { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 20px; padding: 12px 14px; border: 1px solid var(--el-color-danger); border-radius: 5px; color: var(--el-color-danger); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
   .operationStatus { margin-top: 22px; color: var(--homeMuted); font-size: 13px; }
+  .trashPanel { margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--homeLine);
+    .trashHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; h2 { margin: 0; font-size: 15px; font-weight: 600; span { margin-left: 6px; color: var(--homeMuted); font-weight: 400; } } p { margin: 6px 0 0; color: var(--homeMuted); font-size: 12px; } button { flex-shrink: 0; } }
+    .trashList { margin-top: 14px; border: 1px solid var(--homeLine); border-radius: 10px; overflow: hidden; }
+    .trashRow { display: grid; grid-template-columns: minmax(0, 1fr) 112px auto; align-items: center; gap: 16px; padding: 14px 16px; border-bottom: 1px solid var(--homeLine); &:last-child { border-bottom: 0; } &:hover, &:focus-within { background: var(--homeSurface); } }
+    .trashIdentity { display: grid; min-width: 0; strong { font-size: 14px; font-weight: 600; } }
+    .trashPath { overflow: hidden; color: var(--homeMuted); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+    .trashDate { color: var(--homeMuted); font-size: 12px; }
+    .trashActions { display: flex; gap: 8px; flex-shrink: 0; button { min-height: 32px; padding: 6px 10px; font-size: 13px; } }
+    @media (max-width: 680px) { .trashRow { grid-template-columns: minmax(0, 1fr) auto; .trashDate { display: none; } } }
+  }
   .loadingProjects { .loadingRow { display: flex; gap: 20px; align-items: center; padding: 22px 16px; border-bottom: 1px solid var(--homeLine); span { width: 48px; height: 52px; border-radius: 7px; background: var(--homeRaised); } i { width: min(40%, 280px); height: 14px; background: var(--homeRaised); border-radius: 3px; } } }
   @media (max-width: 1100px) { .listColumns, .projectRow { grid-template-columns: minmax(0, 1fr) 70px 168px; gap: 14px; } .listColumns>span:nth-child(3), .projectDate { display: none; } }
   @media (max-width: 680px) { margin-top: 8px; .projectsHeader { align-items: flex-start; flex-direction: column; gap: 22px; margin-bottom: 24px; h1 { font-size: 28px; } } .headerActions { width: 100%; button { flex: 1; min-height: 42px; } } .workspaceBar { align-items: flex-start; padding: 14px 12px; .workspaceIdentity { display: grid; gap: 6px; } .textAction { padding-left: 4px; min-height: 24px; font-size: 12px; } } .projectToolbar { margin-top: 28px; align-items: flex-start; flex-direction: column; gap: 18px; .searchTools { width: 100%; } } .projectSearch { width: auto; flex: 1; } .listColumns { display: none; } .projectRow { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; padding: 22px 0; .projectOpen { grid-column: 1 / -1; } .projectTitle strong { font-size: 16px; } .projectIcon { width: 42px; height: 48px; } .canvasCount { padding-left: 56px; color: var(--homeMuted); font-size: 12px; small { display: inline; } } .projectActions { button { min-height: 40px; } } } .newProjectForm { input { flex-basis: calc(100% - 80px); } } .emptyProjects { padding: 64px 12px; } }

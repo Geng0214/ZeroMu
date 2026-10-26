@@ -24,7 +24,7 @@ async function ensureFolder(path: string) {
   await mkdir(path, { recursive: true });
 }
 async function nextTrashEntry(trashDirectory: string, name: string) {
-  const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "");
+  const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
   for (let index = 0; index < 100; index += 1) {
     const candidate = join(trashDirectory, `${name}-${stamp}${index ? `-${index}` : ""}`);
     if (!(await info(candidate))) return candidate;
@@ -299,4 +299,82 @@ export async function renameWorkspaceProject(directory: string, projectId: strin
   } finally {
     release();
   }
+}
+
+const trashStampPattern = /-\d{14}(-\d+)?$/;
+
+// 反复「删除→还原→再删」会叠加多段时间戳，展示与还原目标都要剥到最初的条目名。
+function trashBaseName(name: string) {
+  let base = name;
+  for (let next = base.replace(trashStampPattern, ""); next !== base && next; next = base.replace(trashStampPattern, "")) base = next;
+  return base || name;
+}
+
+async function trashDirectoryOf(root: string) {
+  const directory = await realpath(root).catch(() => "");
+  if (!directory) fail("工作空间目录不存在，请重新选择", 404);
+  return join(directory, workspaceTrashFolder);
+}
+
+async function trashEntryAt(trashDirectory: string, name: string) {
+  if (!name || name.includes("/") || name.includes("\\") || name === "." || name === ".." || portableNameIssue(name)) fail("回收条目名无效", 400);
+  const candidate = join(trashDirectory, name);
+  const value = await info(candidate);
+  if (!value?.isDirectory() || value.isSymbolicLink()) fail("回收条目已不存在，请刷新后重试", 409);
+  const directory = await realpath(candidate);
+  if (!isWithin(trashDirectory, directory) || directoryKey(directory) === directoryKey(trashDirectory)) fail("回收条目越出回收目录，已拒绝", 409);
+  return directory;
+}
+function portableNameIssue(name: string) {
+  return projectNameSchema.safeParse(name).success === false;
+}
+
+export async function workspaceTrash(root = selectedWorkspace()) {
+  const trashDirectory = await trashDirectoryOf(root);
+  const entries = await readdir(trashDirectory, { withFileTypes: true }).catch((cause: NodeJS.ErrnoException) => {
+    if (cause.code === "ENOENT" || cause.code === "ENOTDIR") return [];
+    throw cause;
+  });
+  const result: { name: string; projectName: string; directory: string; deletedAt: number }[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.isSymbolicLink() || portableNameIssue(entry.name)) continue;
+    const directory = join(trashDirectory, entry.name);
+    const value = await info(directory);
+    if (!value?.isDirectory() || value.isSymbolicLink()) continue;
+    result.push({ name: entry.name, projectName: trashBaseName(entry.name), directory, deletedAt: Math.floor(value.mtimeMs) });
+  }
+  result.sort((left, right) => right.deletedAt - left.deletedAt);
+  return { directory: trashDirectory, entries: result };
+}
+
+export async function restoreWorkspaceTrash(name: string, root = selectedWorkspace()) {
+  const trashDirectory = await trashDirectoryOf(root);
+  const directory = await trashEntryAt(trashDirectory, name);
+  const base = trashBaseName(name);
+  const release = lockWorkspaceFiles([directory, root]);
+  try {
+    const latest = await workspaceTrash(root);
+    if (!latest.entries.some((item) => directoryKey(item.directory) === directoryKey(directory))) fail("回收条目已变更，请刷新后重试", 409);
+    let target = join(root, base);
+    for (let index = 2; await info(target); index += 1) target = join(root, `${base}-还原${index}`);
+    if (!isWithin(root, await realpath(dirname(target)).catch(() => "")) || directoryKey(dirname(target)) !== directoryKey(root)) fail("还原目标不在工作空间内，已拒绝", 409);
+    await rename(directory, target);
+  } finally {
+    release();
+  }
+  return workspaceState(root);
+}
+
+export async function removeWorkspaceTrash(name: string, root = selectedWorkspace()) {
+  const trashDirectory = await trashDirectoryOf(root);
+  const directory = await trashEntryAt(trashDirectory, name);
+  const release = lockWorkspaceFiles([directory]);
+  try {
+    const latest = await workspaceTrash(root);
+    if (!latest.entries.some((item) => directoryKey(item.directory) === directoryKey(directory))) fail("回收条目已变更，请刷新后重试", 409);
+    await rm(directory, { recursive: true });
+  } finally {
+    release();
+  }
+  return workspaceTrash(root);
 }
