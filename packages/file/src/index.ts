@@ -152,7 +152,11 @@ export async function writeAtomic(path: string, content: string | Uint8Array, op
     try {
       const handle = await promises.open(temporary, "wx", options.mode ?? 0o600);
       created = true;
-      try { await handle.writeFile(content); }
+      try {
+        await handle.writeFile(content);
+        // ACT: rename 只保证目录项原子替换，不保证内容已落盘；掉电或强杀会留下“改名已生效但内容为空或旧”的快照。
+        await handle.sync();
+      }
       catch (error) { failed = true; throw error; }
       finally {
         await handle.close().catch(error => {
@@ -180,7 +184,11 @@ export function writeAtomicSync(path: string, content: string | Uint8Array, opti
     try {
       const fd = native.openSync(temporary, "wx", options.mode ?? 0o600);
       created = true;
-      try { native.writeFileSync(fd, content); }
+      try {
+        native.writeFileSync(fd, content);
+        // ACT: 与 writeAtomic 同一理由，改名前必须先把临时文件内容同步到盘。
+        native.fsyncSync(fd);
+      }
       catch (error) { failed = true; throw error; }
       finally {
         try { native.closeSync(fd); }
