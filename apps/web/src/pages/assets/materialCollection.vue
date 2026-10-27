@@ -267,7 +267,7 @@ async function importSelected(selected: File[]) {
     try {
       progress.value = `正在导入 ${file.name}`;
       let bundle: unknown;
-      if (/\.json$/i.test(file.name)) { try { bundle = JSON.parse(await file.text()); } catch {} }
+      if (/\.json$/i.test(file.name)) { try { bundle = JSON.parse(await file.text()); } catch { failures.push(`${file.name}：JSON 解析失败，未按普通素材导入`); continue; } }
       if (bundle && typeof bundle === 'object' && 'zeromuAssets' in bundle) {
         const data = bundle as { zeromuAssets: number; items: { name: string; metadata: Metadata; base64: string }[] };
         if (data.zeromuAssets !== 1 || !Array.isArray(data.items) || data.items.some(item => !item || typeof item.name !== 'string' || typeof item.base64 !== 'string' || !validMetadata(item.metadata) || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(item.base64))) throw new Error('素材包格式无效');

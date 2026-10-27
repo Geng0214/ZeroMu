@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { z } from "zod";
 import { validateFields } from "@/lib/middleware";
 import u from "@/utils";
 import { success } from "@/lib/responseFormat";

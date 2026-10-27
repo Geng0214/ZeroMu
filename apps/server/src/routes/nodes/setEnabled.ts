@@ -9,6 +9,8 @@ import { error, success } from "@/lib/responseFormat";
 const router = Router();
 
 export default router.put("/", validateFields({ name: z.string().regex(/^[a-z][a-zA-Z0-9]*$/), enabled: z.boolean() }), async (req, res) => {
+  // 与 nodes/install、tools/setEnabled 同口径：节点状态写的是全局数据目录，远端团队与 MCP 转发请求不得改动宿主安装。
+  if (!u.workspace.isLocalWorkspaceRequest(req)) return res.status(403).json(error("请在桌面端或服务器本机管理节点", null, 403));
   const { name, enabled } = req.body as { name: string; enabled: boolean };
   const nodesDirectory = resolve(dirname(u.conf.path), "nodes");
   const file = await lstat(resolve(nodesDirectory, `${name}.umd.js`)).catch((err: NodeJS.ErrnoException) => {

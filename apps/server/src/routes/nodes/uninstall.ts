@@ -9,6 +9,8 @@ import { error, success } from "@/lib/responseFormat";
 const router = Router();
 
 export default router.delete("/", validateFields({ name: z.string().regex(/^[a-z][a-zA-Z0-9]*$/) }), async (req, res) => {
+  // 卸载会删除全局数据目录里的节点文件，与 nodes/install 一样只允许本机界面与 MCP 调用。
+  if (!u.workspace.isLocalWorkspaceRequest(req)) return res.status(403).json(error("请在桌面端或服务器本机管理节点", null, 403));
   const nodesDirectory = resolve(dirname(u.conf.path), "nodes");
   const filePath = resolve(nodesDirectory, `${req.body.name}.umd.js`);
   const markerPath = resolve(nodesDirectory, `${req.body.name}.disabled`);

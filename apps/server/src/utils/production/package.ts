@@ -22,7 +22,6 @@ const manifestSchema = z.strictObject({ zeromuPackage: z.literal(true), format: 
 export type ProjectPackageManifest = z.infer<typeof manifestSchema>;
 type PackageJob = { jobId: string; directory: string; kind: "export" | "import"; status: "running" | "completed" | "failed" | "cancelled"; phase: string; bytes: number; totalBytes: number; createdAt: number; path?: string; targetParent?: string; folderName?: string; resultDirectory?: string; error?: string; warnings: string[] };
 const live = new Map<string, { job: PackageJob; controller: AbortController }>();
-export function hasRunningPackage(directory: string) { return [...live.values()].some(({ job }) => job.directory === directory); }
 const jobsDirectory = () => join(dirname(conf.path), "projectTransferJobs");
 function invalid(message: string, status = 422): never { throw Object.assign(new Error(message), { status }); }
 async function saveJob(job: PackageJob) { await mkdir(jobsDirectory(), { recursive: true }); await writeAtomic(join(jobsDirectory(), `${job.jobId}.json`), JSON.stringify(job, null, 2)); }

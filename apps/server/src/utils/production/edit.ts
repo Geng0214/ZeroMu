@@ -15,7 +15,6 @@ type InputFile = { versionId: string; versionHash: string; assetId: string; asse
 type EditManifest = { format: 1; projectId: string; exportId: string; createdAt: number; edit: EditRecord; totalFrames: number; duration: number; clips: (InputFile & { shotId: string; candidateId: string; title: string; taskId?: string; basis: ProjectRecord["candidates"][number]["basis"]; startFrame: number; frameCount: number; originalVolume: number })[]; audio: (InputFile & { offsetSeconds: number; volume: number; role?: string })[] };
 type ExportJob = { directory: string; controller: AbortController; command?: FfmpegCommand; progress: number; phase: string };
 const jobs = new Map<string, ExportJob>();
-export function hasRunningExport(directory: string) { return [...jobs.values()].some(job => job.directory === directory); }
 function invalid(message: string, status = 400): never { throw Object.assign(new Error(message), { status }); }
 const jobKey = (directory: string, id: string) => JSON.stringify([resolve(directory), id]);
 async function fileHash(path: string) { const hash = createHash("sha256"); for await (const chunk of createReadStream(path)) hash.update(chunk); return hash.digest("hex"); }

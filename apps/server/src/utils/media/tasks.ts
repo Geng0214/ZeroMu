@@ -274,10 +274,6 @@ async function indexedCostTasks(directory: string) {
   const project = await readProject(directory);
   return [...taskIndex.values()].filter(item => item.directory === directory && (!item.task.source.projectId || item.task.source.projectId === project?.projectId)).map(item => item.task);
 }
-export async function hasActiveProjectTasks(directory: string) {
-  await ensureTaskIndex();
-  return isGeneratingMedia(directory) || [...taskIndex].some(([id, item]) => item.directory === directory && (running.has(id) || queued.has(id) || collections.has(id)));
-}
 export async function projectMediaCosts(directory: string) {
   await ensureTaskIndex();
   const policy = await readCostPolicy();

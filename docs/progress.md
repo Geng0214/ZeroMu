@@ -1,5 +1,17 @@
 # 当前开发进度
 
+## 2026-10-27 桌面端下载静默失效、节点全局写接口口径与三处吞错清理
+
+对照参考仓复核时查出四类既有缺陷，全部为单文件小改，不新增能力。
+
+桌面端导出点了没反应：`main.ts` 起的 `registerDesktopDownloads` 在 `document` 捕获阶段接管带 `download` 的锚点点击，而游离元素的 `click()` 事件路径不经过 `document`，所以四处自建 `<a>` 后直接 `click()` 的导出在桌面端一次都不会触发，只有浏览器版正常。两个纯内容导出（提示词 `pages/prompts/index.vue`、制作模板 `components/productionTemplateLibrary.vue`）改回复用 `lib/saveFile`，并把「已准备下载」的措辞改成按保存结果反馈；另外两个按服务端地址下载的入口（`workspace/components/filmPanel.vue`、`projectPackagePanel.vue`）保留原有 URL 流程，只按 `saveFile` 自身的做法先 `document.body.append(link)` 再 `click()` 再 `remove()`。顺带把 `filmPanel` 里 blob 预览地址的释放从 1 秒放宽到 60 秒：桌面端的顺序是「先弹保存框、用户选完路径再取内容」，1 秒会在用户还没选完时就 revoke。
+
+节点开关与卸载少了本机守卫：`routes/nodes/setEnabled.ts` 与 `uninstall.ts` 写的是全局数据目录下的节点文件，而同类的 `nodes/install`、`tools/setEnabled`、`tools/uninstall` 都要求 `isLocalWorkspaceRequest`。行为差异实测过边界——全局 `localRequest` 已挡住跨源与非环回请求，唯一漏网的是同机进程伪造 `sec-fetch-site: same-origin` 且不带 `Origin`：补守卫前该请求能进到处理器改动节点安装，补后返回 403。这不改变 MCP 转发的能力边界，`utils/mcp/operations.ts` 本来就连带 `x-toonflow-workspace` 与 Origin/Referer，实测补前补后一致；界面侧没有这两个接口的调用方，属于只由 MCP 与本机进程可达的路径，因此按「与同族接口统一口径」记录，不夸成公网风险。
+
+吞掉错误仍报成功的地方清了三类：素材库导入里 `JSON.parse` 的 `catch {}` 会把损坏的素材包 JSON 当成普通文件上传并计入「已导入 N 个素材」，改为记录失败并跳过该文件；`utils/media/tasks.ts` 的 `hasActiveProjectTasks`、`utils/production/edit.ts` 的 `hasRunningExport`、`utils/production/package.ts` 的 `hasRunningPackage` 全仓只有定义行、没有任何调用方（含 packages 与前端），按「删比加好」移除，真要拦「导出进行中不许删项目」应在删除入口显式判定，那是另一件事；`restoreTrash.ts` 的 `z`、`utils/media/generation.ts` 的 `hasProjectLayout` 是无用导入，一并删。
+
+验证：`bun run --filter '@toonflow/server' --filter '@toonflow/web' typecheck` 均退出 0，`@toonflow/web` 生产构建退出 0。守卫用独立 `TOONFLOW_DATA_DIR` 实例实测三组——带 Origin 与 `x-toonflow-workspace: 1` 的本机口径返回 404「节点不存在」（说明守卫放行）、无来源头的请求 403（来自全局 `localRequest`）、伪造 `sec-fetch-site` 且无 `Origin` 的请求命中新加的 403「请在桌面端或服务器本机管理节点」。临时数据目录与测试进程已清理，3000 端口已释放。四处导出在桌面端的实际保存行为（另存为对话框与落盘）需要真机桌面会话确认，浏览器版行为未变。
+
 ## 2026-10-27 摘取上游四项修复与回收目录清空出口
 
 上游那四个单文件候选修复全部落地。四个补丁在零幕上 `git apply --check` 一律不通过——零幕的分叉基线早于这些提交，且这四处所在文件都已被零幕改写，所以逐条按零幕现有结构手工改写，不整文件覆盖：

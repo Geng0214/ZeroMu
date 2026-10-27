@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { join, relative } from "node:path";
 import { mediaProviders, type Provider } from "@toonflow/providers";
 import type { GeneratedMedia, MediaGenerationRequest, MediaModel, MediaReference } from "@toonflow/tools-scaffold/runtime";
-import { hasProjectLayout, projectPath } from "@/utils/workspace/projectLayout";
+import { projectPath } from "@/utils/workspace/projectLayout";
 import conf from "@/utils/conf";
 import { orderByDefaultModel } from "@/utils/modelDefaults";
 import { getMediaProvider, getMediaProviderApiKey, listMediaProviders, loadMediaProviderSource } from "@/utils/media/provider";

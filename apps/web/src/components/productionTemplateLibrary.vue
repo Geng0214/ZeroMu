@@ -19,6 +19,7 @@ import productionTemplateEditor from "./productionTemplateEditor.vue";
 import productionTemplateApply from "./productionTemplateApply.vue";
 import productionTemplateDetail from "./productionTemplateDetail.vue";
 import workspacePicker from "@/pages/home/workspacePicker.vue";
+import saveFile from "@/lib/saveFile";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { productionTemplateError, useProductionTemplateLibraryStore } from "@/stores/productionTemplates";
 const store = useProductionTemplateLibraryStore(); const workspace = useWorkspaceStore(); const headers = { "x-toonflow-workspace": "1" };
@@ -38,7 +39,7 @@ async function archive() { const entry = current.value; if (!entry || entry.orig
 const exporting = ref(false); const exportDefinition = ref<ProductionTemplate>(); const exportOptions = ref({ includeDefaults: false, includeExampleContent: false, includeModelHints: false });
 const portable = computed(() => exportDefinition.value ? exportProductionTemplate(exportDefinition.value, exportOptions.value) : undefined);
 function openExport() { if (!current.value) return; exportDefinition.value = JSON.parse(JSON.stringify(current.value.definition)); exportOptions.value = { includeDefaults: false, includeExampleContent: false, includeModelHints: false }; exporting.value = true; }
-function download() { const value = portable.value; if (!value) return; const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" })); const link = document.createElement("a"); link.href = url; link.download = `${Array.from(value.template.title).slice(0, 80).join("").replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/[. ]+$/, "") || "template"}.zeromuProductionTemplate.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); status.value = "制作模板文件已准备下载，内容按本次预览导出"; }
+async function download() { const value = portable.value; if (!value) return; const fileName = `${Array.from(value.template.title).slice(0, 80).join("").replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/[. ]+$/, "") || "template"}.zeromuProductionTemplate.json`; try { if (await saveFile(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }), fileName)) status.value = "制作模板文件已导出，内容按本次预览生成"; } catch (cause) { await fail(cause); } }
 async function importFile(event: Event) { const element = event.target as HTMLInputElement; const file = element.files?.[0]; element.value = ""; if (!file) return; try { if (file.size > 8 * 1024 * 1024) throw new Error("制作模板文件不能超过 8 MB"); const parsed = productionTemplateExportSchema.safeParse(JSON.parse(await file.text())); if (!parsed.success) throw new Error("文件不是支持的零幕制作模板格式，或内容关系校验未通过"); editingId.value = undefined; editingSeed.value = parsed.data.template; editing.value = true; } catch (cause) { await fail(cause instanceof SyntaxError ? new Error("制作模板文件不是有效的 JSON，请保留原件并重新导出") : cause); } }
 const capturing = ref(false); const captureDirectory = ref(""); const captureProject = ref<ProjectRecord | null>(null); const captureSequence = ref(""); const captureBusy = ref(false); const captureError = ref(""); let captureEpoch = 0;
 const captureOptions = ref({ includeNames: false, includeStory: false, includePrompts: false, includeAssetText: false, includeModelHints: false, fallbackMediaType: "image" as "image" | "video" | "audio" });

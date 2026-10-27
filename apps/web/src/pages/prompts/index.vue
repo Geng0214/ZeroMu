@@ -32,6 +32,7 @@ import { IconSearch, IconChevronRight, IconFileText, IconPlus, IconRefresh } fro
 import libraryShell from "@/components/libraryShell.vue";
 import promptComposer from "@/components/promptComposer.vue";
 import promptEditor from "@/components/promptEditor.vue";
+import saveFile from "@/lib/saveFile";
 import { exportPrompt, promptExportSchema, type PromptDefinition, type PromptLibraryEntry } from "@toonflow/server/promptLibrary";
 import { promptLibraryError, usePromptLibraryStore } from "@/stores/promptLibrary";
 const store = usePromptLibraryStore(); const router = useRouter(); const route = useRoute();
@@ -59,8 +60,8 @@ async function archive() {
 }
 function usePrompt(text: string) { if (current.value) void router.push({ path: current.value.definition.mode === "home" ? "/home" : `/studio/${current.value.definition.mode}`, query: { prompt: text } }); }
 function openExport(entry: PromptLibraryEntry) { exportEntry.value = JSON.parse(JSON.stringify(entry)); includeDefaults.value = false; exporting.value = true; }
-function downloadPrompt() {
-  if (!exportEntry.value) return; const value = exportPrompt(exportEntry.value.definition, includeDefaults.value); const url = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" })); const link = document.createElement("a"); link.href = url; link.download = `${Array.from(value.prompt.title).slice(0, 80).join("").replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/[. ]+$/, "") || "prompt"}.zeromuPrompt.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); status.value = "提示词文件已准备下载，变量默认值按本次选择导出";
+async function downloadPrompt() {
+  if (!exportEntry.value) return; const value = exportPrompt(exportEntry.value.definition, includeDefaults.value); const fileName = `${Array.from(value.prompt.title).slice(0, 80).join("").replace(/[<>:"/\\|?*\u0000-\u001f]/g, "").replace(/[. ]+$/, "") || "prompt"}.zeromuPrompt.json`; try { if (await saveFile(new Blob([JSON.stringify(value, null, 2)], { type: "application/json" }), fileName)) status.value = "提示词文件已导出，变量默认值按本次选择写入"; } catch (cause) { await failure(cause); }
 }
 async function importFile(event: Event) {
   const input = event.target as HTMLInputElement; const file = input.files?.[0]; input.value = ""; if (!file) return;
