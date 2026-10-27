@@ -26,6 +26,5 @@
 
 - [项目首页](../README.md)、[贡献指南](../CONTRIBUTING.md)、[开发规范](../AGENTS.md)、[许可](../LICENSE)。
 - [MCP](../packages/mcp/README.md)、[多语言维护](../packages/i18n/readme.md)、[更新服务](../apps/updateServer/readme.md)。
-- [上游多语言介绍](archive/previousIndex.md#项目介绍)：保留作参考，未视为与当前零幕功能同步的译版。
 
 本次整理将原来平铺的 45 份文档保留到归档，日常入口收敛为 6 份主题正文、2 份使用说明和本目录；未改动程序、凭据或项目数据。

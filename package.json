@@ -1,6 +1,6 @@
 {
   "name": "zeromu",
-  "description": "零幕 ZEROMU：从零开始，创造第一幕。基于 Toonflow 的 AI 影像与漫剧创作工作台。",
+  "description": "零幕 ZEROMU：从零开始，创造第一幕。AI 影像与漫剧创作工作台。",
   "author": "Geng0214",
   "contributors": [{ "name": "HBAI-Ltd", "email": "ltlctools@outlook.com", "role": "upstream author (Toonflow)" }],
   "license": "MIT",

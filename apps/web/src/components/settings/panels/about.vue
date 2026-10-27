@@ -50,15 +50,8 @@
       </div>
     </el-card>
 
-    <nav class="repositoryLinks" aria-label="项目与开源信息">
+    <nav class="repositoryLinks" aria-label="项目信息">
       <a class="repositoryLink" href="https://github.com/Geng0214/ZeroMu" target="_blank" rel="noopener noreferrer"><icon-brand-github class="repositoryIcon" :size="22" /><span class="repositoryTitle">零幕 · GitHub 项目</span><icon-external-link :size="16" /></a>
-      <a class="repositoryLink" :href="repositoryUrl" target="_blank" rel="noopener noreferrer" aria-label="GitHub 仓库：HBAI-Ltd/Toonflow-app">
-        <icon-brand-github class="repositoryIcon" :size="22" aria-hidden="true" />
-        <div class="repositoryInfo">
-          <span class="repositoryTitle">开源基础：Toonflow · HBAI-Ltd · MIT</span>
-        </div>
-        <icon-external-link class="externalIcon" :size="16" aria-hidden="true" />
-      </a>
     </nav>
 
     <el-dialog v-model="resultVisible" title="版本更新" width="min(480px, 92vw)" alignCenter appendToBody>
@@ -137,7 +130,6 @@ import {
   runDesktopUpdate,
 } from "@/stores/desktopUpdate";
 
-const repositoryUrl = "https://github.com/HBAI-Ltd/Toonflow-app";
 const isDesktop = new URLSearchParams(window.location.search).get("desktop") === "1";
 const currentVersion = computed(() => snapshot.value?.version || import.meta.env.appVersion);
 const sourceSaving = ref(false);

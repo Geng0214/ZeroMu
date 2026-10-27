@@ -35,7 +35,7 @@ bun run package:desktop
 
 打包需要 NSIS；非默认位置可通过 `NSIS_PATH` 指向 `makensis.exe`。安装包输出到 `build/desktop/artifacts/`。当前产物为未签名开发验收包；本机安装与更新已有记录，最新候选、真实作品、干净机器及发行门槛仍需继续验收，范围见 [当前进度](./docs/progress.md)。
 
-零幕使用独立标识 `local.zeromu.desktop` 与 `zeromu://` 启动协议。首次安装使用独立目录，已有 Toonflow 配置与项目不自动迁移或删除。本机后端只监听回环地址，不应作为公网 API 服务开放。
+零幕使用独立标识 `local.zeromu.desktop` 与 `zeromu://` 启动协议。首次安装使用独立目录，已有旧版配置与项目不自动迁移或删除。本机后端只监听回环地址，不应作为公网 API 服务开放。
 
 ## 品牌素材
 
@@ -46,15 +46,11 @@ bun run package:desktop
 
 桌面窗口、启动画面与安装器使用零幕品牌。定制版更新需要自己的发布源，避免被上游安装包覆盖。
 
-## 开源基础与许可
+## 许可
 
-本项目基于 [HBAI-Ltd/Toonflow-app](https://github.com/HBAI-Ltd/Toonflow-app) 二次开发。原项目的版权与 MIT 许可见 [LICENSE](./LICENSE)，第三方素材与依赖保留各自许可。
+本项目以 MIT 许可分发，完整许可文本与第三方组件署名见 [LICENSE](./LICENSE) 和 `packages/assets/onnxRuntimeNotices.txt`。
 
 为兼容既有项目、插件和本地配置，`@toonflow/*` 包名、文件格式标记和内部数据标识继续沿用；桌面安装身份与外部启动协议使用零幕独立名称。TF-Router 等第三方服务仍以其真实名称显示。
-
-<a id="languages"></a>
-
-上游多语言介绍见 [历史语言目录](./docs/archive/previousIndex.md#项目介绍)，未视为与当前零幕功能同步的译版。此入口保留旧文档链接兼容。
 
 ## 目录与版本管理
 

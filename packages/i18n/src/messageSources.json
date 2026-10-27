@@ -1434,16 +1434,10 @@
   "上次更新未成功": [
     "apps/web/src/components/settings/panels/about.vue"
   ],
-  "项目与开源信息": [
+  "项目信息": [
     "apps/web/src/components/settings/panels/about.vue"
   ],
   "零幕 · GitHub 项目": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "GitHub 仓库：HBAI-Ltd/Toonflow-app": [
-    "apps/web/src/components/settings/panels/about.vue"
-  ],
-  "开源基础：Toonflow · HBAI-Ltd · MIT": [
     "apps/web/src/components/settings/panels/about.vue"
   ],
   "版本更新": [
@@ -2675,7 +2669,7 @@
   "正在安装插件…": [
     "apps/web/src/lib/desktopProtocol.ts"
   ],
-  "安装接口返回了无效响应，请重启或更新 零幕 后重试": [
+  "安装接口返回了无效响应，请重启或更新零幕后重试": [
     "apps/web/src/lib/desktopProtocol.ts"
   ],
   "安装接口未返回有效的插件名称，请先检查插件列表，再重试": [
@@ -2690,10 +2684,10 @@
   "安装请求等待超时，请先查看插件是否已安装，再重试": [
     "apps/web/src/lib/desktopProtocol.ts"
   ],
-  "无法连接 零幕 本机服务，请确认应用正常运行后重试": [
+  "无法连接零幕本机服务，请确认应用正常运行后重试": [
     "apps/web/src/lib/desktopProtocol.ts"
   ],
-  "安装接口返回异常（HTTP {0}），请重启或更新 零幕 后重试": [
+  "安装接口返回异常（HTTP {0}），请重启或更新零幕后重试": [
     "apps/web/src/lib/desktopProtocol.ts"
   ],
   "{0}“{1}”安装失败：{2}": [
@@ -3011,7 +3005,7 @@
   "通知桌面就绪失败（{0}）": [
     "apps/web/src/main.ts"
   ],
-  "当前 Microsoft Edge WebView2 Runtime 版本过旧。请以管理员身份运行微软最新版安装器；若仍提示已安装，请修复 WebView2 或联系管理员检查更新服务。更新完成后，请完全退出 零幕 再重新打开。": [
+  "当前 Microsoft Edge WebView2 Runtime 版本过旧。请以管理员身份运行微软最新版安装器；若仍提示已安装，请修复 WebView2 或联系管理员检查更新服务。更新完成后，请完全退出零幕再重新打开。": [
     "apps/web/src/main.ts"
   ],
   "需要更新 WebView2": [
@@ -7140,7 +7134,7 @@
     "apps/server/src/utils/ffmpeg/index.ts",
     "packages/ffmpeg/src/index.ts"
   ],
-  "只允许 Toonflow 页面访问控制连接": [
+  "只允许零幕页面访问控制连接": [
     "apps/server/src/utils/mcp/control.ts"
   ],
   "页面来源无效": [
@@ -7153,16 +7147,16 @@
     "apps/server/src/utils/mcp/control.ts",
     "packages/mcp/src/index.ts"
   ],
-  "Toonflow 页面已断开，请重新调用 getAppState": [
+  "零幕页面已断开，请重新调用 getAppState": [
     "apps/server/src/utils/mcp/control.ts"
   ],
-  "存在多个 Toonflow 页面，请用 target.connectionId 指定操作目标": [
+  "存在多个零幕页面，请用 target.connectionId 指定操作目标": [
     "apps/server/src/utils/mcp/control.ts"
   ],
   "控制连接已存在": [
     "apps/server/src/utils/mcp/control.ts"
   ],
-  "Toonflow 页面已断开，操作已取消": [
+  "零幕页面已断开，操作已取消": [
     "apps/server/src/utils/mcp/control.ts"
   ],
   "控制命令已取消或不存在": [
@@ -7282,7 +7276,7 @@
   "未知应用操作：{0}": [
     "apps/server/src/utils/mcp/operations.ts"
   ],
-  "Toonflow 服务尚未就绪": [
+  "零幕服务尚未就绪": [
     "apps/server/src/utils/mcp/operations.ts"
   ],
   "素材文件不能超过 20 MB": [
@@ -7330,7 +7324,7 @@
   "不能通过 MCP 修改连接凭证或项目列表": [
     "apps/server/src/utils/mcp/tools.ts"
   ],
-  "在目标 Toonflow 页面打开已有工作目录，并等待工作区就绪；操作前获取 getAppState 的 connectionId。": [
+  "在目标零幕页面打开已有工作目录，并等待工作区就绪；操作前获取 getAppState 的 connectionId。": [
     "apps/server/src/utils/mcp/tools.ts"
   ],
   "切换工作区的 canvas 画布或 document 文档面板，先保存当前编辑。": [
@@ -7351,13 +7345,13 @@
   "合并保存指定顶层设置项，同时更新页面；不修改 mcp 凭证与 stores 项目列表，嵌套设置应先读取再合并。": [
     "apps/server/src/utils/mcp/tools.ts"
   ],
-  "文件正在 Toonflow 中打开，请使用画布或文档工具修改，关闭后再执行文件操作": [
+  "文件正在零幕中打开，请使用画布或文档工具修改，关闭后再执行文件操作": [
     "apps/server/src/utils/mcp/tools.ts"
   ],
-  "列出连接的 Toonflow 页面及其 connectionId、工作目录、画布、项目列表和节点能力。多个页面时必须用 target.connectionId 明确操作对象；无页面连接时只有显式 target.directory 的服务端工具可用。": [
+  "列出连接的零幕页面及其 connectionId、工作目录、画布、项目列表和节点能力。多个页面时必须用 target.connectionId 明确操作对象；无页面连接时只有显式 target.directory 的服务端工具可用。": [
     "apps/server/src/utils/mcp/tools.ts"
   ],
-  "请先打开 Toonflow 桌面或网页": [
+  "请先打开零幕桌面或网页": [
     "apps/server/src/utils/mcp/tools.ts"
   ],
   "尚未绑定画布": [
@@ -7366,7 +7360,7 @@
   "MCP 工具名称重复：{0}": [
     "apps/server/src/utils/mcp/tools.ts"
   ],
-  "工具已禁用，或所需 Toonflow 页面未连接，请重新读取工具列表": [
+  "工具已禁用，或所需零幕页面未连接，请重新读取工具列表": [
     "apps/server/src/utils/mcp/tools.ts"
   ],
   "MCP 不提供内置 Agent 会话能力：{0}": [
@@ -7402,7 +7396,7 @@
   "应用操作不存在，请查询 listAppOperations": [
     "apps/server/src/utils/mcp/tools.ts"
   ],
-  "按用户请求调用 Toonflow 内置 Agent，等待本轮完成并返回对话文件与回复；会使用配置的模型。外部 Agent 可直接操作其他工具，仅需要委托内置 Agent 时调用。支持 MCP 取消，历史保存到工作区。": [
+  "按用户请求调用零幕内置 Agent，等待本轮完成并返回对话文件与回复；会使用配置的模型。外部 Agent 可直接操作其他工具，仅需要委托内置 Agent 时调用。支持 MCP 取消，历史保存到工作区。": [
     "apps/server/src/utils/mcp/tools.ts"
   ],
   "音频输入必须是 Uint8Array": [
@@ -8256,7 +8250,7 @@
   "节点文件实际是 HTML 网页，不是节点脚本，请重新上传构建生成的 .umd.js 文件": [
     "apps/server/src/utils/plugins/install.ts"
   ],
-  "文件不是兼容的 Toonflow 节点，请使用节点脚手架构建生成的 .umd.js 文件": [
+  "文件不是兼容的零幕节点，请使用节点脚手架构建生成的 .umd.js 文件": [
     "apps/server/src/utils/plugins/install.ts"
   ],
   "文件名与节点导出名不一致：{0} 需要导出 toonflowNodes.{1}，请按实际节点名修改文件名": [
@@ -10241,7 +10235,7 @@
   "远程 MCP 必须使用 HTTPS；本机连接允许 HTTP": [
     "packages/mcp/src/stdio.ts"
   ],
-  "运行信息文件只允许指向本机 Toonflow": [
+  "运行信息文件只允许指向本机零幕": [
     "packages/mcp/src/stdio.ts"
   ],
   "MCP URL 不允许包含账号或密码": [

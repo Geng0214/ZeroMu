@@ -20,7 +20,7 @@ await writeFile(resolve(output, "package.json"), JSON.stringify({
   name: "@toonflow/mcp",
   version: "0.0.0",
   type: "module",
-  exports: { ".": "./index.js", "./skill": { types: "./skill.d.ts", default: "./skills/toonflow/SKILL.md" } },
+  exports: { ".": "./index.js", "./skill": { types: "./skill.d.ts", default: "./skills/zeromu/SKILL.md" } },
   bin: { "toonflow-mcp": "./stdio.js" },
   peerDependencies: { express: "^5.2.1" },
 }, null, 2));

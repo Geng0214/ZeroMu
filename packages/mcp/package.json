@@ -7,7 +7,7 @@
     ".": "./src/index.ts",
     "./skill": {
       "types": "./src/skill.d.ts",
-      "default": "./skills/toonflow/SKILL.md"
+      "default": "./skills/zeromu/SKILL.md"
     }
   },
   "bin": {

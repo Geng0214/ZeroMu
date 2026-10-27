@@ -4,8 +4,8 @@ await createToolConfig({
   name: "mediaGeneration",
   displayName: "媒体生成",
   description: "查询已配置的媒体模型，生成图片、视频或音频并保存到工作区。",
-  author: "Toonflow",
-  github: "https://github.com/HBAI-Ltd/Toonflow-app",
+  author: "ZEROMU",
+  github: "https://github.com/Geng0214/ZeroMu",
   prompt: `生成前使用可用的 listMediaModels 查询模型，providerId、modelId、模式、画幅、分辨率、时长和音频能力以返回值为准，不根据模型名称猜测。
 视频模型选定或改变后，本轮有 resolveVideoWorkflow 时先核对该实际模型对应的制作规则，按实际技能目录读取返回资料。未提供此工具时按实际节点配置和已安装 workflow 的模型分流继续，不凭空调用工具或开启权限。其他模型不得被统一锁为 Seedance；规则路由不赋予模型未声明的能力或新的生成授权。
 参考图片、视频、音频及首尾帧使用已存在的工作区相对路径，并确认所选模型支持相应输入。附件消息只提供文件信息，不表示模型已经看过图片或播放过视频。

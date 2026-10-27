@@ -3,6 +3,6 @@ import { createNodeConfig } from "@toonflow/nodes-scaffold";
 export default createNodeConfig({
   name: "textNode",
   displayName: "文本",
-  author: "Toonflow",
-  github: "https://github.com/HBAI-Ltd/Toonflow-app",
+  author: "ZEROMU",
+  github: "https://github.com/Geng0214/ZeroMu",
 }, import.meta.url);

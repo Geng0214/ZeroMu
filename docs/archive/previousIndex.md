@@ -1,36 +1,12 @@
 > 2026-10-23 归档：这是文档整理前的历史快照。当前目标见 [总计划](../plan.md)，当前状态见 [进度](../progress.md)，其他记录见 [归档目录](readme.md)。旧文中的“当前”、版本和待办仅适用于原记录日期。
 
-# Toonflow 文档目录
+# 零幕文档目录
 
 [返回项目首页](../../README.md)
 
 ## 项目介绍
 
-| README 语言 | 入口 |
-| --- | --- |
-| 简体中文 | [README](../../README.md) |
-| 繁體中文 | [README](../readme/readmeZhTw.md) |
-| English | [README](../readme/readmeEn.md) |
-| 日本語 | [README](../readme/readmeJa.md) |
-| Русский | [README](../readme/readmeRu.md) |
-| Tiếng Việt | [README](../readme/readmeVi.md) |
-| ไทย | [README](../readme/readmeTh.md) |
-| 한국어 | [README](../readme/readmeKo.md) |
-| हिन्दी | [README](../readme/readmeHi.md) |
-| Bahasa Indonesia | [README](../readme/readmeId.md) |
-| Bahasa Melayu | [README](../readme/readmeMs.md) |
-| Filipino | [README](../readme/readmeFil.md) |
-| বাংলা | [README](../readme/readmeBn.md) |
-| اردو | [README](../readme/readmeUr.md) |
-| தமிழ் | [README](../readme/readmeTa.md) |
-| తెలుగు | [README](../readme/readmeTe.md) |
-| मराठी | [README](../readme/readmeMr.md) |
-| ਪੰਜਾਬੀ | [README](../readme/readmePa.md) |
-| العربية | [README](../readme/readmeAr.md) |
-| فارسی | [README](../readme/readmeFa.md) |
-| Türkçe | [README](../readme/readmeTr.md) |
-
-项目介绍提供以上 21 种语言版本，与[应用支持的语言](../../README.md#languages)保持一致。
+项目介绍只有[简体中文 README](../../README.md)一份。原 21 种语言的介绍页属于上游项目文档，2026-10-28 随品牌整理删除，不再提供入口。
 
 ## 使用与开发
 
