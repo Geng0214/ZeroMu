@@ -34,8 +34,8 @@
       <div v-else-if="!error && !workspace.startupError && !workspace.issues.length" class="emptyProjects"><icon-folder :size="36" :strokeWidth="1.2" /><h2>从你的第一个项目开始</h2><p>选择工作空间创建项目，或添加已有项目文件夹。</p><button class="primaryAction" :disabled="busy" @click="startCreate"><icon-plus :size="16" />新建项目</button></div>
       <section v-if="workspace.trashEntries.length" class="trashPanel" aria-labelledby="trashTitle">
         <header class="trashHeader">
-          <div><h2 id="trashTitle">回收目录 <span>{{ workspace.trashEntries.length }}</span></h2><p>删除的项目先移到这里，可随时还原；彻底删除后无法恢复。</p></div>
-          <button :disabled="busy" :aria-expanded="showTrash" @click="showTrash = !showTrash">{{ showTrash ? "收起" : "查看" }}</button>
+          <div><h2 id="trashTitle">回收目录 <span>{{ workspace.trashEntries.length }}</span></h2><p>删除的项目先移到这里，可随时还原；回收目录不会自动清理，彻底删除后无法恢复。</p></div>
+          <span class="trashHeaderActions"><button class="deleteAction" :disabled="busy" @click="purgeAll">清空回收目录</button><button :disabled="busy" :aria-expanded="showTrash" @click="showTrash = !showTrash">{{ showTrash ? "收起" : "查看" }}</button></span>
         </header>
         <div v-if="showTrash" class="trashList">
           <div v-for="item in visibleTrash" :key="item.name" class="trashRow">
@@ -142,6 +142,14 @@ async function purge(item: TrashEntry) {
     ElMessage.success("回收条目已彻底删除");
   });
 }
+async function purgeAll() {
+  await run("正在清空回收目录…", async () => {
+    const total = workspace.trashEntries.length;
+    const confirmed = await ElMessageBox.confirm(`彻底删除回收目录里全部 ${total} 个条目？搜索筛选只影响列表显示，清空会连同未显示的条目一起从磁盘移除，无法恢复。`, "清空回收目录", { confirmButtonText: "全部彻底删除", cancelButtonText: "保留", type: "warning", closeOnClickModal: false }).then(() => true, () => false);
+    if (!confirmed) return;
+    ElMessage.success(`已彻底删除 ${await workspace.clearTrash()} 个回收条目`);
+  });
+}
 onMounted(async () => {
   await reload();
   // 回收目录读取失败不影响项目列表，折叠起来即可。
@@ -168,7 +176,9 @@ onMounted(async () => {
   .feedback { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-top: 20px; padding: 12px 14px; border: 1px solid var(--el-color-danger); border-radius: 5px; color: var(--el-color-danger); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
   .operationStatus { margin-top: 22px; color: var(--homeMuted); font-size: 13px; }
   .trashPanel { margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--homeLine);
-    .trashHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; h2 { margin: 0; font-size: 15px; font-weight: 600; span { margin-left: 6px; color: var(--homeMuted); font-weight: 400; } } p { margin: 6px 0 0; color: var(--homeMuted); font-size: 12px; } button { flex-shrink: 0; } }
+    .trashHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; h2 { margin: 0; font-size: 15px; font-weight: 600; span { margin-left: 6px; color: var(--homeMuted); font-weight: 400; } } p { margin: 6px 0 0; color: var(--homeMuted); font-size: 12px; } }
+    .trashHeaderActions { display: flex; flex-shrink: 0; gap: 8px; }
+    .deleteAction { color: var(--el-color-danger); }
     .trashList { margin-top: 14px; border: 1px solid var(--homeLine); border-radius: 10px; overflow: hidden; }
     .trashRow { display: grid; grid-template-columns: minmax(0, 1fr) 112px auto; align-items: center; gap: 16px; padding: 14px 16px; border-bottom: 1px solid var(--homeLine); &:last-child { border-bottom: 0; } &:hover, &:focus-within { background: var(--homeSurface); } }
     .trashIdentity { display: grid; min-width: 0; strong { font-size: 14px; font-weight: 600; } }

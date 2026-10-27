@@ -1,5 +1,22 @@
 # 当前开发进度
 
+## 2026-10-27 摘取上游四项修复与回收目录清空出口
+
+上游那四个单文件候选修复全部落地。四个补丁在零幕上 `git apply --check` 一律不通过——零幕的分叉基线早于这些提交，且这四处所在文件都已被零幕改写，所以逐条按零幕现有结构手工改写，不整文件覆盖：
+
+- 鼠标侧键误退出工作区：零幕的 `pages/workspace/index.vue` 里没有 `onMounted`，新增 `onMounted` 注册 `mousedown`/`mouseup`/`auxclick` 的捕获阶段监听，卸载复用页内已有的 `onScopeDispose`，不再加第二个清理钩子。
+- macOS 实体 Ctrl + 滚轮缩放步长暴增：零幕的 `zoomCanvas` 没有上游那条「实体 Ctrl 未绑定缩放」分支，只把原三元式展平成 `if / else if / else`，并在 `else` 里按 `event.ctrlKey && isMacOs()` 除掉 `wheelDelta` 的 10 倍；`isMacOs` 直接用 `@vue-flow/core@1.48.2` 的导出（已确认隔离安装目录下 `dist/index.d.ts` 确有该符号），不另写平台判断。
+- Linux 画布中键误触发主选择区粘贴：零幕模板的捕获绑定与上游不同（没有 `updateCanvasSelection` 挂在 pointerdown/click 上），新增 `@auxclick.capture="preventMiddleClick"`。
+- WebView2 版本比较：零幕的 `installer/checkWebView2.cs` 只有 54 行，与上游那个 300 多行带 stage 日志的版本不是同一形态，无法照搬补丁。改为引入同一 `WebView2Loader.dll` 的 `CompareBrowserVersions`，替换掉 `Version.TryParse` + `Version` 比较路径；比较调用失败仍按「不可用」返回 1，交给安装器补装运行时，保持原有的 fail-closed 语义。用 `packageWindows.ts` 里同一条 csc 命令（.NET Framework 4.x）编译通过，并把产物与 `build/desktop/nsis/webview2/WebView2Loader.dll` 放同目录实跑，本机输出 `WebView2 Runtime available: 155.0.4283.62`、退出码 0。临时产物与探针 exe 已删除。真实 beta/dev/canary 通道运行时不在本机，这条只验证了「不回归 + 能编译能跑」，通道后缀场景未实测。
+
+回收目录补了一个用户可控的出口。此前 `zeromuTrash` 只进不出，单个「彻底删除」要逐条点，目录会无限增长：新增 `clearWorkspaceTrash` 与 `/api/workspace/clearTrash`（仍是一个接口一个文件，`bun run routes` 后路由表 173 个 import 与 173 个磁盘路由文件一致），接口要求 `confirm` 显式为 `true`，批量删除不可撤销，不接受无确认位的调用；实现里逐条重新走 `trashEntryAt` 的软链与越界校验并取目录级冲突锁，不因为是「整个回收目录」就跳过检查。面板头部加「清空回收目录」按钮，确认文案写明搜索筛选只影响列表显示、清空会连同未显示条目一起删除。
+
+**不做自动过期清理**：这是对创作内容的定时销毁，未经用户逐次同意就删掉旧条目比无限增长风险更高；改为把「不会自动清理」写进面板说明与确认文案，由用户手动清空。保留期上限如果以后要做，应做成设置项而不是常量。
+
+顺手修掉两处同源缺陷：回收面板里「彻底删除」按钮此前没有上危险色——`.deleteAction` 只定义在 `.projectRow .projectActions` 作用域内，回收行与新增的头部按钮都命中不到，在 `.trashPanel` 里补了一条；素材页 `projectCollection.vue` 的删除确认文案还在说「可按目录名从磁盘取回」，与同页已有的还原面板口径不一致，改为指向项目页的回收目录。
+
+验证：`bun run --filter '@toonflow/server' --filter '@toonflow/web' typecheck` 均退出 0。清空链路用独立 `TOONFLOW_DATA_DIR` + `NODE_ENV=dev` 实例端到端跑通——建两个项目并各写哨兵文件、删除后回收目录出现两条且哨兵在条目内、不带 `confirm` 返回 400、`confirm: true` 返回 `removed: 2` 且条目归零、两条哨兵文件在磁盘上消失、还原不存在条目返回 409。临时数据目录与测试进程已清理，3000 端口已释放。四项输入修复的实际手感（侧键、触控板缩放、Linux 中键）与安装器在真实 beta 运行时的表现，需用户在对应环境试用。
+
 ## 2026-10-26 项目删除可恢复与回收目录界面
 
 删除项目不再递归销毁原件：`deleteWorkspaceProject` 改为把项目文件夹整体移入 `<工作空间>/zeromuTrash/<项目名>-<yyyyMMddHHmmss>`，沿用既有的 409 防错目标、projectId 复核与受保护目录校验；改名失败即报错，不降级为删除。回收目录本身不含 `zeromuProject.json`，因此不会被工作空间一层枚举当成项目。

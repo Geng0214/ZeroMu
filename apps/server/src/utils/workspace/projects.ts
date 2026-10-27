@@ -378,3 +378,20 @@ export async function removeWorkspaceTrash(name: string, root = selectedWorkspac
   }
   return workspaceTrash(root);
 }
+
+// 逐条走 trashEntryAt 的软链与越界校验，不因为「整个目录都是回收目录」就跳过检查。
+export async function clearWorkspaceTrash(root = selectedWorkspace()) {
+  const trashDirectory = await trashDirectoryOf(root);
+  let removed = 0;
+  for (const entry of (await workspaceTrash(root)).entries) {
+    const directory = await trashEntryAt(trashDirectory, entry.name);
+    const release = lockWorkspaceFiles([directory]);
+    try {
+      await rm(directory, { recursive: true });
+    } finally {
+      release();
+    }
+    removed += 1;
+  }
+  return { ...(await workspaceTrash(root)), removed };
+}

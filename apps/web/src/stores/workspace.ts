@@ -122,5 +122,11 @@ export const useWorkspaceStore = defineStore("workspace", () => {
     const { data } = await axios.post<{ data: TrashState }>("/api/workspace/removeTrash", { name }, { headers });
     trashEntries.value = data.data.entries;
   }
-  return { workspaceRoot, project, projectList, legacyProjects, recoverableProjects, issues, startupError, lastCanvas, pendingAgentMessage, trashEntries, trashDirectory, initialize, refresh, selectWorkspace, openProject, createProject, importProject, renameProject, deleteProject, refreshTrash, restoreTrash, removeTrash };
+  async function clearTrash() {
+    const { data } = await axios.post<{ data: TrashState & { removed?: number } }>("/api/workspace/clearTrash", { confirm: true }, { headers });
+    trashDirectory.value = data.data.directory;
+    trashEntries.value = data.data.entries;
+    return data.data.removed ?? 0;
+  }
+  return { workspaceRoot, project, projectList, legacyProjects, recoverableProjects, issues, startupError, lastCanvas, pendingAgentMessage, trashEntries, trashDirectory, initialize, refresh, selectWorkspace, openProject, createProject, importProject, renameProject, deleteProject, refreshTrash, restoreTrash, removeTrash, clearTrash };
 }, { persist: { key: "toonflow.projectList", pick: ["project", "projectList", "legacyProjects", "lastCanvas"] } });
