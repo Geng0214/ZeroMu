@@ -82,7 +82,7 @@ async function fixedReferences(directory: string, project: ProjectRecord, reques
   const files = new Map(project.assetVersions.flatMap(version => version.files.map(file => [file.path, { version, file }] as const)));
   for (const reference of references(request)) {
     const entry = files.get(reference.path);
-    if (!entry || entry.file.mimeType !== reference.mimeType) fail("批次已有参考须为项目中登记的固定版本；请先保存素材版本", 400);
+    if (!entry || entry.file.mimeType !== reference.mimeType) fail("批次已有参考须为项目中登记的固定版本；请先用素材带入或生成结果登记版本", 400);
     versions.set(entry.version.versionId, entry.version);
   }
   for (const version of versions.values()) await verifyVersion(directory, version);

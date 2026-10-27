@@ -8755,7 +8755,7 @@
   "批次存在循环依赖，请调整参考来源": [
     "apps/server/src/utils/production/batches.ts"
   ],
-  "批次已有参考须为项目中登记的固定版本；请先保存素材版本": [
+  "批次已有参考须为项目中登记的固定版本；请先用素材带入或生成结果登记版本": [
     "apps/server/src/utils/production/batches.ts"
   ],
   "批次固定输入": [
@@ -9039,10 +9039,10 @@
   "补回后的文件摘要不一致，请保留目录并检查": [
     "apps/server/src/utils/production/files.ts"
   ],
-  "导入状态文件无效，请保留目录并从项目包恢复": [
+  "导入状态文件无效，请保留目录并重新导入项目": [
     "apps/server/src/utils/production/format.ts"
   ],
-  "此目录仍在导入或导入中断，请从完整项目包恢复到新的目录；现有文件保留供核对": [
+  "此目录仍在导入或导入中断，请重试导入或改用新的目标目录；现有文件保留供核对": [
     "apps/server/src/utils/production/format.ts"
   ],
   "项目制作记录须为不超过 20 MB 的普通文件": [
@@ -9054,7 +9054,7 @@
   "此项目采用较新的制作格式，请更新零幕后再修改；当前版本不会覆盖项目": [
     "apps/server/src/utils/production/format.ts"
   ],
-  "制作记录、工作站草稿、固定版本和恢复备份由对应功能管理，请通过分镜、工作站、素材版本或快照操作修改": [
+  "制作记录、工作站草稿、固定版本和恢复备份由对应功能管理，请通过工作站或快照操作修改": [
     "apps/server/src/utils/production/format.ts"
   ],
   "图片处理未产生有效 PNG": [

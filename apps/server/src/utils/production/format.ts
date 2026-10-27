@@ -6,9 +6,9 @@ export const projectFileName = "zeromuProject.json";
 
 export async function readProject(directory: string) {
   const importInfo = await lstat(join(directory, "projectImportState.json")).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; });
-  if (importInfo && (!importInfo.isFile() || importInfo.isSymbolicLink() || importInfo.size > 65536)) throw Object.assign(new Error("导入状态文件无效，请保留目录并从项目包恢复"), { status: 423 });
+  if (importInfo && (!importInfo.isFile() || importInfo.isSymbolicLink() || importInfo.size > 65536)) throw Object.assign(new Error("导入状态文件无效，请保留目录并重新导入项目"), { status: 423 });
   const importState = importInfo ? await readFile(join(directory, "projectImportState.json"), "utf8") : null;
-  if (importState && JSON.parse(importState).importing) throw Object.assign(new Error("此目录仍在导入或导入中断，请从完整项目包恢复到新的目录；现有文件保留供核对"), { status: 423 });
+  if (importState && JSON.parse(importState).importing) throw Object.assign(new Error("此目录仍在导入或导入中断，请重试导入或改用新的目标目录；现有文件保留供核对"), { status: 423 });
   const path = join(directory, projectFileName);
   const info = await lstat(path).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return null; throw cause; });
   if (!info) return null;
@@ -35,7 +35,7 @@ export function assertProductionPath(directory: string, paths: string[], include
     const path = process.platform === "win32" ? raw.toLowerCase() : raw;
     const reserved = [projectFileName, "references/versions", "references/transfers", "projectData/layout.json", "projectData/drafts", "projectData/backups", "projectData/tasks", "projectData/cache", "projectData/history/transfers", "projectData/history/imageEdits", "projectData/history/templateInputs", "projectData/history/libraryImports", "exports", "studioDrafts", "assets/production", "assets/transfers", "projectBackups", "productionTransfers", "productionExports", "productionTasks", "productionBatches", "productionImageEdits", "productionTemplateInputs", "productionLibraryImports", "projectPackages", "projectImports", "projectImportState.json"].map(value => process.platform === "win32" ? value.toLowerCase() : value);
     if (reserved.some(target => path === target || path.startsWith(`${target}/`) || includeParents && target.startsWith(`${path}/`))) {
-      throw Object.assign(new Error("制作记录、工作站草稿、固定版本和恢复备份由对应功能管理，请通过分镜、工作站、素材版本或快照操作修改"), { status: 409 });
+      throw Object.assign(new Error("制作记录、工作站草稿、固定版本和恢复备份由对应功能管理，请通过工作站或快照操作修改"), { status: 409 });
     }
   }
 }
