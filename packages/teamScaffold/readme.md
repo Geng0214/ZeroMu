@@ -4,7 +4,7 @@
 
 ## 开发团队
 
-团队放在 `packages/teams/<teamName>`，可参考 `storyboardTeam`：
+团队放在 `packages/teams/<teamName>`；仓库当前不内置示例团队，目录结构按下例自建：
 
 ```text
 package.json
@@ -56,7 +56,7 @@ await createTeamConfig(import.meta.url, {
 主 Agent 使用现有 `subAgent` 工具调用团队，例如：
 
 ```json
-{"tasks":[{"name":"分镜方案","team":"storyboardTeam","task":"根据工作区 story.md 整理文字分镜，先读取原文，不执行消耗算力的媒体生成。"}]}
+{"tasks":[{"name":"分镜方案","team":"demoTeam","task":"根据工作区 story.md 整理文字分镜，先读取原文，不执行消耗算力的媒体生成。"}]}
 ```
 
 不传 `team` 仍是临时子 Agent，无须安装团队，自动继承父 Agent 的全部工具，包括提问与继续委派，无需指定 `tools`。团队使用主 Agent 当前选定的模型和本轮工具，成员可用范围仍由团队清单决定，成员上下文独立。同批任务直接并行执行，不设并发名额或等待队列。任务数量、执行轮次、累计成员调用和总时长不设固定上限，团队委派关系仍须通过清单的无环校验。成员与工具在任务开始时加载，编辑用于后续任务；知识和 Skill 正文使用时读取。当前运行不因禁用插件而自动终止，应通过调用方取消任务。

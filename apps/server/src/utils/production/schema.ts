@@ -192,8 +192,6 @@ export const operationSchema = z.discriminatedUnion("type", [
   z.strictObject({ type: z.literal("finishDirectorCapture"), captureId: id, mediaPath: relativePathSchema, mediaHash: z.string().regex(/^[a-f0-9]{64}$/) }),
   z.strictObject({ type: z.literal("snapshot"), name }),
   z.strictObject({ type: z.literal("restoreSnapshot"), snapshotId: id }),
-  z.strictObject({ type: z.literal("proposeStoryboard"), name, shots: z.array(shotInputSchema).min(1).max(500), source: z.enum(["user", "agent"]) }),
-  z.strictObject({ type: z.literal("acceptStoryboard"), draftId: id, output: outputSchema.optional() }),
   z.strictObject({ type: z.literal("saveEdit"), edit: editSchema }),
 ]);
 export type ProductionOperation = z.infer<typeof operationSchema>;

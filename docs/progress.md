@@ -1,5 +1,13 @@
 # 当前开发进度
 
+## 2026-10-28 撤除 AI 分镜团队与分镜草案通道
+
+作者决定连 AI 侧一起撤。删除 `packages/teams/storyboardTeam` 整个团队包（`team.json`、三名成员文档、内置技能与 readme），删除 Agent 工具 `proposeStoryboardDraft`（`agent/tools/index.ts`，它此前直接调 `proposeStoryboard` 记录操作），并从记录操作联合里删掉 `proposeStoryboard` 与 `acceptStoryboard` 两条及其实现分支。`createProject` 随工具删除成为无用导入，一并去掉。
+
+与模板字段同样的兼容处理：记录里的 `storyboardDrafts` 字段保留为只读遗留，旧项目已有的草案仍可被 `referenceState` 的引用校验读出，但不再能新建或采纳——直接删字段会让带草案历史的项目解析失败。`packages/teams` 现为空目录，根 `package.json` 的 `packages/teams/*` glob 与团队脚手架保留，自建团队仍可用；`teamScaffold/readme.md` 里把「可参考 storyboardTeam」改成不指向已删目录的说法、示例团队名改为 `demoTeam`，`development.md` 删掉指向已删 readme 的分镜团队链接。
+
+验证：server 与 web typecheck 均退出 0；i18n 重新抽取后源词典 3307 → 3303。桌面应用需重新构建才会去掉已注入的工具与团队（工具与操作在 server 打包产物里），换装结果记于下一条。
+
 ## 2026-10-28 按作者决定移除分镜、素材版本、项目包与制作模板
 
 制作链路只保留剪辑。前端删 13 个面板/组件（`storyboardPanel`、`productionAssets`、`candidatePanel`、`versionPreview`、`imageCandidateEditor`、`versionFileRecovery`、`referenceUpdatePanel`、`projectPackagePanel`、四个 `productionTemplate*`）与 `stores/productionTemplates.ts`；后端删 `routes/productionTemplates/**`、`routes/production/packages/**`、`impact.ts`、`images/prepare.ts` 与 `utils/productionTemplates/**`、`utils/production/{template,package,archive}.ts`，路由表 173 → 160，`bun run routes` 后文件数与注册数一致。同步清掉的入口：画布顶部按钮只剩「剪辑」、制作抽屉标签只剩成片/批次/快照、节点右键「查看关联分镜」、画布节点上的镜头徽标、任务中心与工作站跳转里的镜头/素材版本定位，以及素材带入后的「跳到素材版本」。`stores/production.ts` 的 panel 联合类型收窄为 `edit | batches | snapshots`，并删掉只服务已移除面板的 `focusShot/focusAsset/openShot/openAsset` 与每 5 秒一轮的 `shotTasks` 轮询（该轮询此前只在分镜面板消费）。

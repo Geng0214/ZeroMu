@@ -6606,12 +6606,6 @@
   "读取当前项目的制作单元、镜头、固定素材版本、候选和用户采用状态。没有制作记录时返回 null；不得把文字评价当作已采用或已检查状态。": [
     "apps/server/src/agent/tools/index.ts"
   ],
-  "提交分镜草案": [
-    "apps/server/src/agent/tools/index.ts"
-  ],
-  "把分镜建议保存为可供用户审阅的草案。不会写入正式镜头、改变采用结果或发起付费生成。参考素材标识与固定版本来自 getProjectProduction；用户在分镜面板确认后才成为正式制作单元。": [
-    "apps/server/src/agent/tools/index.ts"
-  ],
   "{0} 返回了无效的工具": [
     "apps/server/src/agent/tools/index.ts"
   ],
@@ -9264,12 +9258,6 @@
     "apps/server/src/utils/production/index.ts"
   ],
   "快照属于其他项目": [
-    "apps/server/src/utils/production/index.ts"
-  ],
-  "分镜草案不存在": [
-    "apps/server/src/utils/production/index.ts"
-  ],
-  "此草案已经采用，请查看对应制作单元": [
     "apps/server/src/utils/production/index.ts"
   ],
   "镜头尚未采用有效候选": [

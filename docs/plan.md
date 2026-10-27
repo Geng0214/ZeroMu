@@ -167,7 +167,9 @@ R2 的原生蒙版适配可依赖 R3 的 ComfyUI 路径，届时先交付蒙版�
 
 按作者决定，制作链路只保留剪辑，其余从界面与后端一并移除：分镜面板、素材版本面板、项目包面板，以及提示词库的「制作模板」标签页。删除范围为 13 个前端面板/组件加 `stores/productionTemplates.ts`，后端 `routes/productionTemplates/**`、`routes/production/packages/**`、`routes/production/impact.ts`、`routes/production/images/prepare.ts` 与 `utils/productionTemplates/**`、`utils/production/{template,package,archive}.ts`；路由表由 173 收敛到 160，`bun run routes` 后文件数与注册数一致。
 
-保留的部分与原因：制作记录（`zeromuProject.json`）读写、镜头批次、快照恢复、剪辑面板及其 `edit/context` 与 `exports/*` 接口全部保留，剪辑仍能导出移除前已建立的制作记录。`templateApplications` 在记录 schema 里降级为宽松读取的遗留字段，防止带模板历史的旧项目打不开。`proposeStoryboard` / `acceptStoryboard` 两个记录操作与 AI 分镜团队仍在，但界面已无采纳入口，AI 产出的分镜草案无法落地——是否连 AI 侧一并撤除留待作者决定。
+保留的部分与原因：制作记录（`zeromuProject.json`）读写、镜头批次、快照恢复、剪辑面板及其 `edit/context` 与 `exports/*` 接口全部保留，剪辑仍能导出移除前已建立的制作记录。`templateApplications` 在记录 schema 里降级为宽松读取的遗留字段，防止带模板历史的旧项目打不开。
+
+AI 侧同日一并撤除：`packages/teams/storyboardTeam` 整个团队包、Agent 工具 `proposeStoryboardDraft`、记录操作 `proposeStoryboard` 与 `acceptStoryboard` 全部删除，`storyboardDrafts` 字段按同样理由保留为只读遗留，旧记录里已有的草案仍可被引用校验读出，但不再能新建或采纳。`packages/teams` 目前是空目录，工作区配置保留该 glob，自建团队仍可用；`teamScaffold` 文档里的示例团队名与 `development.md` 的分镜团队链接同步改掉。
 
 已确认的后果，不当作缺陷处理：`addSequence`、`adoptCandidate`、`createAssetVersion` 三个动作的唯一入口随分镜与素材版本面板消失，因此**新项目不能再建立镜头与采用关系**，剪辑只能消费移除前已有的记录；换机与备份失去项目包，只能整体拷贝项目文件夹。本页开头「灵感与草稿 → … → 分镜 → … → 成片 → 项目交付」的产品链路自本日起不再等于界面现状，功能表里相关 G/F 行按此理解。
 

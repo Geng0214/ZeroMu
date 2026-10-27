@@ -79,7 +79,7 @@ bun run package:desktop
 | --- | --- |
 | 节点 | [脚手架](../packages/nodeScaffold/readme.md)、[内置节点](../packages/nodes/) |
 | 工具 | [脚手架](../packages/toolScaffold/readme.md)、[内置工具](../packages/tools/)；执行及同步钩子范围见 [架构](architecture.md) |
-| 技能/团队 | [技能](../packages/skills/)、[团队脚手架](../packages/teamScaffold/readme.md)、[分镜团队](../packages/teams/storyboardTeam/readme.md) |
+| 技能/团队 | [技能](../packages/skills/)、[团队脚手架](../packages/teamScaffold/readme.md) |
 | 供应商 | [提供方实现](../packages/providers/src/)；区分协议适配和真实验收 |
 | MCP | [本机接入与配置](../packages/mcp/README.md)；界面操作需要相应窗口/页面在线 |
 | 多语言 | [维护说明](../packages/i18n/readme.md)、[回归记录](../packages/i18n/regression.md) |

@@ -349,13 +349,6 @@ export async function updateProject(directory: string, expectedRevision: number,
         for (const version of restored.assetVersions) await verifyVersion(directory, version);
         project = mergeRestored(project, restored); break;
       }
-      case "proposeStoryboard": resultId = crypto.randomUUID(); project.storyboardDrafts.push({ draftId: resultId, name: operation.name, shots: operation.shots, source: operation.source, createdAt: Date.now() }); break;
-      case "acceptStoryboard": {
-        const draft = project.storyboardDrafts.find(item => item.draftId === operation.draftId); if (!draft) invalid("分镜草案不存在", 404);
-        if (draft.acceptedSequenceId) invalid("此草案已经采用，请查看对应制作单元", 409);
-        resultId = crypto.randomUUID(); const shotIds = draft.shots.map(shot => { const shotId = crypto.randomUUID(); project.shots.push({ ...shot, shotId, sequenceId: resultId!, candidateIds: [] }); return shotId; });
-        project.sequences.push({ sequenceId: resultId, name: draft.name, shotIds, output: operation.output ?? defaultOutput }); draft.acceptedSequenceId = resultId; break;
-      }
       case "saveEdit": { findSequence(operation.edit.sequenceId); await validateEdit(directory, project, operation.edit); const index = project.edits.findIndex(item => item.sequenceId === operation.edit.sequenceId); if (index < 0) project.edits.push(operation.edit); else project.edits[index] = operation.edit; break; }
     }
     return { project: await writeProjectRevision(directory, original, project), resultId };

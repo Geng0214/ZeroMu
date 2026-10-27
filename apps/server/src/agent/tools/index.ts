@@ -16,7 +16,7 @@ import { isWithin, resolveWorkspacePath, writeWorkspaceFile, renameWorkspaceFile
 import { listTools, loadTool, validateToolConfig } from "@/utils/plugins/tools";
 import { createSkillContext } from "@/agent/skills";
 import { assertProductionWrite } from "@/utils/production/format";
-import { readProject, createProject, updateProject } from "@/utils/production";
+import { readProject, updateProject } from "@/utils/production";
 import { shotInputSchema } from "@/utils/production/schema";
 import { z } from "zod";
 
@@ -124,18 +124,6 @@ export async function createAgentTools(cwd: string, canvas?: CanvasContext, ques
     async execute(_id, _params, signal) {
       signal?.throwIfAborted(); const project = await readProject(cwd);
       return { content: [{ type: "text", text: JSON.stringify(project) }], details: project };
-    },
-  }, {
-    name: "proposeStoryboardDraft", label: "提交分镜草案",
-    description: "把分镜建议保存为可供用户审阅的草案。不会写入正式镜头、改变采用结果或发起付费生成。参考素材标识与固定版本来自 getProjectProduction；用户在分镜面板确认后才成为正式制作单元。",
-    parameters: z.toJSONSchema(z.strictObject({ name: z.string().trim().min(1).max(200), shots: z.array(shotInputSchema).min(1).max(500) })),
-    async execute(_id, params, signal) {
-      signal?.throwIfAborted();
-      const input = z.strictObject({ name: z.string().trim().min(1).max(200), shots: z.array(shotInputSchema).min(1).max(500) }).parse(params);
-      const project = await readProject(cwd) ?? await createProject(cwd);
-      const result = await updateProject(cwd, project.revision, { type: "proposeStoryboard", ...input, source: "agent" });
-      const details = { draftId: result.resultId, revision: result.project.revision, status: "awaitingReview" };
-      return { content: [{ type: "text", text: JSON.stringify(details) }], details };
     },
   }];
   const names = new Set(tools.map(tool => tool.name));
