@@ -6,7 +6,7 @@
 
 与模板字段同样的兼容处理：记录里的 `storyboardDrafts` 字段保留为只读遗留，旧项目已有的草案仍可被 `referenceState` 的引用校验读出，但不再能新建或采纳——直接删字段会让带草案历史的项目解析失败。`packages/teams` 现为空目录，根 `package.json` 的 `packages/teams/*` glob 与团队脚手架保留，自建团队仍可用；`teamScaffold/readme.md` 里把「可参考 storyboardTeam」改成不指向已删目录的说法、示例团队名改为 `demoTeam`，`development.md` 删掉指向已删 readme 的分镜团队链接。
 
-验证：server 与 web typecheck 均退出 0；i18n 重新抽取后源词典 3307 → 3303。桌面应用需重新构建才会去掉已注入的工具与团队（工具与操作在 server 打包产物里），换装结果记于下一条。
+验证：server 与 web typecheck 均退出 0；i18n 重新抽取后源词典 3307 → 3303。桌面应用随后重打并换装（构建产物 hash `3vjo68psdziey`，替换前 `2wmcmz221f4cu`）：已安装目录里搜不到 `proposeStoryboardDraft` 与「提交分镜草案」，保留功能字面量仍在；冷启动后本机服务端口监听，`/api/workspace/trash` 返回 200、`/api/production/get` 返回参数校验 400（说明路由在、只是未带参），日志无错误。
 
 ## 2026-10-28 按作者决定移除分镜、素材版本、项目包与制作模板
 
