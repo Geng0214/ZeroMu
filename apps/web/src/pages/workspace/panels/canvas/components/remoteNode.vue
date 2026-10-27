@@ -20,7 +20,6 @@
     <p>{{ error || runtimeError || "远程节点未加载，请确认插件已安装并启用" }}</p>
     <savedNodeOutput :outputs="node.data.outputs" :textPath="savedTextPath" :label="node.data.label" />
   </el-card>
-  <button v-if="boundShot" class="productionNodeBadge nodrag nopan" :title="`查看镜头：${boundShot.title}`" @pointerdown.stop @mousedown.stop @click.stop="production.openShot(boundShot.shotId)">{{ isAdoptedOutput ? '采用结果' : boundShot.adoptedCandidateId ? '其他输出 · 查看采用' : '待采用' }} · {{ boundShot.title }}</button>
 </template>
 
 <script setup lang="ts">

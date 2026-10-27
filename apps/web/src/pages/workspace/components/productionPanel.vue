@@ -5,9 +5,8 @@
     <workspacePicker ref="projectPicker" v-model="targetDirectory" hideTrigger :disabled="switching || store.busy" />
     <nav class="productionTabs" aria-label="制作面板"><button v-for="(label, value) in panels" :key="value" :aria-pressed="store.panel === value" @click="store.panel = value">{{ label }}</button></nav></div>
     <p v-if="store.error" class="productionError" role="alert">{{ store.error }}</p>
-    <section v-if="!store.project && store.panel !== 'packages' && !store.loading && !store.error" class="productionEmpty"><h3>{{ store.panel === 'edit' ? '开始剪辑' : '把创作组织成一部作品' }}</h3><p>{{ store.panel === 'edit' ? '先建立制作记录和制作单元，再载入已采用的视频片段，即可使用剪辑器。' : '建立制作记录后，可以排列镜头、保存角色场景版本、比较候选和记录采用结果。' }}</p><el-button type="primary" :loading="store.busy" :disabled="!store.directory" @click="create">建立制作记录</el-button></section>
-    <projectPackagePanel v-show="store.panel === 'packages'" />
-    <div v-if="store.project" :class="{ fullScreenEditContent: store.fullScreenEdit }" :aria-busy="store.busy"><storyboardPanel v-show="store.panel === 'storyboard'" :focusId="store.focusShotId" :focusToken="store.focusToken" /><productionAssets v-show="store.panel === 'assets'" :focusId="store.focusAssetId" :focusToken="store.assetFocusToken" /><filmPanel ref="filmEditor" v-show="store.panel === 'edit'" />
+    <section v-if="!store.project && !store.loading && !store.error" class="productionEmpty"><h3>开始剪辑</h3><p>先建立制作记录，再载入已采用的视频片段，即可使用剪辑器。</p><el-button type="primary" :loading="store.busy" :disabled="!store.directory" @click="create">建立制作记录</el-button></section>
+    <div v-if="store.project" :class="{ fullScreenEditContent: store.fullScreenEdit }" :aria-busy="store.busy"><filmPanel ref="filmEditor" v-show="store.panel === 'edit'" />
       <shotBatchPanel v-show="store.panel === 'batches'" :active="store.visible && store.panel === 'batches'" />
       <section v-show="store.panel === 'snapshots'" class="snapshots"><div class="snapshotHeader"><div><h3>制作记录快照</h3><p>保存镜头顺序、固定参考和采用关系。恢复时保留之后新增的媒体版本及历史；画布布局暂不随此快照恢复。</p></div><el-button type="primary" :disabled="store.busy" @click="saveSnapshot">保存快照</el-button></div><p v-if="!store.project.snapshots.length" class="snapshotHint">在替换参考或调整镜头前，可以保存一份快照。</p><ol><li v-for="snapshot in store.project.snapshots.toReversed()" :key="snapshot.snapshotId"><div><strong>{{ snapshot.name }}</strong><p>修订 {{ snapshot.revision }} · {{ new Date(snapshot.createdAt).toLocaleString() }}</p></div><el-button :disabled="store.busy" @click="restore(snapshot.snapshotId)">恢复制作关系</el-button></li></ol><section v-if="store.recoverableVersions.length" class="recoverable"><h3>未登记版本</h3><p>中断保存时留下的完整版本，可以校验文件后继续登记。</p><article v-for="item in store.recoverableVersions" :key="item.versionId"><span>{{ item.versionId }} · {{ item.status === 'ready' ? '清单完整' : '资料不完整，保留待检查' }}</span><el-button v-if="item.status === 'ready'" :disabled="store.busy" @click="recover(item.versionId)">校验并登记</el-button></article></section></section>
     </div>
@@ -15,14 +14,11 @@
 </template>
 
 <script setup lang="ts">
-import { inject, onScopeDispose, provide, ref } from "vue";
+import { inject, onScopeDispose, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useProductionStore, productionError } from "@/stores/production";
 import { useWorkspaceStore } from "@/stores/workspace";
-import storyboardPanel from "./storyboardPanel.vue";
-import productionAssets from "./productionAssets.vue";
 import filmPanel from "./filmPanel.vue";
-import projectPackagePanel from "./projectPackagePanel.vue";
 import shotBatchPanel from "./shotBatchPanel.vue";
 import workspacePicker from "@/pages/home/workspacePicker.vue";
 const store = useProductionStore(); const workspace = useWorkspaceStore();
@@ -44,11 +40,9 @@ function revealFocus(event: FocusEvent) {
   });
 }
 onScopeDispose(() => cancelAnimationFrame(focusFrame));
-const panels = { storyboard: "分镜", batches: "镜头批次", assets: "素材版本", edit: "成片", packages: "项目包", snapshots: "快照恢复" };
+const panels = { edit: "成片", batches: "镜头批次", snapshots: "快照恢复" };
 const projectPicker = ref<InstanceType<typeof workspacePicker>>(); const targetDirectory = ref(""); const switching = ref(false);
 const openProject = inject<(path: string) => Promise<void>>("openProductionProject");
-provide("focusProductionAsset", store.focusAsset);
-provide("focusProductionShot", store.openShot);
 async function create() { try { await store.create(); } catch (cause) { ElMessage.error(productionError(cause)); } }
 async function selectProject() { if (!openProject || switching.value) return; switching.value = true; try { const path = await projectPicker.value?.chooseDirectory(); if (path && path !== store.directory) await openProject(path); } catch (cause) { ElMessage.error(productionError(cause)); } finally { switching.value = false; } }
 async function saveSnapshot() { const path = store.directory; const answer = await ElMessageBox.prompt("保存当前制作关系，便于稍后恢复", "制作记录快照", { inputValue: `制作快照 ${new Date().toLocaleString()}`, inputValidator: value => !!value?.trim() && value.length <= 200 }).catch(() => null); if (answer) try { await store.update({ type: "snapshot", name: answer.value }, path); } catch (cause) { ElMessage.error(productionError(cause)); } }

@@ -54,7 +54,7 @@ import type { GeneratedMedia, MediaTaskRecord } from "@toonflow/tools-scaffold/r
 import useWorkspaceFiles from "@/lib/workspaceFiles";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useTaskCenterStore } from "@/stores/taskCenter";
-import { useProductionStore } from "@/stores/production";
+
 import mediaCostPanel from "@/components/mediaCostPanel.vue";
 import mediaTaskCost from "@/components/mediaTaskCost.vue";
 
@@ -168,7 +168,6 @@ async function locate(task: MediaTaskRecord) {
     if (failure && route.path !== target.path) throw new Error("页面跳转未完成，请先处理当前页面的保存状态");
     if (workspace.project?.directory !== task.directory) throw new Error("项目已切换，请重新定位任务");
     if (task.source.canvasId) center.location = { directory: task.directory, canvasId: task.source.canvasId, nodeId: task.source.nodeId, token: crypto.randomUUID() };
-    else if (task.source.shotId) useProductionStore().openShot(task.source.shotId);
     center.visible = false;
   } catch (cause) { error.value = message(cause); }
   finally { locating.value = ""; }

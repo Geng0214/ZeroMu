@@ -1,5 +1,15 @@
 # 当前开发进度
 
+## 2026-10-28 按作者决定移除分镜、素材版本、项目包与制作模板
+
+制作链路只保留剪辑。前端删 13 个面板/组件（`storyboardPanel`、`productionAssets`、`candidatePanel`、`versionPreview`、`imageCandidateEditor`、`versionFileRecovery`、`referenceUpdatePanel`、`projectPackagePanel`、四个 `productionTemplate*`）与 `stores/productionTemplates.ts`；后端删 `routes/productionTemplates/**`、`routes/production/packages/**`、`impact.ts`、`images/prepare.ts` 与 `utils/productionTemplates/**`、`utils/production/{template,package,archive}.ts`，路由表 173 → 160，`bun run routes` 后文件数与注册数一致。同步清掉的入口：画布顶部按钮只剩「剪辑」、制作抽屉标签只剩成片/批次/快照、节点右键「查看关联分镜」、画布节点上的镜头徽标、任务中心与工作站跳转里的镜头/素材版本定位，以及素材带入后的「跳到素材版本」。`stores/production.ts` 的 panel 联合类型收窄为 `edit | batches | snapshots`，并删掉只服务已移除面板的 `focusShot/focusAsset/openShot/openAsset` 与每 5 秒一轮的 `shotTasks` 轮询（该轮询此前只在分镜面板消费）。
+
+两处刻意保留。`zeromuProject.json` 的 `templateApplications` 在 schema 里降级为 `z.looseObject` 的遗留读取字段，重复与引用校验照旧，但不再写入——直接删字段会让带模板历史的旧项目解析失败、打不开。`proposeStoryboard` / `acceptStoryboard` 记录操作和 AI 分镜团队未动，代价是 AI 仍能产出分镜草案而界面已无采纳入口，这条留给作者决定是否连 AI 侧一起撤。
+
+已确认的后果：`addSequence`、`adoptCandidate`、`createAssetVersion` 的唯一入口随面板消失，新项目无法再建立镜头与采用关系，剪辑只能导出移除前已建立的制作记录；备份与换机迁移失去项目包，只能整体拷贝项目文件夹。这些按作者「剪辑断了也能修」的决定执行，不按缺陷处理。
+
+验证：`bun run --filter '@toonflow/server' --filter '@toonflow/web' typecheck` 均退出 0；`@toonflow/web` 生产构建退出 0（模板与 SCSS 只有构建能查）；`bun run --cwd packages/i18n extract` 重新抽取后源词典由 3944 条降到 3307 条。文档同步改了 `guides/creation.md`（删模板与项目包段落，改为提示词库与成片交付）、`design.md`、`architecture.md` 与 `plan.md` 的新增小节。真实界面上的按钮消失与剪辑在既有记录上仍可导出，需换装后的桌面应用由作者点一次确认。
+
 ## 2026-10-28 本机桌面应用换装为本轮修复后的构建
 
 把源码里已验证的改动装进本机桌面应用（`work/native228`，桌面快捷方式实际指向处）。替换前逐项备份：程序本体 `appBackup20261028013251`、含模型 key 与设置的 `dataBackup20261028013251`；`data` 目录本次未覆盖。

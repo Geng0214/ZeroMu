@@ -13,7 +13,6 @@ import { hasRunningBatch } from "./batches";
 import { applyImageEdit, existingImageEdit } from "./image";
 import { applyBackgroundRemoval, existingBackgroundRemoval } from "./backgroundRemoval";
 import { assetImpact, candidateReferenceState } from "./referenceState";
-import { applyTemplate, existingTemplateApplication } from "./template";
 import { existingFileRecovery, restoreVersionFile } from "./files";
 import { existingLibraryImport, importLibraryAsset } from "./library";
 
@@ -22,7 +21,7 @@ export { operationSchema } from "./schema";
 export { transferResult } from "./transfer";
 export { directorContext, directorCapture, directorTaskSource } from "./director";
 export { editContext, startExport, listExports, cancelExport } from "./edit";
-export { inspectPackage, exportPackage, importPackage, uploadPackage, packageJobs, cancelPackage } from "./package";
+
 export { prepareBatch, listBatches, controlBatch, readBatch, batchView } from "./batches";
 export { prepareImageEdit } from "./image";
 export { assetImpact } from "./referenceState";
@@ -186,10 +185,6 @@ export async function updateProject(directory: string, expectedRevision: number,
     let project: ProjectRecord = existing;
     if (operation.type === "importLibraryAsset") { const prior = await existingLibraryImport(directory, project, operation); if (prior) return { project, resultId: prior.versionId }; }
     if (operation.type === "restoreVersionFile" && await existingFileRecovery(directory, project, operation)) return { project, resultId: operation.versionId };
-    if (operation.type === "applyTemplate") {
-      const prior = await existingTemplateApplication(directory, project, operation);
-      if (prior) return { project, resultId: prior.sequenceId };
-    }
     if (operation.type === "editImageCandidate") {
       const prior = existingImageEdit(project, operation);
       if (prior) { await verifyVersion(directory, prior); return { project, resultId: operation.editId }; }
@@ -208,7 +203,6 @@ export async function updateProject(directory: string, expectedRevision: number,
     switch (operation.type) {
       case "importLibraryAsset": resultId = await importLibraryAsset(directory, project, operation); break;
       case "restoreVersionFile": resultId = await restoreVersionFile(directory, project, operation); break;
-      case "applyTemplate": resultId = await applyTemplate(directory, project, operation); break;
       case "editImageCandidate": resultId = await applyImageEdit(directory, project, operation); break;
       case "addBackgroundRemovedCandidate": resultId = await applyBackgroundRemoval(directory, project, operation); break;
       case "registerCanvas": {

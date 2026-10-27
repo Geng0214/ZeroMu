@@ -1,11 +1,10 @@
 <template>
   <libraryShell aria-label="创作模板库">
     <header class="promptPageHeader">
-      <div class="promptPageTitle"><h1>提示词库</h1><nav class="libraryViews" aria-label="创作方法类型"><button :aria-pressed="route.query.view !== 'production'" @click="router.replace({ path: '/prompts' })">文字提示词</button><button :aria-pressed="route.query.view === 'production'" @click="router.replace({ path: '/prompts', query: { view: 'production' } })">制作模板</button></nav></div>
-      <div v-if="route.query.view !== 'production'" class="libraryActions"><el-button type="primary" :disabled="!store.loaded || store.busy || store.loading" @click="openEditor()"><icon-plus :size="16" />新增提示词</el-button><el-button :disabled="store.busy" @click="importInput?.click()">导入</el-button><el-button :loading="store.loading" :disabled="store.busy" aria-label="刷新提示词库" title="刷新提示词库" @click="reload"><icon-refresh :size="16" /></el-button><input ref="importInput" class="fileInput" type="file" accept=".json,application/json" aria-label="导入提示词文件" @change="importFile" /></div>
+      <div class="promptPageTitle"><h1>提示词库</h1></div>
+      <div class="libraryActions"><el-button type="primary" :disabled="!store.loaded || store.busy || store.loading" @click="openEditor()"><icon-plus :size="16" />新增提示词</el-button><el-button :disabled="store.busy" @click="importInput?.click()">导入</el-button><el-button :loading="store.loading" :disabled="store.busy" aria-label="刷新提示词库" title="刷新提示词库" @click="reload"><icon-refresh :size="16" /></el-button><input ref="importInput" class="fileInput" type="file" accept=".json,application/json" aria-label="导入提示词文件" @change="importFile" /></div>
     </header>
-    <productionTemplateLibrary v-if="route.query.view === 'production'" />
-    <template v-else>
+    <template>
     <div v-if="store.error || actionError" ref="errorBox" class="libraryError" role="alert" tabindex="-1">{{ actionError || store.error }}<span v-if="!store.loaded"> · 个人库读取成功后才能保存。</span></div><p v-if="store.loading" class="libraryStatus" role="status">正在读取个人提示词…</p><p v-if="status" class="libraryStatus" role="status">{{ status }}</p>
     <div class="promptToolbar">
       <div class="promptFilters"><el-input v-model="query" class="promptSearch" :prefixIcon="IconSearch" clearable placeholder="搜索标题、内容或标签" aria-label="搜索提示词" /><select v-model="scope" aria-label="提示词范围"><option v-for="item in scopes" :key="item.id" :value="item.id">{{ item.label }}</option></select><select v-if="tags.length" v-model="tag" aria-label="标签筛选"><option value="">全部标签</option><option v-for="item in tags" :key="item" :value="item">{{ item }}</option></select></div>
@@ -25,8 +24,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from "vue";
-import { useRoute, useRouter } from "vue-router";
-import productionTemplateLibrary from "@/components/productionTemplateLibrary.vue";
+import { useRouter } from "vue-router";
 import { ElMessageBox } from "element-plus";
 import { IconSearch, IconChevronRight, IconFileText, IconPlus, IconRefresh } from "@tabler/icons-vue";
 import libraryShell from "@/components/libraryShell.vue";
@@ -35,7 +33,7 @@ import promptEditor from "@/components/promptEditor.vue";
 import saveFile from "@/lib/saveFile";
 import { exportPrompt, promptExportSchema, type PromptDefinition, type PromptLibraryEntry } from "@toonflow/server/promptLibrary";
 import { promptLibraryError, usePromptLibraryStore } from "@/stores/promptLibrary";
-const store = usePromptLibraryStore(); const router = useRouter(); const route = useRoute();
+const store = usePromptLibraryStore(); const router = useRouter();
 const labels = { image: "生图创作", video: "视频创作", audio: "音频创作", home: "自由创作" };
 const categories = [{ id: "all", label: "全部" }, { id: "image", label: "生图" }, { id: "video", label: "视频" }, { id: "audio", label: "音频" }, { id: "home", label: "故事构思" }];
 const scopes = [{ id: "all", label: "全部内容" }, { id: "personal", label: "我的" }, { id: "favorites", label: "收藏" }, { id: "archived", label: "已归档" }];
@@ -71,7 +69,6 @@ async function importFile(event: Event) {
 
 <style scoped lang="scss">
 .promptPageHeader { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; margin-bottom: 28px; .promptPageTitle { display: flex; align-items: center; flex-wrap: wrap; gap: 28px; h1 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -.025em; } } .libraryActions { display: flex; flex-wrap: wrap; gap: 8px; .el-button { margin-left: 0; gap: 6px; } } }
-.libraryViews { display: flex; gap: 24px; button { position: relative; padding: 12px 0; min-height: 42px; color: var(--homeMuted); border: 0; background: transparent; font-size: 14px; &[aria-pressed=true] { color: var(--homeText); font-weight: 600; &::after { position: absolute; inset: auto 0 0; height: 2px; background: currentColor; content: ""; } } } }
 .fileInput { display: none; }
 .libraryError { padding: 12px 0; color: var(--el-color-danger); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
 .libraryStatus { margin: 0 0 12px; color: var(--homeMuted); font-size: 12px; }

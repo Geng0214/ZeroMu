@@ -3,7 +3,6 @@ import { ref } from "vue";
 import axios from "axios";
 import type { AgentAttachment } from "@/components/agent/types";
 import { usePromptLibraryStore } from "./promptLibrary";
-import { useProductionTemplateLibraryStore } from "./productionTemplates";
 import { useTaskCenterStore } from "./taskCenter";
 
 export type Project = { directory: string; name: string; lastOpenedAt: number; projectId?: string; layout?: "organized" | "legacy"; canvasCount?: number; updatedAt?: number };
@@ -28,7 +27,7 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   let initializing: Promise<void> | undefined;
 
   function applyState(state: WorkspaceState) {
-    if (workspaceRoot.value?.directory !== state.workspace?.directory || workspaceRoot.value?.workspaceId !== state.workspace?.workspaceId) { usePromptLibraryStore().reset(); useProductionTemplateLibraryStore().reset(); }
+    if (workspaceRoot.value?.directory !== state.workspace?.directory || workspaceRoot.value?.workspaceId !== state.workspace?.workspaceId) usePromptLibraryStore().reset();
     workspaceRoot.value = state.workspace;
     projectList.value = state.projects;
     legacyProjects.value = [];

@@ -34,7 +34,6 @@ export function projectPath(directory: string, path: string) {
     productionTemplateInputs: "projectData/history/templateInputs",
     productionLibraryImports: "projectData/history/libraryImports",
     productionExports: "exports",
-    projectPackages: "exports/packages",
     projectImports: "projectData/cache/imports",
   };
   const prefix = Object.keys(prefixes).find(prefix => path === prefix || path.startsWith(`${prefix}/`));

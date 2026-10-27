@@ -7,7 +7,6 @@ import * as mediaCosts from "@/utils/media/costs";
 import * as studioDrafts from "@/utils/studioDrafts";
 import * as production from "@/utils/production";
 import * as promptLibrary from "@/utils/promptLibrary";
-import * as productionTemplates from "@/utils/productionTemplates";
 import * as mediaChannel from "@/utils/media/channel";
 import * as mediaProvider from "@/utils/media/provider";
 import * as ffmpeg from "@/utils/ffmpeg";
@@ -41,7 +40,6 @@ export default {
   studioDrafts,
   production,
   promptLibrary,
-  productionTemplates,
   mediaChannel,
   mediaProvider,
   ffmpeg,

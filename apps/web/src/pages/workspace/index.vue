@@ -10,7 +10,7 @@
     <component :is="floatingAgent" v-if="floatingAgent" v-model="agentVisible" @resize="agentWidth = $event" />
     <settings v-model="settingsVisible" />
     <taskButton class="workspaceTasks" />
-    <nav class="productionButtons" aria-label="项目制作"><el-button @click="production.open('storyboard')">分镜</el-button><el-button @click="production.open('assets')">素材版本</el-button><el-button type="primary" @click="production.open('edit')">剪辑</el-button><el-button @click="production.open('packages')">项目包</el-button></nav>
+    <nav class="productionButtons" aria-label="项目制作"><el-button type="primary" @click="production.open('edit')">剪辑</el-button></nav>
     <productionPanel />
   </main>
 </template>

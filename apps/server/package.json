@@ -14,8 +14,7 @@
     "./i18n": "./src/lib/i18n.ts",
     "./skills": "./src/utils/skills/files.ts",
     "./studioDrafts": "./src/utils/studioDrafts/schema.ts",
-    "./promptLibrary": "./src/utils/promptLibrary/schema.ts",
-    "./productionTemplates": "./src/utils/productionTemplates/schema.ts"
+    "./promptLibrary": "./src/utils/promptLibrary/schema.ts"
   },
   "scripts": {
     "routes": "bun src/core.ts",

@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { imageGenerationSchema, videoGenerationSchema, audioGenerationSchema } from "@toonflow/tool-media-generation/runtime";
-import { applyTemplateOperationSchema, templateApplicationRecordSchema } from "../productionTemplates/schema";
 
 export const relativePathSchema = z.string().min(1).max(2048).refine(path => !/^[\\/]|[:\u0000-\u001f]/.test(path) && path.split(/[\\/]/).every(part => part && part !== "." && part !== ".."), "必须是项目内相对路径");
 const id = z.uuid();
 const name = z.string().trim().min(1).max(200);
 const timestamp = z.number().finite().nonnegative();
+// ACT: 制作模板功能已移除。老项目的 zeromuProject.json 里可能仍有 templateApplications，读出来只为做重复与引用校验，不再写入新记录，故用宽松对象保留未知字段，避免历史项目打不开。
+const templateApplicationRecordSchema = z.looseObject({ applicationId: id, sequenceId: id, versionIds: z.array(id).max(128) });
 const referenceSchema = z.strictObject({ assetId: id, versionId: id, role: z.string().max(200).optional() });
 const mediaFileSchema = z.strictObject({ path: relativePathSchema, mimeType: z.string().min(1).max(200), view: z.string().max(100).optional(), hash: z.string().regex(/^[a-f0-9]{64}$/) });
 const fileRecoveryRecordSchema = z.strictObject({ recoveryId: id, versionId: id, fileIndex: z.number().int().min(0).max(63), sourcePath: relativePathSchema, hash: z.string().regex(/^[a-f0-9]{64}$/), createdAt: timestamp });
@@ -169,7 +170,6 @@ export type ProductionTransferReceipt = { transferId: string; createdAt: number;
 export const operationSchema = z.discriminatedUnion("type", [
   restoreVersionFileSchema,
   importLibraryAssetSchema,
-  applyTemplateOperationSchema,
   z.strictObject({ type: z.literal("editImageCandidate"), editId: id, contextId: id, parameters: imageEditParametersSchema }),
   z.strictObject({ type: z.literal("addBackgroundRemovedCandidate"), contextId: id, taskId: id }),
   z.strictObject({ type: z.literal("registerCanvas"), canvasId: relativePathSchema, name }),

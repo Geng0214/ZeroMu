@@ -74,14 +74,12 @@
   ],
   "{0} 秒": [
     "apps/web/src/components/agent/conversation.vue",
-    "apps/web/src/pages/studio/index.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/studio/index.vue"
   ],
   "取消": [
     "apps/web/src/components/agent/conversation.vue",
     "apps/web/src/components/agent/menu.vue",
     "apps/web/src/components/agent/settingsDialog.vue",
-    "apps/web/src/components/productionTemplateEditor.vue",
     "apps/web/src/components/promptEditor.vue",
     "apps/web/src/components/settings/panels/languageModel/addCustomProviderDialog.vue",
     "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue",
@@ -100,10 +98,7 @@
     "apps/web/src/pages/studio/index.vue",
     "apps/web/src/pages/studio/useStudio.ts",
     "apps/web/src/pages/workspace/components/filmPanel.vue",
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
     "apps/web/src/pages/workspace/components/productionPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
@@ -235,8 +230,7 @@
     "apps/server/src/agent/tools/index.ts"
   ],
   "已停止": [
-    "apps/web/src/components/agent/generationConfirmation.vue",
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
+    "apps/web/src/components/agent/generationConfirmation.vue"
   ],
   "本次确认已结束": [
     "apps/web/src/components/agent/generationConfirmation.vue"
@@ -385,7 +379,6 @@
     "apps/web/src/components/agent/mentionMenu.vue",
     "apps/web/src/components/libraryImportDialog.vue",
     "apps/web/src/components/settings/panels/mediaChannel/types.ts",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasElements.vue"
   ],
   "整数": [
@@ -400,22 +393,16 @@
   "图片": [
     "apps/web/src/components/agent/mentionMenu.vue",
     "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/components/productionTemplateApply.vue",
-    "apps/web/src/components/productionTemplateDetail.vue",
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/productionTemplateLibrary.vue",
     "apps/web/src/components/taskCenter.vue",
     "apps/web/src/pages/studio/index.vue",
     "apps/web/src/pages/studio/useStudio.ts",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasElements.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue",
     "apps/web/src/pages/workspace/panels/canvas/index.vue",
     "apps/server/src/agent/tools/index.ts",
     "apps/server/src/utils/media/generation.ts",
-    "apps/server/src/utils/production/transfer.ts",
-    "apps/server/src/utils/productionTemplates/capture.ts"
+    "apps/server/src/utils/production/transfer.ts"
   ],
   "遮罩": [
     "apps/web/src/components/agent/mentionMenu.vue"
@@ -423,17 +410,12 @@
   "视频": [
     "apps/web/src/components/agent/mentionMenu.vue",
     "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/components/productionTemplateApply.vue",
-    "apps/web/src/components/productionTemplateDetail.vue",
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/productionTemplateLibrary.vue",
     "apps/web/src/components/settings/panels/mediaChannel/types.ts",
     "apps/web/src/components/taskCenter.vue",
     "apps/web/src/pages/prompts/index.vue",
     "apps/web/src/pages/studio/index.vue",
     "apps/web/src/pages/studio/useStudio.ts",
     "apps/web/src/pages/workspace/components/filmPanel.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasElements.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue",
@@ -441,23 +423,17 @@
     "apps/server/src/agent/tools/index.ts",
     "apps/server/src/utils/media/channelRuntime.ts",
     "apps/server/src/utils/media/generation.ts",
-    "apps/server/src/utils/production/transfer.ts",
-    "apps/server/src/utils/productionTemplates/capture.ts"
+    "apps/server/src/utils/production/transfer.ts"
   ],
   "音频": [
     "apps/web/src/components/agent/mentionMenu.vue",
     "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/components/productionTemplateApply.vue",
-    "apps/web/src/components/productionTemplateDetail.vue",
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/productionTemplateLibrary.vue",
     "apps/web/src/components/settings/panels/mediaChannel/types.ts",
     "apps/web/src/components/taskCenter.vue",
     "apps/web/src/pages/prompts/index.vue",
     "apps/web/src/pages/studio/index.vue",
     "apps/web/src/pages/studio/useStudio.ts",
     "apps/web/src/pages/workspace/components/filmPanel.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasElements.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue",
@@ -465,8 +441,7 @@
     "apps/server/src/agent/tools/index.ts",
     "apps/server/src/utils/media/channelRuntime.ts",
     "apps/server/src/utils/media/generation.ts",
-    "apps/server/src/utils/production/transfer.ts",
-    "apps/server/src/utils/productionTemplates/capture.ts"
+    "apps/server/src/utils/production/transfer.ts"
   ],
   "文件": [
     "apps/web/src/components/agent/mentionMenu.vue"
@@ -610,16 +585,13 @@
     "apps/web/src/components/agent/menu.vue",
     "apps/web/src/components/agent/toolMessage.vue",
     "apps/web/src/components/taskCenter.vue",
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue",
-    "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "失败": [
     "apps/web/src/components/agent/menu.vue",
     "apps/web/src/components/taskCenter.vue",
     "apps/web/src/pages/studio/index.vue",
-    "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "达到限制": [
     "apps/web/src/components/agent/menu.vue"
@@ -844,12 +816,10 @@
   "关闭": [
     "apps/web/src/components/languageSelect.vue",
     "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/components/productionTemplateApply.vue",
     "apps/web/src/components/settings/panels/about.vue",
     "apps/web/src/components/taskCenter.vue",
     "apps/web/src/pages/studio/transferDialog.vue",
-    "apps/web/src/pages/workspace/components/productionPanel.vue",
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
+    "apps/web/src/pages/workspace/components/productionPanel.vue"
   ],
   "从全局素材库带入项目": [
     "apps/web/src/components/libraryImportDialog.vue"
@@ -858,8 +828,7 @@
     "apps/web/src/components/libraryImportDialog.vue"
   ],
   "目标项目": [
-    "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/components/productionTemplateApply.vue"
+    "apps/web/src/components/libraryImportDialog.vue"
   ],
   "请选择目标项目目录": [
     "apps/web/src/components/libraryImportDialog.vue"
@@ -887,12 +856,10 @@
     "apps/web/src/components/libraryImportDialog.vue"
   ],
   "类别": [
-    "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
+    "apps/web/src/components/libraryImportDialog.vue"
   ],
   "素材类别": [
-    "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/components/productionTemplateEditor.vue"
+    "apps/web/src/components/libraryImportDialog.vue"
   ],
   "目标素材": [
     "apps/web/src/components/libraryImportDialog.vue"
@@ -904,8 +871,7 @@
     "apps/web/src/components/libraryImportDialog.vue"
   ],
   "无父版本": [
-    "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/components/productionTemplateEditor.vue"
+    "apps/web/src/components/libraryImportDialog.vue"
   ],
   "正在继续原带入输入，保留原名称、类别和父版本。{0}": [
     "apps/web/src/components/libraryImportDialog.vue"
@@ -929,8 +895,7 @@
     "apps/web/src/components/libraryImportDialog.vue"
   ],
   "{0} · {1} 字节": [
-    "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
+    "apps/web/src/components/libraryImportDialog.vue"
   ],
   "使用中断时已保存的原副本": [
     "apps/web/src/components/libraryImportDialog.vue"
@@ -942,8 +907,7 @@
     "apps/web/src/components/libraryImportDialog.vue"
   ],
   "本地全局素材": [
-    "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
+    "apps/web/src/components/libraryImportDialog.vue"
   ],
   "确认带入固定版本": [
     "apps/web/src/components/libraryImportDialog.vue"
@@ -955,16 +919,13 @@
     "apps/web/src/components/libraryImportDialog.vue"
   ],
   "角色": [
-    "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
+    "apps/web/src/components/libraryImportDialog.vue"
   ],
   "场景": [
-    "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
+    "apps/web/src/components/libraryImportDialog.vue"
   ],
   "道具": [
-    "apps/web/src/components/libraryImportDialog.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
+    "apps/web/src/components/libraryImportDialog.vue"
   ],
   "费用与预算": [
     "apps/web/src/components/mediaCostPanel.vue",
@@ -1119,7 +1080,6 @@
     "apps/web/src/components/settings/panels/personalization.vue",
     "apps/web/src/pages/assets/materialCollection.vue",
     "apps/web/src/pages/prompts/index.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
     "apps/desktop/src/index.ts"
   ],
@@ -1256,752 +1216,6 @@
   "高": [
     "apps/web/src/components/modelPopover.vue"
   ],
-  "应用制作模板": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "在目标项目中新建制作单元、画布和固定参考版本。原对象保留；本操作不会开始生成。": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "刷新项目与模型": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "请选择工作目录": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "正在读取项目与已配置模型…": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "此目录还没有制作记录。": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "创建制作记录": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "待完成的模板应用": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "载入原草稿后，重新预览即可继续相同应用；已有副本会核对摘要。": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "载入：{0} · {1}": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "已载入中断前的固定输入。若需修改，请先创建新的独立应用。": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "改为新的独立应用": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "（必填）": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "映射实际渠道模型": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "只列出已配置且媒体类型相符的模型。模型目录不代表连接、能力或价格已验收；每个位置都需要明确选择。": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "{0}模型映射": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "请选择模型或稍后配置": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "稍后配置 · 应用后选择模型": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "模板模型提示：{0} · 请核对目录后自行选择": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "参考文件": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "必填": [
-    "apps/web/src/components/productionTemplateApply.vue",
-    "apps/web/src/components/productionTemplateDetail.vue",
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/promptEditor.vue",
-    "apps/web/src/pages/prompts/index.vue"
-  ],
-  "可选": [
-    "apps/web/src/components/productionTemplateApply.vue",
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "尚未选择，将保留文字资料": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "选择项目内{0}": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "移除所选文件": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "重新预览应用内容": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "预览应用内容": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "应用预览": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "将新增：{0}": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "{0} 个镜头 · {1} 个素材 · {2} 个固定版本 · {3} 个生成节点 · 1 张独立画布": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "{0} · {1} KB · 摘要 {2}": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "核对填值后的镜头与参考内容": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "确认创建独立制作单元": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "制作模板已应用": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "已保存 {0}，可以打开画布检查参考和模型，再逐镜头创作。": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "打开新画布": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "留在模板库": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "选择目标项目中的参考文件": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "项目根目录": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "上一级": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "正在读取文件…": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "文件夹 · ": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "没有匹配的参考文件，可先将素材放入目标项目。": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "请重新打开模板": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "请选择{0}的实际模型，或明确选择稍后配置": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "关闭后本页填值将离开。已写入的待完成应用仍保留在目标项目。": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "保留模板填值": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "继续填写": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "目标项目已切换，请重新选择文件": [
-    "apps/web/src/components/productionTemplateApply.vue"
-  ],
-  "标签：{0}": [
-    "apps/web/src/components/productionTemplateDetail.vue",
-    "apps/web/src/components/promptEditor.vue",
-    "apps/web/src/pages/prompts/index.vue"
-  ],
-  "输入要求": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "可留空": [
-    "apps/web/src/components/productionTemplateDetail.vue",
-    "apps/web/src/components/promptEditor.vue",
-    "apps/web/src/pages/prompts/index.vue"
-  ],
-  "必须提供": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "推荐流程": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "模型位置": [
-    "apps/web/src/components/productionTemplateDetail.vue",
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "模型提示：{0}": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "样例制作单元：{0}": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "{0} × {1} · {2} 帧/秒 · {3} 个镜头 · {4} 个参考素材": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "参考素材与版本关系": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "{0} · {1} 个版本": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  " · 基于版本{0}": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "版本 {0}{1}": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "{0}. {1} · 预计 {2} 秒": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "模型位置：{0}": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "辅助创作：{0}": [
-    "apps/web/src/components/productionTemplateDetail.vue"
-  ],
-  "编辑制作模板": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "保存制作模板": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "刷新并核对": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "草稿另存副本": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/promptEditor.vue"
-  ],
-  "最新模板：{0}": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "当前草稿保留。载入会替换草稿，也可以另存副本。": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "载入最新内容，替换草稿": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/promptEditor.vue"
-  ],
-  "模板标题": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "标签，以逗号分隔": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/promptEditor.vue"
-  ],
-  "模板标签": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "用途说明": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "模板用途说明": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "输入要求 · {0} 项": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "在镜头或资料中使用双花括号引用变量，例如": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "。默认值保存在本机，导出时可清空。": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "变量名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "输入{0}变量名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "显示名称": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/promptEditor.vue",
-    "apps/web/src/components/settings/panels/languageModel/addCustomProviderDialog.vue",
-    "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue"
-  ],
-  "输入{0}显示名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "默认值": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/promptEditor.vue"
-  ],
-  "输入{0}默认值": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "移除此输入": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "添加输入": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "推荐流程 · {0} 步": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "步骤名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "步骤{0}名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "操作说明": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "步骤{0}说明": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "上移步骤": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "下移步骤": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "移除步骤": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "添加步骤": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "模型位置 · {0} 项": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "模板保存媒体类型与可选模型提示；每次应用时重新选择实际渠道。删除已使用的位置前，先修改对应镜头。": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "位置名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "模型位置{0}名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "创作类型": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/pages/home/index.vue",
-    "apps/web/src/pages/studio/index.vue"
-  ],
-  "{0}创作类型": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "用途": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/pages/workspace/components/filmPanel.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "{0}用途": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "可选模型编号提示": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "{0}模型编号提示": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "移除此模型位置": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "添加模型位置": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "样例制作单元与输出": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "制作单元名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "样例制作单元名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "宽度": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "样例输出宽度": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "高度": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "样例输出高度": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "帧率": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/pages/workspace/components/filmPanel.vue"
-  ],
-  "样例输出帧率": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "这些值用于制作单元与剪辑输出，生成模型的尺寸和时长需要在节点中确认。": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "参考素材与固定版本 · {0} 项": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "素材名称": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
-  ],
-  "素材{0}名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "{0}类别": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "版本 {0}": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "父版本": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "{0}版本{1}父版本": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "参考文字": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "{0}版本{1}参考文字": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "版本说明": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "{0}版本{1}说明": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "移除此版本": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "添加版本": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "移除此素材": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "添加参考素材": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/pages/studio/index.vue"
-  ],
-  "参考文件要求 · {0} 项": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "模板记录文件要求，应用时选择目标项目中的文件；不把原文件或原路径存入可分享模板。": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "文件说明名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "参考文件{0}名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "文件类型": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "{0}文件类型": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "对应素材版本": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "{0}对应版本": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "输入说明": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "{0}输入说明": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "必须提供文件": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "移除文件要求": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "添加文件要求": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "镜头结构 · {0} 个镜头": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "镜头标题": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "镜头{0}标题": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "镜头{0}模型位置": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "预计成片秒数": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "镜头{0}预计秒数": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "剧情": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "镜头{0}剧情": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "对白": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "镜头{0}对白": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "生成提示词": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
-  ],
-  "镜头{0}提示词": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "引用固定版本": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "引用用途": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "镜头{0}引用{1}{2}用途": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "上移镜头": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "下移镜头": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "移除此镜头": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "添加镜头": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "辅助创作节点 · {0} 项": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "节点名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "辅助节点{0}名称": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "{0}模型位置": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "提示词": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "{0}提示词": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "移除此辅助节点": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "添加辅助节点": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "原模板已归档或不存在，草稿仍保留，可另存副本": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "当前制作模板草稿尚未保存。": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "保留模板草稿": [
-    "apps/web/src/components/productionTemplateEditor.vue"
-  ],
-  "继续编辑": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/promptEditor.vue",
-    "apps/web/src/components/settings/panels/personalization.vue",
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "放弃草稿": [
-    "apps/web/src/components/productionTemplateEditor.vue",
-    "apps/web/src/components/promptEditor.vue"
-  ],
-  "制作模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue",
-    "apps/web/src/pages/prompts/index.vue"
-  ],
-  "把输入、镜头结构和参考版本关系保存为可复用的制作方法。": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "新增制作模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "从制作单元保存": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "导入制作模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "刷新模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "导入制作模板文件": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  " · 个人库读取成功后才能保存。": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "制作模板范围": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "搜索制作模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "标题、标签或用途": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "制作模板列表": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "内置结构范例": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "我的模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  " · 已收藏": [
-    "apps/web/src/components/productionTemplateLibrary.vue",
-    "apps/web/src/pages/prompts/index.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasPrompts.vue"
-  ],
-  "{0} · {1} 个镜头{2}": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "制作模板详情": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "内置范例只读，可另存并修改；不包含生成成品。": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "已归档，可恢复后复用。": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "个人制作模板 · 保存在本机": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "应用到项目": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "另存并修改": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "取消收藏模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "收藏模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "导出制作模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "恢复模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "归档模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "没有匹配的制作模板，可调整搜索范围或新增模板。": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "检查制作模板导出内容": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "以下为本次实际导出内容。默认清空变量默认值和样例私有内容，并移除模型编号提示；请检查标题、用途、流程及输入说明中的私人信息。": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "包含变量默认值": [
-    "apps/web/src/components/productionTemplateLibrary.vue",
-    "apps/web/src/pages/prompts/index.vue"
-  ],
-  "包含样例名称、剧情、提示词及参考文字": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "包含模型编号提示": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "不包含应用渠道配置、凭据、原项目路径与编号、媒体文件或收藏。重新导入会创建独立模板。": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "下载制作模板文件": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "从制作单元保存模板": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "提取镜头结构与参考版本关系；生成结果和媒体文件保留在原项目。": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "请选择来源项目": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "来源制作单元": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "请选择": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "{0} 个镜头 · {1} 个已采用 · {2} 次已完成导出": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "也可保存尚未完成的结构草稿。没有媒体候选的镜头使用下方明确指定的类型，保存前会提示核对。": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "无候选时的镜头类型": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "选择保留的原内容，默认均不保留": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "提取并检查模板草稿": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "归档后内容与收藏保留，可以恢复。": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "归档「{0}」": [
-    "apps/web/src/components/productionTemplateLibrary.vue",
-    "apps/web/src/pages/prompts/index.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "归档": [
-    "apps/web/src/components/productionTemplateLibrary.vue",
-    "apps/web/src/pages/prompts/index.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "保留": [
-    "apps/web/src/components/productionTemplateLibrary.vue",
-    "apps/web/src/pages/prompts/index.vue",
-    "apps/web/src/pages/studio/index.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "制作模板文件不能超过 8 MB": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "文件不是支持的零幕制作模板格式，或内容关系校验未通过": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "制作模板文件不是有效的 JSON，请保留原件并重新导出": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
-  "此项目没有可提取的活动制作单元": [
-    "apps/web/src/components/productionTemplateLibrary.vue"
-  ],
   "填写{0}": [
     "apps/web/src/components/promptComposer.vue"
   ],
@@ -2055,16 +1269,34 @@
   "刷新并核对最新内容": [
     "apps/web/src/components/promptEditor.vue"
   ],
+  "草稿另存副本": [
+    "apps/web/src/components/promptEditor.vue"
+  ],
   "最新保存内容": [
     "apps/web/src/components/promptEditor.vue"
   ],
   "分类：{0} · 使用位置：{1}": [
     "apps/web/src/components/promptEditor.vue"
   ],
+  "标签：{0}": [
+    "apps/web/src/components/promptEditor.vue",
+    "apps/web/src/pages/prompts/index.vue"
+  ],
   "变量说明与默认值 · {0} 项": [
     "apps/web/src/components/promptEditor.vue"
   ],
+  "必填": [
+    "apps/web/src/components/promptEditor.vue",
+    "apps/web/src/pages/prompts/index.vue"
+  ],
+  "可留空": [
+    "apps/web/src/components/promptEditor.vue",
+    "apps/web/src/pages/prompts/index.vue"
+  ],
   "载入会替换当前草稿。也可以将当前草稿另存为独立提示词。": [
+    "apps/web/src/components/promptEditor.vue"
+  ],
+  "载入最新内容，替换草稿": [
     "apps/web/src/components/promptEditor.vue"
   ],
   "标题": [
@@ -2081,6 +1313,9 @@
   "分类名称": [
     "apps/web/src/components/promptEditor.vue"
   ],
+  "标签，以逗号分隔": [
+    "apps/web/src/components/promptEditor.vue"
+  ],
   "使用双花括号添加变量，例如": [
     "apps/web/src/components/promptEditor.vue"
   ],
@@ -2090,10 +1325,18 @@
   "变量说明与默认值": [
     "apps/web/src/components/promptEditor.vue"
   ],
+  "显示名称": [
+    "apps/web/src/components/promptEditor.vue",
+    "apps/web/src/components/settings/panels/languageModel/addCustomProviderDialog.vue",
+    "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue"
+  ],
   "{0}显示名称": [
     "apps/web/src/components/promptEditor.vue"
   ],
   "{0}必填": [
+    "apps/web/src/components/promptEditor.vue"
+  ],
+  "默认值": [
     "apps/web/src/components/promptEditor.vue"
   ],
   "{0}默认值": [
@@ -2112,6 +1355,13 @@
     "apps/web/src/components/promptEditor.vue"
   ],
   "保留提示词草稿": [
+    "apps/web/src/components/promptEditor.vue"
+  ],
+  "继续编辑": [
+    "apps/web/src/components/promptEditor.vue",
+    "apps/web/src/components/settings/panels/personalization.vue"
+  ],
+  "放弃草稿": [
     "apps/web/src/components/promptEditor.vue"
   ],
   "设置分类": [
@@ -3184,8 +2434,7 @@
     "apps/web/src/components/taskCenter.vue"
   ],
   "生成依据": [
-    "apps/web/src/components/taskCenter.vue",
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
+    "apps/web/src/components/taskCenter.vue"
   ],
   "任务编号": [
     "apps/web/src/components/taskCenter.vue"
@@ -3229,16 +2478,14 @@
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "排队中": [
-    "apps/web/src/components/taskCenter.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/components/taskCenter.vue"
   ],
   "正在提交": [
     "apps/web/src/components/taskCenter.vue"
   ],
   "生成中": [
     "apps/web/src/components/taskCenter.vue",
-    "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "保存结果中": [
     "apps/web/src/components/taskCenter.vue"
@@ -3246,17 +2493,14 @@
   "部分完成": [
     "apps/web/src/components/taskCenter.vue",
     "apps/web/src/pages/studio/index.vue",
-    "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "可恢复": [
-    "apps/web/src/components/taskCenter.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/components/taskCenter.vue"
   ],
   "待核对": [
     "apps/web/src/components/taskCenter.vue",
-    "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "排队已取消": [
     "apps/web/src/components/taskCenter.vue"
@@ -3459,8 +2703,7 @@
     "apps/web/src/lib/i18n.ts"
   ],
   "重置缩放": [
-    "apps/web/src/lib/i18n.ts",
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
+    "apps/web/src/lib/i18n.ts"
   ],
   "代码": [
     "apps/web/src/lib/i18n.ts"
@@ -3893,8 +3136,7 @@
     "apps/web/src/pages/assets/materialCollection.vue",
     "apps/web/src/pages/studio/useStudio.ts",
     "apps/web/src/pages/workspace/components/filmPanel.vue",
-    "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "仅{0}选定标签，其他标签保留。": [
     "apps/web/src/pages/assets/materialCollection.vue"
@@ -4058,8 +3300,7 @@
   ],
   "导入": [
     "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/prompts/index.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
+    "apps/web/src/pages/prompts/index.vue"
   ],
   "新建项目": [
     "apps/web/src/pages/assets/projectCollection.vue",
@@ -4107,7 +3348,7 @@
     "apps/web/src/pages/assets/projectCollection.vue",
     "apps/web/src/pages/projects/index.vue"
   ],
-  "移入工作空间的 zeromuTrash 目录，可从磁盘取回": [
+  "移入工作空间的 zeromuTrash 目录，可在项目页的回收目录还原": [
     "apps/web/src/pages/assets/projectCollection.vue"
   ],
   "项目“{0}”的文件夹不存在，是否重新选择文件夹？": [
@@ -4135,9 +3376,8 @@
   "重命名失败": [
     "apps/web/src/pages/assets/projectCollection.vue"
   ],
-  "确定删除项目“{0}”？整个项目文件夹会移入工作空间的 zeromuTrash 目录，画布、素材和备份一并保留，可按目录名从磁盘取回：\n{1}": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
+  "确定删除项目“{0}”？整个项目文件夹会移入工作空间的 zeromuTrash 目录，画布、素材和备份一并保留，可在「项目」页的回收目录还原，也可按目录名从磁盘取回：\n{1}": [
+    "apps/web/src/pages/assets/projectCollection.vue"
   ],
   "删除项目": [
     "apps/web/src/pages/assets/projectCollection.vue",
@@ -4246,8 +3486,7 @@
     "apps/web/src/pages/canvasLibrary/index.vue"
   ],
   "清空选择": [
-    "apps/web/src/pages/canvasLibrary/index.vue",
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
+    "apps/web/src/pages/canvasLibrary/index.vue"
   ],
   "选择当前画布列表": [
     "apps/web/src/pages/canvasLibrary/index.vue"
@@ -4260,7 +3499,6 @@
   "名称": [
     "apps/web/src/pages/canvasLibrary/index.vue",
     "apps/web/src/pages/home/workspacePicker.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue"
   ],
   "修改时间": [
@@ -4413,8 +3651,7 @@
     "apps/web/src/pages/home/index.vue"
   ],
   "分镜": [
-    "apps/web/src/pages/home/index.vue",
-    "apps/web/src/pages/workspace/index.vue"
+    "apps/web/src/pages/home/index.vue"
   ],
   "成片": [
     "apps/web/src/pages/home/index.vue"
@@ -4430,6 +3667,10 @@
   ],
   "创作输入框": [
     "apps/web/src/pages/home/index.vue"
+  ],
+  "创作类型": [
+    "apps/web/src/pages/home/index.vue",
+    "apps/web/src/pages/studio/index.vue"
   ],
   "自由创作": [
     "apps/web/src/pages/home/index.vue",
@@ -4452,7 +3693,6 @@
   ],
   "导演台": [
     "apps/web/src/pages/home/index.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue",
     "apps/server/src/utils/production/director.ts"
   ],
@@ -4585,6 +3825,33 @@
   "选择工作空间创建项目，或添加已有项目文件夹。": [
     "apps/web/src/pages/projects/index.vue"
   ],
+  "回收目录": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "删除的项目先移到这里，可随时还原；回收目录不会自动清理，彻底删除后无法恢复。": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "清空回收目录": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "收起": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "查看": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "还原项目 {0}": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "还原": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "彻底删除 {0}": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "彻底删除": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
   "输入新的项目名称": [
     "apps/web/src/pages/projects/index.vue"
   ],
@@ -4594,16 +3861,40 @@
   "项目已重命名": [
     "apps/web/src/pages/projects/index.vue"
   ],
+  "确定删除项目“{0}”？整个项目文件夹会移入工作空间的 zeromuTrash 目录，画布、素材和备份一并保留，可按目录名从磁盘取回：\n{1}": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
   "项目已添加": [
     "apps/web/src/pages/projects/index.vue"
   ],
+  "项目“{0}”已还原到工作空间": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "彻底删除回收条目“{0}”？该文件夹会从磁盘移除，无法恢复：\n{1}": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "彻底删除回收条目": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "保留": [
+    "apps/web/src/pages/projects/index.vue",
+    "apps/web/src/pages/prompts/index.vue",
+    "apps/web/src/pages/studio/index.vue"
+  ],
+  "回收条目已彻底删除": [
+    "apps/web/src/pages/projects/index.vue",
+    "apps/server/src/routes/workspace/removeTrash.ts"
+  ],
+  "彻底删除回收目录里全部 {0} 个条目？搜索筛选只影响列表显示，清空会连同未显示的条目一起从磁盘移除，无法恢复。": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "全部彻底删除": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
+  "已彻底删除 {0} 个回收条目": [
+    "apps/web/src/pages/projects/index.vue"
+  ],
   "创作模板库": [
-    "apps/web/src/pages/prompts/index.vue"
-  ],
-  "创作方法类型": [
-    "apps/web/src/pages/prompts/index.vue"
-  ],
-  "文字提示词": [
     "apps/web/src/pages/prompts/index.vue"
   ],
   "新增提示词": [
@@ -4654,6 +3945,10 @@
     "apps/web/src/pages/prompts/index.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasPrompts.vue"
   ],
+  " · 已收藏": [
+    "apps/web/src/pages/prompts/index.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasPrompts.vue"
+  ],
   "提示词详情": [
     "apps/web/src/pages/prompts/index.vue"
   ],
@@ -4683,6 +3978,9 @@
     "apps/web/src/pages/prompts/index.vue",
     "apps/web/src/pages/workspace/components/productionPanel.vue"
   ],
+  "归档": [
+    "apps/web/src/pages/prompts/index.vue"
+  ],
   "还没有提示词": [
     "apps/web/src/pages/prompts/index.vue"
   ],
@@ -4704,6 +4002,9 @@
   "导出标题、分类、标签、正文与变量说明。默认清空变量默认值；请检查正文中的私人信息。": [
     "apps/web/src/pages/prompts/index.vue"
   ],
+  "包含变量默认值": [
+    "apps/web/src/pages/prompts/index.vue"
+  ],
   "不导出": [
     "apps/web/src/pages/prompts/index.vue"
   ],
@@ -4721,6 +4022,9 @@
     "apps/server/src/utils/promptLibrary/schema.ts"
   ],
   "归档后原内容和收藏仍保留，可以在「已归档」中恢复。": [
+    "apps/web/src/pages/prompts/index.vue"
+  ],
+  "归档「{0}」": [
     "apps/web/src/pages/prompts/index.vue"
   ],
   "提示词文件不能超过 2 MB": [
@@ -4780,6 +4084,9 @@
   "创作提示词": [
     "apps/web/src/pages/studio/index.vue"
   ],
+  "添加参考素材": [
+    "apps/web/src/pages/studio/index.vue"
+  ],
   "参考素材": [
     "apps/web/src/pages/studio/index.vue"
   ],
@@ -4835,7 +4142,6 @@
   ],
   "尺寸": [
     "apps/web/src/pages/studio/index.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "图片尺寸": [
@@ -5292,8 +4598,7 @@
   ],
   "请输入 1–200 字的名称": [
     "apps/web/src/pages/studio/useStudio.ts",
-    "apps/web/src/pages/workspace/components/filmPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
   "已收藏，可在素材库按名称搜索和复用": [
     "apps/web/src/pages/studio/useStudio.ts"
@@ -5306,207 +4611,6 @@
   ],
   "草稿未保存成功，请保留此页面并重试": [
     "apps/web/src/pages/studio/useStudio.ts"
-  ],
-  "镜头候选": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "{0} · 候选": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "最多同时比较 2 个": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "登记已有媒体版本": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "选择图片、视频或音频版本": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "采用文件": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "候选媒体文件": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "添加候选": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "先在素材版本中导入媒体，或登记已保存的任务结果，再添加到此镜头。添加候选后可继续比较。": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  " · 已采用": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue",
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "候选 {0}{1}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "图片缩放": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "候选图片缩放": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "视频对齐位置": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "候选视频对齐时间": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "{0} / {1} 秒": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "暂停比较": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "对齐播放（静音）": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "共同范围 {0} 秒；较短片段到达结尾后停止。独立播放器可试听声音。": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "候选 {0}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "已采用": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "{0}候选 {1}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "实际 {0} 秒 · 与预计相差 {1} 秒": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "此候选已到结尾，不覆盖当前对齐位置。": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "当前采用": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "采用此候选": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "查看所用机位快照": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "编辑图片": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "由候选 {0} 编辑而来；当前采用仍由你选择。": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "镜头参考已变更，此候选保留原记录。采用前请核对差异。": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "未记录镜头参考快照，无法直接对照当前参考。": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "与当前一致": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "与当前不同": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "镜头参考记录 · {0}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "记录时：": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "参考": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue",
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue",
-    "apps/server/src/utils/productionTemplates/capture.ts",
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "无镜头参考": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "当前镜头：": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "参考资料的变化需要核对，不代表原文件被修改或必须重做。新生成需另行确认范围与预算。": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "本地编辑依据": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "来源固定版本：{0}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "背景移除依据": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "上游生成依据": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "手动导入，生成参数不完整。": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "任务：{0}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "媒体版本：{0}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "候选依据差异 · {0} 项": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "已记录的生成与编辑依据相同；未记录的参数仍为未知。": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "候选 {0}：{1}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "撤销本次采用": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "采用状态已变化，可查看历史或恢复制作快照。": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "采用历史 · {0} 次": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "撤销采用 · ": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "采用候选 {0}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "未采用": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "（原候选 {0}）": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "采用记录已保存，画布待同步：{0}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "同步采用结果到画布": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "{0} · 候选 {1}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "请选择有效媒体版本": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "候选记录：{0}。当前镜头：{1}。{2}这个固定旧结果会保留其依据，不会修改当前参考或自动重新生成。": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "候选参考与当前镜头不同": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "保留旧依据并{0}": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "返回核对": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
-  ],
-  "候选已变化，请刷新后重试": [
-    "apps/web/src/pages/workspace/components/candidatePanel.vue"
   ],
   "剪辑与导出": [
     "apps/web/src/pages/workspace/components/filmPanel.vue"
@@ -5532,7 +4636,6 @@
   "制作单元": [
     "apps/web/src/pages/workspace/components/filmPanel.vue",
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue",
     "apps/server/src/utils/production/schema.ts"
   ],
   "选择制作单元": [
@@ -5545,8 +4648,7 @@
     "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
   "新建制作单元": [
-    "apps/web/src/pages/workspace/components/filmPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
   "重新读取剪辑": [
     "apps/web/src/pages/workspace/components/filmPanel.vue"
@@ -5618,15 +4720,13 @@
     "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
   "上移": [
-    "apps/web/src/pages/workspace/components/filmPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
   "下移片段 {0}": [
     "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
   "下移": [
-    "apps/web/src/pages/workspace/components/filmPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
   "移除片段 {0}": [
     "apps/web/src/pages/workspace/components/filmPanel.vue"
@@ -5670,6 +4770,9 @@
   "音轨 {0} 素材": [
     "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
+  "用途": [
+    "apps/web/src/pages/workspace/components/filmPanel.vue"
+  ],
   "音轨 {0} 用途": [
     "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
@@ -5699,6 +4802,9 @@
     "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
   "高（像素）": [
+    "apps/web/src/pages/workspace/components/filmPanel.vue"
+  ],
+  "帧率": [
     "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
   "{0} 帧 · {1} 秒。入点与出点按所选帧率量化，保持素材比例，空白区域填黑。": [
@@ -5753,8 +4859,7 @@
     "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
   "为这组镜头命名": [
-    "apps/web/src/pages/workspace/components/filmPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/filmPanel.vue"
   ],
   "AI 返回的剪辑清单不完整，请重新生成": [
     "apps/web/src/pages/workspace/components/filmPanel.vue"
@@ -5834,285 +4939,6 @@
   "从下方调整对话高度": [
     "apps/web/src/pages/workspace/components/floatingAgent.vue"
   ],
-  "编辑图片候选": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "本地图片编辑": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "{0} · 保存为同一镜头的新候选，原图与当前采用结果保留。先裁剪，再顺时针旋转，最后调整输出尺寸。": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "正在准备固定原图与预览…": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "原图与裁剪范围 · {0} × {1}": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "原图及当前裁剪范围": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "编辑预览 · {0} × {1}": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "裁剪旋转和缩放后的预览": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "本机背景移除": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "基于固定原图分离主体，忽略下方裁剪参数。输出原尺寸透明 PNG，完成后自动加入同一镜头的新候选，当前采用由你选择。需先在模型配置下载并启用本机背景移除。": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "移除原图背景并创建新候选": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "查看本次背景移除任务": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "任务已保存，可关闭编辑器。在任务中心查看结果、继续保存或重试候选登记；不会自动采用。": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "裁剪范围（原图像素，左上角为起点）": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "左侧 X": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "裁剪左侧 X": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "顶部 Y": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "裁剪顶部 Y": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "裁剪宽度": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "裁剪高度": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "顺时针旋转": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "不旋转": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "输出宽度": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "图片输出宽度": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "输出高度": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "图片输出高度": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "保持裁剪后比例": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "恢复原图参数": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "保存为新候选": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "刷新来源并保留参数": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "重新准备图片": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "项目已切换，请返回来源项目后再保存。": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "输出为静态 PNG，多帧图片取首帧。预览按窗口缩小显示，保存使用原图像素。蒙版局部重绘与扩图尚未接入；复杂边缘与半透明物体的背景移除结果请预览后再采用。": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "请先在「模型配置」下载并启用本机背景移除，再返回此编辑器提交。原图与裁剪参数保持完整。": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "尚未保存的图片参数将丢弃，原图保持完整。": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "关闭图片编辑": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "丢弃参数并关闭": [
-    "apps/web/src/pages/workspace/components/imageCandidateEditor.vue"
-  ],
-  "全部素材": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "新建素材": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "从全局素材库带入": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
-    "apps/server/src/utils/production/library.ts"
-  ],
-  "建立角色、场景、道具或媒体资料，每次修改保存为独立版本。": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "项目素材": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "{0} · {1} 版": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "改名": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "查看固定版本": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "新增版本": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "从任务结果登记": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "新增版本后，已有镜头继续引用原版本。需要替换时，在下方选择更新范围。": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "全局素材来源": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "此版本保存在项目中，全局原件后续变化不会改动它。": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "版本依据": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "素材": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue",
-    "apps/server/src/agent/tools/index.ts",
-    "apps/server/src/utils/production/schema.ts"
-  ],
-  "新增{0}版本": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "例如：雨天外套、傍晚布景": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "文字设定": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "添加参考文件": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "复制当前版本的参考文件到新版": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "视图": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
-    "apps/web/src/pages/workspace/components/versionPreview.vue"
-  ],
-  "正面、侧面、造型等": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "已保存任务": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "选择任务": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "此项目最近 100 个任务中还没有已保存结果。": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "文件会保存为新的固定版本；每个上传文件最多 100 MB。": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "保存新版本": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "新建项目素材": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "建立素材": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "任务生成": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "编辑版本": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "年龄": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "身高": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "外貌与体型": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "服装与造型": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "气质": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "声音设定": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "空间与尺度": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "风格": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "光线与时间": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "布局": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "材质": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "外观": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "新版本尚未保存，关闭后将丢弃这些修改。": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "未保存的版本": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "丢弃修改": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "单个参考文件不能超过 100 MB": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "请填写文字设定或添加参考文件": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "素材编号和旧版本保持不变": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "修改素材名称": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "有关联镜头、候选、草案或导出时无法归档；文件与历史版本会保留。": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "归档素材": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "素材名称尚未保存，关闭后将丢弃。": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
-  "未保存的素材": [
-    "apps/web/src/pages/workspace/components/productionAssets.vue"
-  ],
   "项目制作": [
     "apps/web/src/pages/workspace/components/productionPanel.vue",
     "apps/web/src/pages/workspace/index.vue"
@@ -6140,13 +4966,7 @@
   "开始剪辑": [
     "apps/web/src/pages/workspace/components/productionPanel.vue"
   ],
-  "把创作组织成一部作品": [
-    "apps/web/src/pages/workspace/components/productionPanel.vue"
-  ],
-  "先建立制作记录和制作单元，再载入已采用的视频片段，即可使用剪辑器。": [
-    "apps/web/src/pages/workspace/components/productionPanel.vue"
-  ],
-  "建立制作记录后，可以排列镜头、保存角色场景版本、比较候选和记录采用结果。": [
+  "先建立制作记录，再载入已采用的视频片段，即可使用剪辑器。": [
     "apps/web/src/pages/workspace/components/productionPanel.vue"
   ],
   "建立制作记录": [
@@ -6191,162 +5011,6 @@
   "镜头顺序、参考和采用结果将恢复到快照。之后新增的版本、候选和历史会保留；快照后新增的镜头会归档。画布布局保持当前状态。": [
     "apps/web/src/pages/workspace/components/productionPanel.vue"
   ],
-  "完整项目包": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "保存制作记录、画布布局、固定版本、引用媒体和成片。可以移交到新目录，也可以作为完整恢复点；生成凭据使用本机配置。": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "保存完整项目包": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "刷新记录": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "从项目包恢复到新目录": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "上传后查看清单，再填写新项目名称。原项目和已存在目录保持完整。当前支持零幕导出的 ZIP STORE 包，最多 3 GB。": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "选择项目包": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "正在上传 · {0}%": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "停止上传": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "修订 {0} · {1} 个文件 · {2}": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "查看归集清单与依赖": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "无远程节点": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "节点：{0}": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "显示前 60 项，完整清单位于包内 packageManifest.json。": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "恢复到此文件夹": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "新项目文件夹": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "校验并恢复到新目录": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "项目归集记录": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "归集与恢复记录": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "恢复到新目录": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "停止操作": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "下载项目包": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "用此包恢复": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "打开恢复的项目": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "处理中": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "未完成，原项目保留": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "项目已切换，请重新打包": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "项目包不能超过 3 GB": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "上传已停止，原项目保持完整": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "原项目已切换，请重新选择项目包": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "已打开独立恢复目录": [
-    "apps/web/src/pages/workspace/components/projectPackagePanel.vue"
-  ],
-  "素材引用影响": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "使用位置与更新范围": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "刷新范围": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "选择把当前查看的 {0} 用于哪些镜头。会更新所选镜头中此素材的全部参考项，保留用途与顺序；画布连接和生成输入需在下次执行前重新核对。旧候选、采用、已确认批次和任务保持原依据，重生成另行核对范围与预算。": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "制作记录已更新，勾选仍按原范围保留。请刷新范围，核对后再提交。": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "当前镜头参考": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "当前镜头未直接引用此素材；历史使用位置仍可查看。": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "已选 {0} 个 · {1} 个可更新": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "全选可更新镜头": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "选择更新镜头 {0}": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  " · 已归档": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "查看镜头": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  " · 候选参考记录与当前镜头不同，需核对": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  " · 旧候选未记录镜头参考快照": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "已有采用保留{0}": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "更新 {0} 个镜头参考": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "保留的历史使用 · {0} 个候选、{1} 份草案、{2} 次导出": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "· 候选 {0}{1}": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "更新当前参考不会改写这些历史依据或自动重做。归档镜头继续保留，不能在此更新。": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "· 机位或历史使用{0}": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
-  "正在读取素材使用位置…": [
-    "apps/web/src/pages/workspace/components/referenceUpdatePanel.vue"
-  ],
   "批次制作单元": [
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
@@ -6379,6 +5043,9 @@
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "朗读文本": [
+    "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
+  ],
+  "生成提示词": [
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "音轨": [
@@ -6502,19 +5169,16 @@
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "提交中": [
-    "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "保存中": [
-    "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "待恢复": [
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "已取消排队": [
-    "apps/web/src/pages/workspace/components/shotBatchPanel.vue",
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
+    "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "文字生成": [
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
@@ -6531,219 +5195,6 @@
   "尾帧，首帧可选": [
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
-  "新建单元": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "新增镜头": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "{0} 个镜头 · 预计 {1} 秒 · {2} × {3} / {4} fps": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "拖动把手调整顺序，插入线表示落点；也可使用上移、下移按钮。": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "任务状态暂无法完整读取：{0}": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "先添加镜头，填写剧情和声音，再选择角色、场景的固定版本。": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "分镜顺序": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "调整镜头顺序 {0}": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "拖动调整顺序；聚焦后按方向键上下移动": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "{0} 个候选": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "待制作": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "声音：{0}": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "未绑定参考版本": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "镜头参考已更新，已采用结果仍保留旧依据。": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "查看候选": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "定位画布": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "上移镜头 {0}": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "下移镜头 {0}": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "最近任务：{0}": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "待审分镜草案": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "Agent 提议": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "手动草案": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "{0} · {1} 个镜头 · {2}": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "{0} · {1} 秒": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "采用为新制作单元": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "编辑镜头": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "对白或声音": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "预计时长（秒）": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "固定参考版本": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "版本": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "主角、环境等": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "移除参考 {0}": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "添加参考": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "画布位置": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "在画布选中一个节点，再点击绑定；同一节点只对应一个活动镜头。": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "绑定选中节点": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "解除绑定": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "保存镜头": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "镜头修改尚未保存，关闭后将丢弃这些修改。": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "未保存的镜头": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "请先打开画布并选中节点": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "画布已切换，请重新选择节点": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "请只选中一个节点后绑定": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "制作记录已更新，请重新调整顺序": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "此镜头有 {0} 个参考和 {1} 个候选。归档会从当前顺序和剪辑中移除镜头，保留媒体与采用历史。": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "归档镜头": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "镜头正在保存，请稍后退出": [
-    "apps/web/src/pages/workspace/components/storyboardPanel.vue"
-  ],
-  "检查 / 重新定位文件": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "检查固定版本文件": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "文件移动后，选择内容相同的原文件补回。版本编号、镜头引用和历史记录保持不变。": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "重新检查": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "此版本仅含文字设定，无需定位文件。": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "参考文件 {0}": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "选择原文件补回": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "选择原文件": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "核对所选原文件": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "原文件核对通过": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "{0} 字节，内容与原固定版本完全一致。": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "补回到上方记录的项目位置；不会创建新版本。": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "确认补回原文件": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "正常": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "文件缺失": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "内容已变化": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "无法读取": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "原文件不能超过 100 MB": [
-    "apps/web/src/pages/workspace/components/versionFileRecovery.vue"
-  ],
-  "文件 {0}": [
-    "apps/web/src/pages/workspace/components/versionPreview.vue"
-  ],
-  "正在读取预览…": [
-    "apps/web/src/pages/workspace/components/versionPreview.vue"
-  ],
-  "{0}图片预览，可滚动查看放大区域": [
-    "apps/web/src/pages/workspace/components/versionPreview.vue"
-  ],
-  "此版本仅含文字设定": [
-    "apps/web/src/pages/workspace/components/versionPreview.vue"
-  ],
-  "此文件暂不支持内嵌预览": [
-    "apps/web/src/pages/workspace/components/versionPreview.vue"
-  ],
-  "媒体尚未就绪，请等待加载完成": [
-    "apps/web/src/pages/workspace/components/versionPreview.vue"
-  ],
   "打开 AI 对话": [
     "apps/web/src/pages/workspace/index.vue"
   ],
@@ -6753,14 +5204,7 @@
   "正在打开…": [
     "apps/web/src/pages/workspace/index.vue"
   ],
-  "素材版本": [
-    "apps/web/src/pages/workspace/index.vue",
-    "apps/server/src/utils/production/schema.ts"
-  ],
   "剪辑": [
-    "apps/web/src/pages/workspace/index.vue"
-  ],
-  "项目包": [
     "apps/web/src/pages/workspace/index.vue"
   ],
   "工作区已关闭": [
@@ -6917,6 +5361,9 @@
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
   ],
   "保存到素材库": [
+    "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
+  ],
+  "素材名称": [
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue"
   ],
   "输入完整文件名": [
@@ -7348,9 +5795,6 @@
   "添加节点和资源": [
     "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue"
   ],
-  "查看关联分镜 · {0}": [
-    "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue"
-  ],
   "删除中…": [
     "apps/web/src/pages/workspace/panels/canvas/components/nodeMenu.vue"
   ],
@@ -7457,18 +5901,6 @@
     "apps/web/src/pages/workspace/panels/canvas/components/remoteNode.vue"
   ],
   "远程节点未加载，请确认插件已安装并启用": [
-    "apps/web/src/pages/workspace/panels/canvas/components/remoteNode.vue"
-  ],
-  "查看镜头：{0}": [
-    "apps/web/src/pages/workspace/panels/canvas/components/remoteNode.vue"
-  ],
-  "采用结果": [
-    "apps/web/src/pages/workspace/panels/canvas/components/remoteNode.vue"
-  ],
-  "其他输出 · 查看采用": [
-    "apps/web/src/pages/workspace/panels/canvas/components/remoteNode.vue"
-  ],
-  "待采用": [
     "apps/web/src/pages/workspace/panels/canvas/components/remoteNode.vue"
   ],
   "节点复制结果无效": [
@@ -7765,14 +6197,7 @@
     "apps/server/src/utils/production/director.ts",
     "apps/server/src/utils/production/edit.ts",
     "apps/server/src/utils/production/files.ts",
-    "apps/server/src/utils/production/library.ts",
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "个人制作模板库尚未读取，先刷新后再保存": [
-    "apps/web/src/stores/productionTemplates.ts"
-  ],
-  "制作模板正在保存，请稍后操作": [
-    "apps/web/src/stores/productionTemplates.ts"
+    "apps/server/src/utils/production/library.ts"
   ],
   "服务未返回有效设置，请确认服务已更新后重试": [
     "apps/web/src/stores/settings.ts"
@@ -8156,6 +6581,10 @@
   "生成所属项目已变化，请重新核对范围。": [
     "apps/server/src/agent/tools/index.ts"
   ],
+  "素材": [
+    "apps/server/src/agent/tools/index.ts",
+    "apps/server/src/utils/production/schema.ts"
+  ],
   "渠道或模型能力已改变，请重新查询模型列表。": [
     "apps/server/src/agent/tools/index.ts"
   ],
@@ -8420,6 +6849,10 @@
   "节点配置已保存": [
     "apps/server/src/routes/nodes/save.ts"
   ],
+  "请在桌面端或服务器本机管理节点": [
+    "apps/server/src/routes/nodes/setEnabled.ts",
+    "apps/server/src/routes/nodes/uninstall.ts"
+  ],
   "节点状态文件无效": [
     "apps/server/src/routes/nodes/setEnabled.ts",
     "apps/server/src/routes/nodes/uninstall.ts"
@@ -8460,9 +6893,6 @@
   ],
   "技能 ZIP 文件不能超过 20 MB": [
     "apps/server/src/routes/plugins/export.ts"
-  ],
-  "项目制作记录不存在": [
-    "apps/server/src/routes/production/impact.ts"
   ],
   "请填写不含查询参数的 HTTP API 基础地址": [
     "apps/server/src/routes/providers/models.ts"
@@ -8574,6 +7004,12 @@
   ],
   "工具已卸载": [
     "apps/server/src/routes/tools/uninstall.ts"
+  ],
+  "回收目录已清空": [
+    "apps/server/src/routes/workspace/clearTrash.ts"
+  ],
+  "项目已从回收目录还原": [
+    "apps/server/src/routes/workspace/restoreTrash.ts"
   ],
   "只能预览文件": [
     "apps/server/src/routes/workspaces/files/preview.ts"
@@ -10259,60 +8695,6 @@
   "插件同步响应过大": [
     "apps/server/src/utils/plugins/toolSyncRelay.ts"
   ],
-  "归集期间文件发生变化，项目包未提交，请保存后重新打包": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "项目包被截断": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "项目包大小无效或超过 3 GB 上限": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "ZIP 结束记录缺失，项目包损坏": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "不支持分卷、ZIP64 或异常中央目录": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "ZIP 中央目录损坏": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "项目包包含加密、链接或不支持的压缩方式": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "ZIP 本地文件头越界": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "ZIP 文件头与目录不一致": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "ZIP 路径记录不一致": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "ZIP 文件内容越界": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "ZIP 文件摘要记录不一致": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "ZIP 文件长度记录不一致": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "ZIP 目录存在多余数据": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "ZIP 文件范围重叠或存在未登记内容": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "ZIP 文件与目录范围不连续": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "项目包清单或 JSON 文件过大": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
-  "项目包清单 CRC 不匹配": [
-    "apps/server/src/utils/production/archive.ts"
-  ],
   "背景移除的固定原图与候选不匹配，请重新打开编辑器": [
     "apps/server/src/utils/production/backgroundRemoval.ts"
   ],
@@ -10388,8 +8770,7 @@
   "制作单元不存在或已归档": [
     "apps/server/src/utils/production/batches.ts",
     "apps/server/src/utils/production/edit.ts",
-    "apps/server/src/utils/production/index.ts",
-    "apps/server/src/utils/productionTemplates/capture.ts"
+    "apps/server/src/utils/production/index.ts"
   ],
   "批次包含其他单元、缺失或已归档镜头": [
     "apps/server/src/utils/production/batches.ts"
@@ -10711,9 +9092,7 @@
   ],
   "请先建立项目制作记录": [
     "apps/server/src/utils/production/image.ts",
-    "apps/server/src/utils/production/index.ts",
-    "apps/server/src/utils/productionTemplates/capture.ts",
-    "apps/server/src/utils/productionTemplates/plan.ts"
+    "apps/server/src/utils/production/index.ts"
   ],
   "编辑标识已用于其他来源": [
     "apps/server/src/utils/production/image.ts"
@@ -10956,6 +9335,9 @@
   "带入素材标识冲突，请保留资料并检查": [
     "apps/server/src/utils/production/library.ts"
   ],
+  "从全局素材库带入": [
+    "apps/server/src/utils/production/library.ts"
+  ],
   "素材带入目录过多，请保留项目并检查": [
     "apps/server/src/utils/production/library.ts"
   ],
@@ -10965,216 +9347,6 @@
   "编号不同": [
     "apps/server/src/utils/production/library.ts"
   ],
-  "项目包文件路径不兼容 Windows": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包不能包含凭据、插件安装目录、导入控制文件或其他项目包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "固定资料中发现疑似凭据，请将凭据移到本机设置后再打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "归集副本已移除疑似凭据文本，原画布保持完整": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "[已移除凭据]": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "固定资料中含凭据字段，无法安全打包；原文件保留": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "画布节点或连线身份与引用不一致": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "画布引用外部文件或临时链接，请先在原节点保存为项目内媒体后再打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "画布目录层级超过归集上限": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "画布数量超过上限": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "镜头批次正在编排，请先暂停并等待已派发任务结束后打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "当前项目仍在导出成片，请等待完成或停止后打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目路径仅大小写不同，无法安全迁移": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "JSON 在归集期间变化，请保存后重新打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包文件数量超过上限": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "引用目录数量或层级超过归集上限": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目引用目录包含链接，不能打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "制作记录在归集开始时变化，请保存后重新打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "固定版本内容已改变，不能打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "工作站结果记录在归集期间变化，请保存后重新打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "工作站结果文件摘要已改变，请核对原件后再打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "工作站草稿在归集期间变化，请保存后重新打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "工作站草稿参考内容已改变，不能打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "待完成素材带入记录无法完整读取，请保留项目并修复后再打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包保留了待完成的全局素材带入；若副本尚未写完，需要重新选择原素材核对": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "待完成模板记录无法完整读取，请保留项目并修复后再打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包保留了待完成模板输入，导入后须重新预览并核对模型与参考文件后继续": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "成片内容摘要已改变，不能打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "当前项目仍有进行中媒体任务，请核对完成后再打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包超过当前 3 GB 上限": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包路径重复或大小写冲突": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包包含未声明目录": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包缺少清单": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包清单数量或制作记录不完整": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包文件与清单不一致": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包总大小不一致": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "完成": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "操作已停止；原项目保持完整": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "归集状态保存失败，文件保留供核对": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "操作标识属于导入": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目制作记录已变化，请刷新后打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "此项目正在归集或导入": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "镜头批次正在编排，请先暂停后打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "归集引用": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "打包磁盘空间不足": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包清单超过 20 MB": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "写入项目包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "核对来源": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目制作记录在归集期间变化，请重新打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目文件在归集期间变化，请重新打包": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "请上传项目包文件原始内容": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包过大或磁盘空间不足": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "此上传编号已使用": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "导入标识与原输入冲突": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "导入项目名称必须是单个文件夹名": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "目标目录已经存在，请选择新名称": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "导入磁盘空间不足": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "校验并暂存": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目身份或修订与包清单不一致": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "固定版本资料摘要损坏": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "固定版本文件摘要与项目不一致": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目登记画布缺失": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "完成成片缺失或摘要不一致": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "项目包 JSON 文件超过读取上限": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "迁移批次须为只读历史，不能导入可执行批次": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "提交独立目录": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "归集操作不属于此项目": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "服务已重启，归集或导入中断；原项目保留，请重新操作，已创建的目录需先核对": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "此操作已结束或不属于当前项目": [
-    "apps/server/src/utils/production/package.ts"
-  ],
-  "目录正在提交，请等待完成后打开": [
-    "apps/server/src/utils/production/package.ts"
-  ],
   "素材不存在": [
     "apps/server/src/utils/production/referenceState.ts"
   ],
@@ -11182,6 +9354,9 @@
     "apps/server/src/utils/production/schema.ts"
   ],
   "输出最多 1677 万像素": [
+    "apps/server/src/utils/production/schema.ts"
+  ],
+  "素材版本": [
     "apps/server/src/utils/production/schema.ts"
   ],
   "候选": [
@@ -11245,8 +9420,7 @@
     "apps/server/src/utils/production/schema.ts"
   ],
   "父版本不属于同一素材": [
-    "apps/server/src/utils/production/schema.ts",
-    "apps/server/src/utils/productionTemplates/schema.ts"
+    "apps/server/src/utils/production/schema.ts"
   ],
   "版本文件须保存在独立版本目录": [
     "apps/server/src/utils/production/schema.ts"
@@ -11305,30 +9479,6 @@
   "镜头编号不能重复": [
     "apps/server/src/utils/production/schema.ts"
   ],
-  "此模板应用编号已用于不同内容，请保留项目并创建新的独立应用": [
-    "apps/server/src/utils/production/template.ts"
-  ],
-  "已应用模板的固定版本缺失，请保留项目并恢复备份": [
-    "apps/server/src/utils/production/template.ts"
-  ],
-  "模型配置或参考文件已改变，请保留输入并重新预览": [
-    "apps/server/src/utils/production/template.ts"
-  ],
-  "参考资料待补充": [
-    "apps/server/src/utils/production/template.ts"
-  ],
-  "文字资料": [
-    "apps/server/src/utils/production/template.ts"
-  ],
-  "固定参考副本与预览内容不一致，请保留目录检查": [
-    "apps/server/src/utils/production/template.ts"
-  ],
-  "待完成模板的画布已改变，请保留画布并核对原草稿": [
-    "apps/server/src/utils/production/template.ts"
-  ],
-  "应用期间模型配置或参考文件已改变，请重新预览后继续": [
-    "apps/server/src/utils/production/template.ts"
-  ],
   "传递记录损坏，请保留记录并检查": [
     "apps/server/src/utils/production/transfer.ts"
   ],
@@ -11373,209 +9523,6 @@
   ],
   "固定传递参考已改变或依据缺失，请恢复原文件后再生成": [
     "apps/server/src/utils/production/transfer.ts"
-  ],
-  "制作记录已更新，请刷新后重新提取": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "请选择包含 1 至 200 个活动镜头的制作单元": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "补充本次创作的参考资料": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "请选择新项目中的文件；原项目媒体、路径与凭据不会复制到模板文件": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "应用时重新映射到实际可用渠道；历史模型只作为可选提示": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "待填写本镜头剧情": [
-    "apps/server/src/utils/productionTemplates/capture.ts",
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "从制作单元提取的模板": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "保留镜头结构与参考版本关系。输入和模型须在新项目中重新确认；不包含生成成品。": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "本次创作要求": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "确认本次输入": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "补充创作要求、人物与场景资料，并核对各镜头。": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "重新映射模型": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "选择目标渠道的实际模型；核对模式、参考能力、时长、声音与费用后再生成。": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "比较与交付": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "逐镜头比较候选并明确采用，再进入剪辑与导出。": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "独立制作单元": [
-    "apps/server/src/utils/productionTemplates/capture.ts"
-  ],
-  "个人制作模板库须为不超过 8 MB 的普通文件，请保留原件并恢复备份": [
-    "apps/server/src/utils/productionTemplates/index.ts"
-  ],
-  "模板收藏指向不存在的记录，请保留库文件并恢复备份": [
-    "apps/server/src/utils/productionTemplates/index.ts"
-  ],
-  "个人制作模板库损坏或格式不受支持，原文件已保留，请从已导出的制作模板恢复": [
-    "apps/server/src/utils/productionTemplates/index.ts"
-  ],
-  "制作模板库已在其他页面更新。草稿已保留，请刷新并核对最新内容": [
-    "apps/server/src/utils/productionTemplates/index.ts"
-  ],
-  "个人制作模板库已达 500 条上限，请先导出并整理库文件": [
-    "apps/server/src/utils/productionTemplates/index.ts"
-  ],
-  "制作模板不存在，请刷新列表": [
-    "apps/server/src/utils/productionTemplates/index.ts"
-  ],
-  "请先恢复归档制作模板再更改收藏": [
-    "apps/server/src/utils/productionTemplates/index.ts"
-  ],
-  "个人制作模板不存在，内置制作模板请先另存副本": [
-    "apps/server/src/utils/productionTemplates/index.ts"
-  ],
-  "请先恢复归档制作模板再编辑": [
-    "apps/server/src/utils/productionTemplates/index.ts"
-  ],
-  "个人制作模板库超过 8 MB，本次未保存。请缩短内容后重试": [
-    "apps/server/src/utils/productionTemplates/index.ts"
-  ],
-  "待完成模板记录无效，原目录已保留": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "待完成模板记录损坏或格式不受支持，原目录已保留": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "待完成模板记录摘要或文件位置不匹配，原目录已保留": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "参考文件不属于模板输入": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "参考文件需要可识别的扩展名": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "参考文件与已预览内容不一致，请保留原文件并重新核对": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "模板填值无效": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "此应用编号已有待完成记录。请载入原草稿继续，或使用新编号创建独立应用": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "此模板应用已完成，请刷新项目查看制作单元": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "每个模型位置都须选择实际模型，或明确选择稍后配置": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "参考文件有重复、未知输入或缺少必填项": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "应用仅创建独立制作对象，不会开始生成。生成前请核对模型的模式、时长、参考能力、音色与费用。": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "稍后配置": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "待完成模板的参考清单不一致": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "参考文件扩展名与媒体类型不匹配或暂不支持": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "参考文件不能为空": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "固定参考文件未登记或内容已改变": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "单次模板参考文件合计不能超过 500 MB": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "项目已接近制作对象上限，请应用到另一个项目": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "项目已更新，请刷新制作记录后重新预览": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "模板应用草稿超过 8 MB": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "待完成模板记录冲突，原内容保留": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "中断应用的文件与原内容冲突，现有文件已保留": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "模板应用目录过多，请先保留备份并整理项目": [
-    "apps/server/src/utils/productionTemplates/plan.ts"
-  ],
-  "内部名称须以小写字母开头，只含字母和数字，最多 64 字符": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "请填写名称": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "名称不能超过 200 字符": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "名称不能重复": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "标签不能重复": [
-    "apps/server/src/utils/productionTemplates/schema.ts",
-    "apps/server/src/utils/promptLibrary/schema.ts"
-  ],
-  "参考需要对应的素材与版本": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "版本父子关系不能循环": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "单次模板最多包含 128 个参考版本": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "生成节点需要对应的模型位置": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "每个模型位置至少需要用于一个镜头或辅助生成节点": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "模板填值包含未声明的输入或超过长度限制": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "填值后的单项内容超过 10 万字符，请缩短输入": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "填充后的模板内容过大，请缩短或拆分模板": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "请选择项目内的相对文件路径": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "模板制作单元": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "请选择目标项目中的参考文件": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
-  ],
-  "模板或收藏编号重复": [
-    "apps/server/src/utils/productionTemplates/schema.ts"
   ],
   "个人提示词库须为不超过 8 MB 的普通文件，请保留原件并恢复备份": [
     "apps/server/src/utils/promptLibrary/index.ts"
@@ -11623,6 +9570,9 @@
     "apps/server/src/utils/promptLibrary/schema.ts"
   ],
   "变量说明必须与提示词中的变量一致": [
+    "apps/server/src/utils/promptLibrary/schema.ts"
+  ],
+  "标签不能重复": [
     "apps/server/src/utils/promptLibrary/schema.ts"
   ],
   "变量值无效或包含未声明的变量": [
@@ -11925,6 +9875,24 @@
     "apps/server/src/utils/workspace/projects.ts"
   ],
   "项目重命名回滚失败": [
+    "apps/server/src/utils/workspace/projects.ts"
+  ],
+  "工作空间目录不存在，请重新选择": [
+    "apps/server/src/utils/workspace/projects.ts"
+  ],
+  "回收条目名无效": [
+    "apps/server/src/utils/workspace/projects.ts"
+  ],
+  "回收条目已不存在，请刷新后重试": [
+    "apps/server/src/utils/workspace/projects.ts"
+  ],
+  "回收条目越出回收目录，已拒绝": [
+    "apps/server/src/utils/workspace/projects.ts"
+  ],
+  "回收条目已变更，请刷新后重试": [
+    "apps/server/src/utils/workspace/projects.ts"
+  ],
+  "还原目标不在工作空间内，已拒绝": [
     "apps/server/src/utils/workspace/projects.ts"
   ],
   "安装链接无效": [

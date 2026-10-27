@@ -102,7 +102,7 @@ async function apply() {
   } catch (cause) { if (request === epoch) error.value = productionError(cause); }
   finally { if (request === epoch) saving.value = false; }
 }
-async function openProject() { if (!applied.value) return; saving.value = true; try { await workspace.openProject(directory.value); saving.value = false; emit("update:modelValue", false); await router.push("/workspace"); store.openAsset(applied.value.assetId); } catch (cause) { error.value = productionError(cause); } finally { saving.value = false; } }
+async function openProject() { if (!applied.value) return; saving.value = true; try { await workspace.openProject(directory.value); saving.value = false; emit("update:modelValue", false); await router.push("/workspace"); } catch (cause) { error.value = productionError(cause); } finally { saving.value = false; } }
 onBeforeRouteLeave(() => !busy.value);
 </script>
 

@@ -13,7 +13,6 @@ import { creationPreferences } from "@/lib/creationPreferences";
 import { settings } from "@/stores/settings";
 import type { ProductionTransferReceipt, ProductionTransferSource } from "@toonflow/server/production";
 import { useTaskCenterStore } from "@/stores/taskCenter";
-import { useProductionStore } from "@/stores/production";
 import { invalidateNodeModels, useNodeAi } from "@toonflow/nodes-scaffold/nodeAi";
 import { getMediaCapabilityError, getMediaReferenceLimits } from "@toonflow/providers/mediaCapabilities";
 
@@ -30,7 +29,7 @@ export default function useStudio(kind: Ref<StudioKind>) {
   const router = useRouter();
   const nodeAi = useNodeAi();
   const taskCenter = useTaskCenterStore();
-  const production = useProductionStore();
+
   const transferVisible = ref(false);
   const transferDirectory = ref("");
   const transferSource = ref<ProductionTransferSource>();
@@ -505,7 +504,6 @@ export default function useStudio(kind: Ref<StudioKind>) {
       if (failure) throw new Error("目标未能打开，原结果和传递记录已经保存，请重试打开");
       await nextTick();
       if (receipt.canvasId && receipt.nodeId) taskCenter.location = { directory: checkedDirectory, canvasId: receipt.canvasId, nodeId: receipt.nodeId, token: crypto.randomUUID() };
-      if (receipt.target.kind === "shot") { await production.load(); production.openShot(receipt.target.shotId); }
     } finally { handingOff = false; }
   }
   async function collectResult(item: StudioResult) {

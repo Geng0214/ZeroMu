@@ -6,7 +6,7 @@
 
 | 层 | 职责与入口 |
 | --- | --- |
-| Web | Vue/Pinia/Vue Flow；首页、工作站、画布、分镜、素材与成片界面 |
+| Web | Vue/Pinia/Vue Flow；首页、工作站、画布、素材与成片界面 |
 | Server | `apps/server/src/app.ts` 的 `createApp` 装配路由，独立入口负责监听；桌面复用应用 |
 | Desktop | Electrobun 宿主提供目录、保存、协议与更新；Windows 页面使用受限原生桥模式 |
 | 扩展 | 节点、工具、供应商、团队、Skill 各有格式与生命周期，不混作同一种隔离范围 |
@@ -29,7 +29,7 @@
 │     ├─ canvases/               # 多张画布 JSON
 │     ├─ media/{images,videos,audio}/
 │     ├─ references/             # 节点上传、创作参考、固定版本
-│     ├─ exports/                # 成片与完整项目包
+│     ├─ exports/                # 成片导出
 │     └─ projectData/
 │        ├─ layout.json
 │        ├─ drafts/              # 图片、视频、音频分别保存

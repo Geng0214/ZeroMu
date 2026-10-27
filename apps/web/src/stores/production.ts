@@ -2,7 +2,6 @@ import { computed, onScopeDispose, ref, watch } from "vue";
 import { defineStore } from "pinia";
 import axios from "axios";
 import type { ProjectRecord, ProductionOperation } from "@toonflow/server/production";
-import type { MediaTaskRecord } from "@toonflow/tools-scaffold/runtime";
 import { useWorkspaceStore } from "./workspace";
 
 export const productionError = (cause: unknown) => axios.isAxiosError<{ message?: string }>(cause)
@@ -18,17 +17,10 @@ export const useProductionStore = defineStore("production", () => {
   const recoverableVersions = ref<RecoverableVersion[]>([]);
   const visible = ref(false);
   const fullScreenEdit = ref(false);
-  const panel = ref<"storyboard" | "batches" | "assets" | "edit" | "packages" | "snapshots">("storyboard");
-  const focusAssetId = ref(""); const assetFocusToken = ref("");
-  const focusShotId = ref("");
-  const focusToken = ref("");
+  const panel = ref<"edit" | "batches" | "snapshots">("edit");
   const loading = ref(false);
   const error = ref("");
-  const shotTasks = ref<(Pick<MediaTaskRecord, "id" | "status" | "error" | "createdAt" | "updatedAt" | "collectionError" | "collectionPending"> & { shotId: string; resultCount: number })[]>([]);
-  const taskError = ref("");
   const batchDrafts = new Map<string, string>();
-  let taskReader: AbortController | undefined;
-  let taskTimer: ReturnType<typeof setTimeout> | undefined;
   const pendingDirectories = ref(new Set<string>());
   const projectionCounts = ref(new Map<string, number>());
   const projectionErrors = ref<Record<string, string>>({});
@@ -86,9 +78,6 @@ export const useProductionStore = defineStore("production", () => {
   }
   function open(value: typeof panel.value) { fullScreenEdit.value = false; panel.value = value; visible.value = true; void load(); }
   function openSmartEdit() { panel.value = "edit"; fullScreenEdit.value = true; visible.value = true; void load(); }
-  function focusAsset(id: string) { focusAssetId.value = id; assetFocusToken.value = crypto.randomUUID(); panel.value = "assets"; }
-  function openAsset(id: string) { focusAsset(id); open("assets"); }
-  function openShot(id: string) { focusShotId.value = id; focusToken.value = crypto.randomUUID(); open("storyboard"); }
   function startProjection(path: string) {
     requireDirectory(path);
     projectionCounts.value.set(path, (projectionCounts.value.get(path) || 0) + 1);
@@ -96,35 +85,18 @@ export const useProductionStore = defineStore("production", () => {
     return () => { if (released) return; released = true; const count = (projectionCounts.value.get(path) || 1) - 1; if (count) projectionCounts.value.set(path, count); else projectionCounts.value.delete(path); };
   }
 
-  async function loadShotTasks() {
-    clearTimeout(taskTimer); taskReader?.abort();
-    const path = directory.value;
-    if (!visible.value || !path) return;
-    const current = taskReader = new AbortController();
-    try {
-      const { data } = await axios.get<{ data: { tasks: typeof shotTasks.value; warnings: string[] } }>("/api/production/tasks", { params: { directory: path }, headers, signal: current.signal });
-      if (current.signal.aborted || directory.value !== path) return;
-      const changed = JSON.stringify(shotTasks.value.map(task => [task.id, task.updatedAt, task.resultCount])) !== JSON.stringify(data.data.tasks.map(task => [task.id, task.updatedAt, task.resultCount]));
-      shotTasks.value = data.data.tasks; taskError.value = data.data.warnings.join("；");
-      if (changed && shotTasks.value.some(task => task.resultCount) && !busy.value) void load();
-    } catch (cause) { if (!current.signal.aborted && directory.value === path) taskError.value = productionError(cause); }
-    finally { if (!current.signal.aborted && visible.value && directory.value === path) taskTimer = setTimeout(loadShotTasks, 5000); }
-  }
-  watch([visible, directory], () => { shotTasks.value = []; taskError.value = ""; void loadShotTasks(); });
   watch(visible, value => { if (!value) fullScreenEdit.value = false; });
-  onScopeDispose(() => { reader?.abort(); taskReader?.abort(); clearTimeout(taskTimer); });
+  onScopeDispose(() => reader?.abort());
 
   watch(directory, () => {
     ++epoch;
     reader?.abort();
     project.value = null;
     projectionErrors.value = {};
-    focusAssetId.value = ""; assetFocusToken.value = "";
-    focusShotId.value = ""; focusToken.value = "";
     recoverableVersions.value = [];
     error.value = "";
     loading.value = false;
     void load();
   }, { immediate: true });
-  return { focusAssetId, assetFocusToken, focusAsset, openAsset, directory, project, recoverableVersions, visible, fullScreenEdit, panel, focusShotId, focusToken, loading, error, busy, projectionCounts, projectionErrors, startProjection, shotTasks, taskError, batchDrafts, load, create, update, open, openSmartEdit, openShot, requireDirectory };
+  return { directory, project, recoverableVersions, visible, fullScreenEdit, panel, loading, error, busy, projectionCounts, projectionErrors, startProjection, batchDrafts, load, create, update, open, openSmartEdit, requireDirectory };
 });

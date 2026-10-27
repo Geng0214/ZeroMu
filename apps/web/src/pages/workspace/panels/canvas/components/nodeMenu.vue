@@ -29,7 +29,6 @@
         class="nodeMenu"
         :aria-label="menuLevel === 'selection' ? '选区操作' : menuLevel === 'arrange' ? '整理选中节点' : menuLevel === 'actions' ? '操作菜单' : '添加节点和资源'">
         <template v-if="menuLevel === 'selection'">
-          <el-dropdown-item v-if="associatedShot" command="productionShot">查看关联分镜 · {{ associatedShot.title }}</el-dropdown-item>
           <el-dropdown-item command="duplicateSelection" :icon="IconCopyPlus" :disabled="selectionBusy || deleting || !selectedNodes.length">
             创建副本
           </el-dropdown-item>
@@ -165,7 +164,6 @@ const selectedNodes = shallowRef<GraphNode[]>([]);
 const production = useProductionStore();
 const getCanvas = inject<() => CanvasContext | undefined>("canvas");
 function boundShot(nodeId: string) { return production.project?.shots.find(shot => !shot.archived && shot.canvasId === getCanvas?.()?.id && shot.nodeId === nodeId); }
-const associatedShot = computed(() => selectedNodes.value.length === 1 ? boundShot(selectedNodes.value[0]!.id) : undefined);
 const deleting = ref(false);
 const pasting = ref(false);
 const directNodes = ref(false);
@@ -398,7 +396,7 @@ flow.onNodeContextMenu(({ event, node }) => {
 defineExpose({ openMenu, deleteSelection });
 
 async function handleCommand(command: unknown) {
-  if (command === "productionShot" && associatedShot.value) { menu.value?.handleClose(); production.openShot(associatedShot.value.shotId); return; }
+
   if (command === "smartEdit") {
     menu.value?.handleClose();
     const createNode = async () => {
