@@ -9,6 +9,7 @@
     @gesturestart.capture="zoomCanvas"
     @gesturechange.capture="zoomCanvas"
     @gestureend.capture="zoomCanvas"
+    @auxclick.capture="preventMiddleClick"
     @pointermove="pointerPosition = { x: $event.clientX, y: $event.clientY }"
     @pointerleave="pointerPosition = undefined"
     @pointerdown.capture="clearBackgroundSelection"
@@ -157,6 +158,7 @@ import {
   SelectionMode,
   useVueFlow,
   wheelDelta,
+  isMacOs,
   isNode,
   type Node,
   type Edge,
@@ -1022,7 +1024,14 @@ function zoomCanvas(event: WheelEvent | (Event & { scale: number })) {
   } else {
     // ACT: Chromium 捏合发送 Ctrl+wheel，但不发送 Control 按键；WebKit 使用上方原生 gesture 事件。
     const pinching = event.ctrlKey && !pressedCodes.has("ControlLeft") && !pressedCodes.has("ControlRight");
-    factor = pinching && gestureScale !== undefined ? 1 : 2 ** (pinching ? -event.deltaY * 0.02 : wheelDelta(event));
+    if (pinching && gestureScale !== undefined) {
+      factor = 1;
+    } else if (pinching) {
+      factor = 2 ** (-event.deltaY * 0.02);
+    } else {
+      // ACT: @vue-flow/core 的 wheelDelta 在 macOS 下检测到 event.ctrlKey 会额外乘以 10（误判为捏合微步）；非捏合的实体 Ctrl 滚轮缩放需剔除该倍数，保留标准滚轮速度。
+      factor = 2 ** (wheelDelta(event) / (event.ctrlKey && isMacOs() ? 10 : 1));
+    }
     point = { x: event.clientX, y: event.clientY };
   }
   const zoom = flow.d3Zoom.value;
@@ -1043,6 +1052,11 @@ function zoomCanvas(event: WheelEvent | (Event & { scale: number })) {
     const anchor = pending.point ?? { x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2 };
     selection.call<[number, [number, number], Event]>(zoom.scaleBy, pending.factor, [anchor.x - bounds.left, anchor.y - bounds.top], pending.event);
   });
+}
+
+function preventMiddleClick(event: MouseEvent) {
+  // Linux 下中键会直接粘贴 X 主选择区内容，需在画布范围内拦掉，避免误插入文本节点。
+  if (event.button === 1) event.preventDefault();
 }
 
 function updateCanvasKeys(event: KeyboardEvent) {

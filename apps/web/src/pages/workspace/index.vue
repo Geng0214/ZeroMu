@@ -17,7 +17,7 @@
 
 <script setup lang="ts">
 import agentIcon from "@/components/agent/agentIcon.vue";
-import { markRaw, onScopeDispose, provide, ref, shallowRef, watch } from "vue";
+import { markRaw, onMounted, onScopeDispose, provide, ref, shallowRef, watch } from "vue";
 import { onBeforeRouteLeave, useRouter } from "vue-router";
 import axios from "axios";
 import { ElMessage, ElMessageBox } from "element-plus";
@@ -73,7 +73,18 @@ watch(() => [production.project?.revision, canvasPanelRef.value?.canvasId, canva
     if (production.directory !== path || panel.canvasId !== canvasId) break;
   }
 }, { flush: "post" });
-onScopeDispose(() => { controlLifetime.abort(new Error("工作区已关闭")); production.visible = false; });
+const sideButtonEvents = ["mousedown", "mouseup", "auxclick"] as const;
+// 鼠标侧键会直接触发原生历史导航，需在 DOM 事件阶段拦截，避免生成中的工作区被误关闭。
+function preventSideButtonNavigation(event: MouseEvent) {
+  if (event.button === 3 || event.button === 4) event.preventDefault();
+}
+onMounted(() => {
+  for (const eventName of sideButtonEvents) window.addEventListener(eventName, preventSideButtonNavigation, true);
+});
+onScopeDispose(() => {
+  for (const eventName of sideButtonEvents) window.removeEventListener(eventName, preventSideButtonNavigation, true);
+  controlLifetime.abort(new Error("工作区已关闭")); production.visible = false;
+});
 watch(() => taskCenter.location, async location => {
   if (!location || location.directory !== workspaceStore.project?.directory) return;
   try {
