@@ -327,6 +327,7 @@ Web、Server、桌面及节点脚手架相关类型检查和构建通过；既�
 
 - 完整旧日志：[逐批执行记录](archive/productDevelopmentProgress.md)；原目标细项：[原计划](archive/productDevelopmentPlan.md)。
 - 当前 R0：结果摘要（本机 `work/r0Audit/summary.json`，验证记录仅本机留存，未随仓库分发）；历史同步钩子候选：`work/currentToolRenderHooksFixture.json` → `work/toolRenderHooks1792686909441/toolRenderHooksSummary.json`。
+- 2026-10-28 本机瘦身：`work/` 下 34 个未被任何文档引用的验收目录整体删除；其余 75 个目录里的应用副本（`installedApp/`、`extracted/`、`self-extraction/`、`node_modules/`、`dataBackup*/`、`appBackup*/`、`updateStage*/`）与大于 5MB 且未被文档点名的文件一并清除。共回收约 34GB，`work/` 由 40.7GB 降到 3.3GB，6845 个 JSON 证据与截图保留，安装目录 `work/native228` 与构建垫片 `work/buildbin` 未动。代价如实记下：`windowsIntegratedAcceptance1792343968893`、`windowsLifecycleAcceptance1792161753287`、`windowsSpeechIntegration1792430288397`、`windowsTemplateIntegration1792415669053` 四处指向 `installedApp/` 的引用在本机已无文件，对应结论的 JSON 仍在原目录。
 - 按主题查阅：[归档目录](archive/readme.md)；正式门槛：[验收清单](acceptance.md)。
 
 本页只汇总有实际证据的结果；本轮 R0 的验证范围单列于顶部，历史 `bun test` 无匹配文件、退出 1 的运行不计为通过。
