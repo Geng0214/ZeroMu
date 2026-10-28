@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { imageGenerationSchema, videoGenerationSchema, audioGenerationSchema } from "@toonflow/tool-media-generation/runtime";
 
-export const relativePathSchema = z.string().min(1).max(2048).refine(path => !/^[\\/]|[:\u0000-\u001f]/.test(path) && path.split(/[\\/]/).every(part => part && part !== "." && part !== ".."), "必须是项目内相对路径");
+export const relativePathSchema = z.string().min(1).max(2048).refine(path => !/^[\\/]|[:\u0000-\u001f]/.test(path) && path.split(/[\\/]/).every(part => part && part !== "." && part !== ".."), "必须是工作空间内相对路径");
 const id = z.uuid();
 const name = z.string().trim().min(1).max(200);
 const timestamp = z.number().finite().nonnegative();

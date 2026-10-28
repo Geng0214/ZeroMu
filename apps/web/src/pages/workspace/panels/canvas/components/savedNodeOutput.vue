@@ -1,7 +1,7 @@
 <template>
   <div class="savedNodeOutput nodrag nopan" @pointerdown.stop @mousedown.stop>
     <p v-if="media.length || text || inlineText">已保存的成果可以继续查看。恢复编辑需安装并启用原节点插件。</p>
-    <div v-for="item in media" :key="item.path"><img v-if="item.kind === 'image' && urls[item.path]" :src="urls[item.path]" loading="lazy" :alt="label || '已保存图片'" @error="error = '已保存图片无法读取，请检查项目媒体'" /><video v-else-if="item.kind === 'video' && urls[item.path]" :src="urls[item.path]" controls preload="none" aria-label="已保存视频" /><audio v-else-if="item.kind === 'audio' && urls[item.path]" :src="urls[item.path]" controls preload="none" aria-label="已保存音频" /></div><pre v-if="text || inlineText">{{ text || inlineText }}</pre><p v-if="error" role="alert">{{ error }}</p>
+    <div v-for="item in media" :key="item.path"><img v-if="item.kind === 'image' && urls[item.path]" :src="urls[item.path]" loading="lazy" :alt="label || '已保存图片'" @error="error = '已保存图片无法读取，请检查工作空间媒体'" /><video v-else-if="item.kind === 'video' && urls[item.path]" :src="urls[item.path]" controls preload="none" aria-label="已保存视频" /><audio v-else-if="item.kind === 'audio' && urls[item.path]" :src="urls[item.path]" controls preload="none" aria-label="已保存音频" /></div><pre v-if="text || inlineText">{{ text || inlineText }}</pre><p v-if="error" role="alert">{{ error }}</p>
   </div>
 </template>
 <script setup lang="ts">

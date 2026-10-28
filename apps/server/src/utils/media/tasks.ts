@@ -97,8 +97,8 @@ function view(task: MediaTask): MediaTaskRecord {
 async function readTask(id: string, directory?: string) {
   const task = JSON.parse(await readFile(taskPath(id), "utf8")) as MediaTask;
   if (!taskSchema.safeParse(task).success || task.id !== id) throw Object.assign(new Error(`任务记录 ${id}.json 损坏，请先备份并检查该文件`), { status: 422 });
-  if (directory !== undefined && task.directory !== directory) throw Object.assign(new Error("任务不属于当前项目"), { status: 403 });
-  if (directory !== undefined && task.source?.projectId && task.source.projectId !== (await readProject(directory))?.projectId) throw Object.assign(new Error("任务不属于当前项目"), { status: 403 });
+  if (directory !== undefined && task.directory !== directory) throw Object.assign(new Error("任务不属于当前工作空间"), { status: 403 });
+  if (directory !== undefined && task.source?.projectId && task.source.projectId !== (await readProject(directory))?.projectId) throw Object.assign(new Error("任务不属于当前工作空间"), { status: 403 });
   task.source ??= { kind: "studio" };
   task.updatedAt ??= task.createdAt;
   task.phase ??= "generation";
@@ -216,8 +216,8 @@ export async function startTask(id: string, directory: string, mediaType: MediaT
         return view(prior);
       }
       const project = await readProject(directory);
-      if (!project) throw Object.assign(new Error("请先打开一个项目"), { status: 409 });
-      if (source.projectId && source.projectId !== project?.projectId) throw Object.assign(new Error("任务归属的项目标识不匹配"), { status: 409 });
+      if (!project) throw Object.assign(new Error("请先选择一个工作空间"), { status: 409 });
+      if (source.projectId && source.projectId !== project?.projectId) throw Object.assign(new Error("任务归属的工作空间标识不匹配"), { status: 409 });
       const contextualSource = await directorTaskSource(directory, project, await backgroundRemovalTaskSource(directory, project, source, request), request);
       const shot = contextualSource.shotId ? project?.shots.find(item => item.shotId === contextualSource.shotId && !item.archived)
         : source.canvasId && source.nodeId ? project?.shots.find(item => !item.archived && item.canvasId === source.canvasId && item.nodeId === source.nodeId) : undefined;
@@ -306,7 +306,7 @@ export async function getTask(id: string, directory: string) {
   if (!z.uuid().safeParse(id).success) throw Object.assign(new Error("任务编号无效"), { status: 400 });
   const cached = taskIndex.get(id);
   if (cached) {
-    if (cached.directory !== directory || cached.task.source.projectId && cached.task.source.projectId !== (await readProject(directory))?.projectId) { const archived = await archivedTask(id, directory); if (archived) return archived; throw Object.assign(new Error("任务不属于当前项目"), { status: 403 }); }
+    if (cached.directory !== directory || cached.task.source.projectId && cached.task.source.projectId !== (await readProject(directory))?.projectId) { const archived = await archivedTask(id, directory); if (archived) return archived; throw Object.assign(new Error("任务不属于当前工作空间"), { status: 403 }); }
     return { ...cached.task, ...interruption(cached.task) };
   }
   let task: MediaTask;
@@ -322,7 +322,7 @@ async function archivedTask(id: string, directory: string): Promise<MediaTaskRec
   if (!info.isFile() || info.size > 8 * 1024 * 1024) throw Object.assign(new Error("迁移任务记录无效"), { status: 422 });
   const saved = archivedTaskSchema.parse(JSON.parse(await readFile(path.path, "utf8"))); const project = await readProject(directory);
   if (saved.cost !== undefined) taskCostSchema.parse(saved.cost);
-  if (!project || saved.archiveProjectId !== project.projectId || saved.id !== id) throw Object.assign(new Error("迁移任务记录与项目不一致"), { status: 422 });
+  if (!project || saved.archiveProjectId !== project.projectId || saved.id !== id) throw Object.assign(new Error("迁移任务记录与工作空间不一致"), { status: 422 });
   const incomplete = !["completed", "failed", "cancelled"].includes(saved.status);
   return { ...saved, directory, archived: true, status: incomplete ? "unknown" : saved.status, canResume: false, canCancel: false, collectionPending: false, collectionError: undefined, error: incomplete ? "这是迁移的历史任务，请在原机器核对未完成提交；本机不会继续原付费请求" : saved.error } as MediaTaskRecord;
 }
@@ -349,7 +349,7 @@ async function collectDirectorResults(task: MediaTask) {
     try {
       if (task.source.imageEdit) {
         const project = await readProject(task.directory);
-        if (!project) throw new Error("来源项目不存在，背景移除结果已保存，请保留任务和文件");
+        if (!project) throw new Error("来源工作空间不存在，背景移除结果已保存，请保留任务和文件");
         const { updateProject } = await import("@/utils/production");
         await updateProject(task.directory, project.revision, { type: "addBackgroundRemovedCandidate", contextId: task.source.imageEdit.contextId, taskId: task.id });
         task.collectionError = undefined;
@@ -414,7 +414,7 @@ export async function cleanupReferences(directory: string) {
   await listTasks(directory, "image", 0, 1);
   if (invalidTasks.size) throw Object.assign(new Error("存在损坏的任务记录，无法确认素材引用；修复记录后再清理"), { status: 409 });
   if (isGeneratingMedia(directory) || [...taskIndex.values()].some(item => item.directory === directory && (running.has(item.task.id) || queued.has(item.task.id)))) {
-    throw Object.assign(new Error("项目仍有生成任务，请等待完成后再清理"), { status: 409 });
+    throw Object.assign(new Error("工作空间仍有生成任务，请等待完成后再清理"), { status: 409 });
   }
   const release = lockWorkspaceFiles([directory]);
   try {
@@ -434,7 +434,7 @@ export async function cleanupReferences(directory: string) {
     async function scan(path: string) {
       for (const entry of await readdir(path, { withFileTypes: true })) {
         const child = join(path, entry.name);
-        if (entry.isSymbolicLink()) throw new Error("项目包含链接，无法完整确认引用，已停止清理");
+        if (entry.isSymbolicLink()) throw new Error("工作空间包含链接，无法完整确认引用，已停止清理");
         if (entry.isDirectory()) { if (child !== root) await scan(child); }
         else if (entry.isFile() && /\.(json|jsonl|md|markdown|txt|csv)$/i.test(entry.name)) {
           const text = await readFile(child, "utf8");
@@ -464,7 +464,7 @@ export async function resumeTask(id: string, directory: string) {
 }
 export async function cancelTask(id: string, directory: string) {
   const task = queued.get(id) ?? await readTask(id, directory);
-  if (task.directory !== directory) throw Object.assign(new Error("任务不属于当前项目"), { status: 403 });
+  if (task.directory !== directory) throw Object.assign(new Error("任务不属于当前工作空间"), { status: 403 });
   if (task.status === "cancelled") return view(task);
   if (task.status !== "queued" || running.has(id) || task.cost?.submittedAt || Object.keys(task.checkpoints).length) throw Object.assign(new Error("任务已经开始处理，不能取消排队。停止等待不代表终止远端生成或计费。"), { status: 409 });
   task.status = "cancelled";

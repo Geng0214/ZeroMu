@@ -19,7 +19,7 @@ export const priceRuleSchema = z.strictObject({
 export const budgetSchema = z.strictObject({ directory: z.string().min(1).max(4096), currency, limit: decimalSchema, startsAt: z.number().finite().nonnegative() });
 export const policySchema = z.strictObject({ schemaVersion: z.literal(1), revision: z.number().int().nonnegative(), prices: z.array(priceRuleSchema).max(2000), budgets: z.array(budgetSchema).max(2000) }).superRefine((policy, context) => {
   if (new Set(policy.prices.map(rule => rule.id)).size !== policy.prices.length) context.addIssue({ code: "custom", message: "单价编号重复" });
-  if (new Set(policy.budgets.map(budget => budget.directory)).size !== policy.budgets.length) context.addIssue({ code: "custom", message: "同一项目只能有一个预算" });
+  if (new Set(policy.budgets.map(budget => budget.directory)).size !== policy.budgets.length) context.addIssue({ code: "custom", message: "同一工作空间只能有一个预算" });
 });
 export const quoteSchema = z.discriminatedUnion("kind", [z.strictObject({ kind: z.literal("unknown"), reason: z.string().max(1000) }), z.strictObject({
   kind: z.literal("estimated"), money: moneySchema, quantity: decimalSchema, rate: priceRuleSchema, priceFingerprint: z.string().regex(/^[a-f0-9]{64}$/),

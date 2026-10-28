@@ -35,7 +35,7 @@ export async function readBatch(directory: string, id: string) {
   if (!info.isFile() || info.isSymbolicLink() || info.size > 16 * 1024 ** 2) fail("批次记录须为不超过 16 MB 的普通文件", 422);
   const batch = batchSchema.parse(JSON.parse(await readFile(target.path, "utf8")));
   const project = await readProject(directory);
-  if (batch.batchId !== id || !project || batch.projectId !== project.projectId) fail("批次与当前项目身份不一致", 422);
+  if (batch.batchId !== id || !project || batch.projectId !== project.projectId) fail("批次与当前工作空间身份不一致", 422);
   if (!batch.archived && batch.directory === directory) {
     const items = batch.items.map(({ resolvedRequest, resolvedReferences, dispatchedAt, error, ...item }) => item);
     if (batch.fingerprint !== digest({ projectId: batch.projectId, sequenceId: batch.sequenceId, sourceRevision: batch.sourceRevision, name: batch.name, items })) fail("批次确认范围摘要不匹配，请保留原记录", 422);
@@ -82,7 +82,7 @@ async function fixedReferences(directory: string, project: ProjectRecord, reques
   const files = new Map(project.assetVersions.flatMap(version => version.files.map(file => [file.path, { version, file }] as const)));
   for (const reference of references(request)) {
     const entry = files.get(reference.path);
-    if (!entry || entry.file.mimeType !== reference.mimeType) fail("批次已有参考须为项目中登记的固定版本；请先用素材带入或生成结果登记版本", 400);
+    if (!entry || entry.file.mimeType !== reference.mimeType) fail("批次已有参考须为工作空间中登记的固定版本；请先用素材带入或生成结果登记版本", 400);
     versions.set(entry.version.versionId, entry.version);
   }
   for (const version of versions.values()) await verifyVersion(directory, version);

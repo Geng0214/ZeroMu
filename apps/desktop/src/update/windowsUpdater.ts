@@ -217,7 +217,7 @@ export default function createWindowsUpdater(resourcesDirectory: string, lifecyc
       const { stdout } = await execFileAsync(tarExecutable, ["-xOf", path, `${localInfo.name}/Resources/version.json`], { windowsHide: true, timeout: 60000, maxBuffer: 65536 });
       info = JSON.parse(stdout);
     } catch (error) {
-      throw new Error(t`更新包不完整或无法读取，请重新下载。当前应用和项目数据未改变。`, { cause: error });
+      throw new Error(t`更新包不完整或无法读取，请重新下载。当前应用和工作空间数据未改变。`, { cause: error });
     }
     if (!info || info.identifier !== localInfo.identifier || info.channel !== localInfo.channel || typeof info.hash !== "string" || !hashPattern.test(info.hash)
       || typeof info.version !== "string" || !versionPattern.test(info.version)) throw new Error(t`更新包安装标识不匹配`);
@@ -275,7 +275,7 @@ export default function createWindowsUpdater(resourcesDirectory: string, lifecyc
         try {
           await execFileAsync(join(installDirectory, "app/bin/zig-zstd.exe"), ["decompress", "-i", compressedPath, "-o", archivePath, "--no-timing"], { windowsHide: true, timeout: 10 * 60_000 });
         } catch (error) {
-          throw new Error(t`更新包解压失败，请重新下载。当前应用和项目数据未改变。`, { cause: error });
+          throw new Error(t`更新包解压失败，请重新下载。当前应用和工作空间数据未改变。`, { cause: error });
         }
       }
       const archiveInfo = await readArchiveInfo(archivePath);

@@ -106,7 +106,7 @@ async function operate(action: string, data: any) {
     return response.data;
   }
   if (action === "activateCanvas") {
-    if (!directory || workspace.project?.directory !== directory) throw new Error("原项目当前不可用");
+    if (!directory || workspace.project?.directory !== directory) throw new Error("原工作空间当前不可用");
     const activated = await activateCanvasPanel?.();
     if (activated === false) return false;
     currentCanvas();

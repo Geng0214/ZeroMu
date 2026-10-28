@@ -61,7 +61,7 @@ export async function prepareImageEdit(directory: string, id: string, candidateI
   return withFileAccess([`${join(directory, folder)}.prepare`], "write", async () => {
     const release = lockWorkspaceFiles([join(directory, folder)]);
     try {
-      const project = await readProject(directory); if (!project) fail("请先建立项目制作记录", 404);
+      const project = await readProject(directory); if (!project) fail("请先建立制作记录", 404);
       const source = imageCandidateSource(project, candidateId); await verifyVersion(directory, source.version);
       let context = await readImageEditContext(directory, id).catch((error: NodeJS.ErrnoException) => { if (error.code !== "ENOENT") throw error; return undefined; });
       if (context && (context.projectId !== project.projectId || context.sourceCandidateId !== candidateId || context.sourceHash !== source.file.hash)) fail("编辑标识已用于其他来源");

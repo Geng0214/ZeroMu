@@ -34,9 +34,9 @@
         </div>
         <section v-if="preview?.taskId === task.id" class="taskPreview" aria-label="任务结果预览">
           <header><strong>已保存结果</strong><el-button text aria-label="关闭结果预览" @click="preview = undefined">关闭</el-button></header>
-          <img v-if="preview.mediaType === 'image'" :src="preview.url" alt="生成图片" @error="previewError = '图片无法读取，请重新打开结果或检查项目文件'" />
-          <video v-else-if="preview.mediaType === 'video'" :key="preview.url" :src="preview.url" controls preload="metadata" @error="previewError = '视频无法读取，请重新打开结果或检查项目文件'" />
-          <audio v-else :key="preview.url" :src="preview.url" controls preload="metadata" @error="previewError = '音频无法读取，请重新打开结果或检查项目文件'" />
+          <img v-if="preview.mediaType === 'image'" :src="preview.url" alt="生成图片" @error="previewError = '图片无法读取，请重新打开结果或检查工作空间文件'" />
+          <video v-else-if="preview.mediaType === 'video'" :key="preview.url" :src="preview.url" controls preload="metadata" @error="previewError = '视频无法读取，请重新打开结果或检查工作空间文件'" />
+          <audio v-else :key="preview.url" :src="preview.url" controls preload="metadata" @error="previewError = '音频无法读取，请重新打开结果或检查工作空间文件'" />
           <p class="taskMeta">{{ preview.path }}</p><p v-if="previewError" class="taskError" role="alert">{{ previewError }}</p>
         </section>
         <details><summary>生成依据</summary><dl><dt>任务编号</dt><dd>{{ task.id }}</dd><dt>当前阶段</dt><dd>{{ phaseLabels[task.phase] }}</dd><dt v-if="task.source.canvasId">画布</dt><dd v-if="task.source.canvasId">{{ task.source.canvasId }}{{ task.source.nodeId ? ` · 节点 ${task.source.nodeId}` : '' }}</dd><dt>输入快照</dt><dd><pre>{{ JSON.stringify(task.request, null, 2) }}</pre></dd></dl></details>
@@ -154,7 +154,7 @@ async function locate(task: MediaTaskRecord) {
     if (workspace.project?.directory !== task.directory) {
       // 先让原页面保存，再切换目录；路由取消时保持原项目。
       const failure = await router.push("/canvas");
-      if (failure && route.path !== "/canvas") throw new Error("原项目尚未保存，请先完成保存再定位任务");
+      if (failure && route.path !== "/canvas") throw new Error("原工作空间尚未保存，请先完成保存再定位任务");
       await workspace.openProject(task.directory);
     }
     if (workspace.project?.directory !== task.directory) throw new Error("工作空间已切换，请重新定位任务");

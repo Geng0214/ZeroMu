@@ -20,7 +20,7 @@
             </span>
             <el-input v-if="data.draft" ref="folderInput" v-model="newFolderName" class="folderNameInput" size="small" aria-label="文件夹名称" :disabled="folderSaving" @click.stop @keydown.stop @keydown.enter.prevent="saveFolder" @keydown.esc.prevent="cancelFolder" @blur="saveFolder" />
             <span v-else class="assetName">{{ data.metadata?.title || data.name }}</span>
-            <el-button v-if="data.type === 'file'" class="importButton" text :aria-label="'带入项目 ' + data.name" @click.stop="libraryPath = data.path; libraryVisible = true">带入项目</el-button>
+            <el-button v-if="data.type === 'file'" class="importButton" text :aria-label="'带入工作空间 ' + data.name" @click.stop="libraryPath = data.path; libraryVisible = true">带入工作空间</el-button>
             <el-button v-if="mediaKind(data)" class="moreButton" text :icon="IconEye" :aria-label="'预览 ' + data.name" title="预览（也可双击素材）" @click.stop="openPreview(data)" />
             <el-button v-if="!data.draft" class="moreButton" text :icon="IconDots" :aria-label="'更多 ' + data.name" title="更多" @click.stop="openItemMenu($event, data)" />
           </div>

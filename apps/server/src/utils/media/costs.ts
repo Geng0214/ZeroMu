@@ -98,5 +98,5 @@ export function assertMediaBudget(policy: MediaCostPolicy, directory: string, ta
   if (warnings.length) fail("存在损坏的任务记录，无法核对预算占用；请先备份并修复记录");
   const summary = summarizeMediaCosts([...tasks, ...pending], budget);
   if (summary.unknownCount) fail("本预算周期有费用未知或币种不匹配的任务，请维护单价或核对账单后再新增提交");
-  if (moneyUnits(summary.budget!.exposure) > moneyUnits(budget.limit)) fail(`本次提交会超过 ${budget.currency} ${budget.limit} 的项目预算；已提交任务仍可查询和取回结果`);
+  if (moneyUnits(summary.budget!.exposure) > moneyUnits(budget.limit)) fail(`本次提交会超过 ${budget.currency} ${budget.limit} 的工作空间预算；已提交任务仍可查询和取回结果`);
 }

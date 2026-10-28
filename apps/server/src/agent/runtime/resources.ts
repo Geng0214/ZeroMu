@@ -36,7 +36,7 @@ export async function createAgentResources(cwd: string, tools: ToolDefinition[],
     systemPromptOverride: () => [buildSystemPrompt({ tools, skills: skills.skills, platform: process.platform }), instructions].filter(Boolean).join("\n\n"),
     appendSystemPrompt: [
       globalAgents.content.trim() ? `## 全局协作规范（AGENTS.md）\n${globalAgents.content}` : "",
-      memory.content.trim() ? `## 全局长期记忆\n以下是跨对话保存的偏好与事实，使用前核对适用项目，以用户本轮要求为准。\n<global_memory>\n${memory.content}\n</global_memory>` : "",
+      memory.content.trim() ? `## 全局长期记忆\n以下是跨对话保存的偏好与事实，使用前核对适用工作空间，以用户本轮要求为准。\n<global_memory>\n${memory.content}\n</global_memory>` : "",
     ].filter(Boolean),
   });
   await resourceLoader.reload();

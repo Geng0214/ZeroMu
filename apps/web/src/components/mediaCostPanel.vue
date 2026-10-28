@@ -9,7 +9,7 @@
       <p class="costHint">{{ summary.unknownCount }} 项未定价或币种待核对 · {{ summary.unsubmittedCount }} 项尚未提交。未完整结算的回执与预估可能重叠，占用按同币种较高金额计算；迁移历史不计入本机预算。</p>
       <p v-if="summary.budget" class="budgetBalance" :class="{ costError: summary.budget.remaining.startsWith('-') }">预算 {{ summary.budget.currency }} {{ summary.budget.limit }} · 剩余 {{ summary.budget.remaining }}<span v-if="summary.budget.unknownCount"> · 存在未定价或币种待核对任务，暂停新增提交</span></p>
     </template>
-    <details class="costSection"><summary>项目预算</summary>
+    <details class="costSection"><summary>工作空间预算</summary>
       <form @submit.prevent="saveBudget" @input="budgetDirty = true">
         <fieldset :disabled="saving" class="costFormFields">
         <label class="checkField"><input v-model="budget.enabled" type="checkbox" :disabled="!directory || saving" />启用当前工作空间预算</label>
@@ -19,7 +19,7 @@
           <label class="wideField">周期开始<input type="datetime-local" step="1" :value="localDate(budget.startsAt)" required aria-label="预算周期开始" @change="budget.startsAt = new Date(($event.target as HTMLInputElement).value).getTime()" /></label>
         </div>
         <p class="costHint">费用未知、币种不匹配或占用将超限时，不提交新生成。更改周期开始会改变计入范围，历史记录保留。供应商实际费用可能高于预估。</p>
-        <el-button nativeType="submit" size="small" :disabled="!directory" :loading="saving">保存项目预算</el-button>
+        <el-button nativeType="submit" size="small" :disabled="!directory" :loading="saving">保存工作空间预算</el-button>
         </fieldset>
       </form>
     </details>
@@ -101,9 +101,9 @@ async function saveBudget() {
   try {
     const budgets = policy.value.budgets.filter(item => item.directory !== directory);
     if (draft.enabled) budgets.push({ directory, currency: draft.currency, limit: draft.limit, startsAt: draft.startsAt } satisfies MediaBudget);
-    await persist({ ...policy.value, budgets }, "项目预算已保存");
+    await persist({ ...policy.value, budgets }, "工作空间预算已保存");
     if (props.directory === directory) { budgetDirty.value = false; await load(); }
-    else { budgetDrafts.set(directory, { ...draft, dirty: false }); saved.value = "刚才项目的预算已保存"; }
+    else { budgetDrafts.set(directory, { ...draft, dirty: false }); saved.value = "刚才工作空间的预算已保存"; }
   } catch (cause) { await showError(cause, "costBudgetLimit"); }
   finally { saving.value = false; }
 }

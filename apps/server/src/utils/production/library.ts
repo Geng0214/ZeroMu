@@ -34,7 +34,7 @@ function checkTarget(project: ProjectRecord, operation: LibraryImportOperation) 
     if (!asset) fail("目标素材不存在或已归档，请重新选择");
     if (target.parentVersionId && !asset.versionIds.includes(target.parentVersionId)) fail("所选父版本不属于目标素材");
   }
-  if ((project.libraryImports?.length ?? 0) >= 10000 || project.assetVersions.length >= 100000 || target.mode === "new" && project.assets.length >= 10000) fail("项目素材数量达到上限，请分拆项目后带入", 413);
+  if ((project.libraryImports?.length ?? 0) >= 10000 || project.assetVersions.length >= 100000 || target.mode === "new" && project.assets.length >= 10000) fail("素材数量达到上限，请把后续创作放到新的工作空间后带入", 413);
 }
 async function stagedInput(directory: string, operation: LibraryImportOperation) {
   const path = `${libraryFolder(directory, operation.importId)}/import.json`;
@@ -57,7 +57,7 @@ async function original(directory: string, operation: LibraryImportOperation) {
     catch (cause) { if ((cause as NodeJS.ErrnoException).code !== "ENOENT") throw cause; }
   }
   const current = await globalSource(operation.source.path);
-  if (JSON.stringify(current.source) !== JSON.stringify(operation.source)) fail("全局素材内容或资料已改变，请重新核对后带入；原项目未改动");
+  if (JSON.stringify(current.source) !== JSON.stringify(operation.source)) fail("全局素材内容或资料已改变，请重新核对后带入；原工作空间未改动");
   return { bytes: current.bytes, frozen: false };
 }
 export async function prepareLibraryImport(directory: string, expectedRevision: number, input: Omit<LibraryImportOperation, "type" | "source"> & { path: string }): Promise<LibraryImportPreview> {
@@ -77,8 +77,8 @@ export async function previewLibraryImport(directory: string, expectedRevision: 
 }
 export async function existingLibraryImport(directory: string, project: ProjectRecord, operation: LibraryImportOperation) {
   const receipt = project.libraryImports?.find(item => item.importId === operation.importId); if (!receipt) return undefined;
-  if (receipt.inputHash !== inputHash(operation)) fail("此带入编号已用于其他内容，请保留项目并另建带入");
-  const version = project.assetVersions.find(item => item.versionId === receipt.versionId); if (!version) fail("带入记录的固定版本缺失，请恢复项目备份", 422);
+  if (receipt.inputHash !== inputHash(operation)) fail("此带入编号已用于其他内容，请保留工作空间并另建带入");
+  const version = project.assetVersions.find(item => item.versionId === receipt.versionId); if (!version) fail("带入记录的固定版本缺失，请恢复工作空间备份", 422);
   await verifyVersion(directory, version); return receipt;
 }
 export async function importLibraryAsset(directory: string, project: ProjectRecord, operation: LibraryImportOperation) {
@@ -104,7 +104,7 @@ export async function pendingLibraryImports(directory: string) {
   const project = await readProject(directory); if (!project) return { items: [] as LibraryImportOperation[], warnings: [] as string[] };
   const folder = (await resolveWorkspacePath(directory, projectPath(directory, "productionLibraryImports"), true)).path;
   const entries = await readdir(folder, { withFileTypes: true }).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return []; throw cause; });
-  if (entries.length > 10000) fail("素材带入目录过多，请保留项目并检查", 413);
+  if (entries.length > 10000) fail("素材带入目录过多，请保留工作空间并检查", 413);
   const items: LibraryImportOperation[] = []; const warnings: string[] = [];
   for (const entry of entries) {
     if (!entry.isDirectory() || !/^[a-f0-9-]{36}$/i.test(entry.name) || project.libraryImports?.some(item => item.importId === entry.name)) continue;

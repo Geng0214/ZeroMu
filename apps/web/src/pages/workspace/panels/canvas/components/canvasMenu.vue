@@ -15,7 +15,7 @@
         <el-popover v-model:visible="canvasListVisible" trigger="click" placement="bottom-start" :width="300" :showArrow="false" :disabled="!directory" popperClass="canvasPickerPopover"
           :popperOptions="{ strategy: 'fixed', modifiers: [{ name: 'preventOverflow', options: { rootBoundary: 'viewport', tether: false, altAxis: true, padding: 12 } }] }">
           <template #reference>
-            <el-button class="canvasTrigger" :loading="busy" :disabled="busy || !directory" aria-label="画布项目" :title="activeCanvasName" :aria-expanded="canvasListVisible" @keydown.esc.stop="canvasListVisible = false">
+            <el-button class="canvasTrigger" :loading="busy" :disabled="busy || !directory" aria-label="画布列表" :title="activeCanvasName" :aria-expanded="canvasListVisible" @keydown.esc.stop="canvasListVisible = false">
               <span class="canvasName">{{ activeCanvasName }}</span><span class="canvasChevron" :class="{ expanded: canvasListVisible }"><icon-chevron-down :size="16" /></span>
             </el-button>
           </template>

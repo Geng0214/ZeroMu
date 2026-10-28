@@ -373,7 +373,7 @@ export default function useStudio(kind: Ref<StudioKind>) {
     if (!selected.value.length || locked.value) return;
     saving.value = true;
     try {
-      const confirmed = await ElMessageBox.confirm("从结果列表移除所选记录？已生成的原文件会保留在项目目录。", "移除结果", { confirmButtonText: "移除", cancelButtonText: "取消" }).then(() => true, () => false);
+      const confirmed = await ElMessageBox.confirm("从结果列表移除所选记录？已生成的原文件会保留在工作空间目录。", "移除结果", { confirmButtonText: "移除", cancelButtonText: "取消" }).then(() => true, () => false);
       if (!confirmed) return;
       await updateHistory(async () => {
         const next = results.value.filter(item => !selected.value.includes(item.id));
@@ -471,7 +471,7 @@ export default function useStudio(kind: Ref<StudioKind>) {
     saving.value = true;
     const path = directory.value;
     try {
-      const confirmed = await ElMessageBox.confirm("仅清理超过 24 小时、且未被项目文档、对话或任务记录引用的参考缓存。已生成作品会保留。", "清理参考缓存", { confirmButtonText: "清理", cancelButtonText: "取消" }).then(() => true, () => false);
+      const confirmed = await ElMessageBox.confirm("仅清理超过 24 小时、且未被工作空间文档、对话或任务记录引用的参考缓存。已生成作品会保留。", "清理参考缓存", { confirmButtonText: "清理", cancelButtonText: "取消" }).then(() => true, () => false);
       if (!confirmed) return;
       const { data } = await axios.post<{ data: { removed: number } }>("/api/ai/media/tasks/cleanupReferences", { directory: path }, { headers: { "x-toonflow-workspace": "1" } });
       ElMessage.success(`已清理 ${data.data.removed} 个未引用缓存`);

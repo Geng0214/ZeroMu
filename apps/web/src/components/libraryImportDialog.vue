@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :modelValue="modelValue" title="从全局素材库带入项目" width="min(660px, 94vw)" appendToBody :closeOnClickModal="false" :closeOnPressEscape="!busy" :showClose="!busy" :beforeClose="close" @update:modelValue="emit('update:modelValue', $event)">
+  <el-dialog :modelValue="modelValue" title="从全局素材库带入工作空间" width="min(660px, 94vw)" appendToBody :closeOnClickModal="false" :closeOnPressEscape="!busy" :showClose="!busy" :beforeClose="close" @update:modelValue="emit('update:modelValue', $event)">
     <section class="libraryImport" :aria-busy="busy">
       <p>带入后保存为项目独立的固定版本，已有镜头继续使用原版本。</p>
       <fieldset :disabled="busy || !!applied">
@@ -9,8 +9,8 @@
         <template v-if="project">
           <label>全局素材<select v-model="path" aria-label="带入的全局素材" :disabled="resuming"><option value="">选择素材</option><option v-for="item in assets" :key="item.path" :value="item.path">{{ item.title }} · {{ item.path }}</option></select></label>
           <template v-if="!resuming">
-            <label>带入方式<select v-model="mode" aria-label="带入方式"><option value="new">建立独立项目素材</option><option value="version">作为现有素材的新版本</option></select></label>
-            <template v-if="mode === 'new'"><label>项目素材名称<input v-model="name" maxlength="200" /></label><label>类别<select v-model="kind" aria-label="素材类别"><option v-for="(label, key) in kindLabels" :key="key" :value="key">{{ label }}</option></select></label></template>
+            <label>带入方式<select v-model="mode" aria-label="带入方式"><option value="new">建立独立素材</option><option value="version">作为现有素材的新版本</option></select></label>
+            <template v-if="mode === 'new'"><label>素材名称<input v-model="name" maxlength="200" /></label><label>类别<select v-model="kind" aria-label="素材类别"><option v-for="(label, key) in kindLabels" :key="key" :value="key">{{ label }}</option></select></label></template>
             <template v-else><label>目标素材<select v-model="assetId" aria-label="目标素材"><option value="">选择素材</option><option v-for="asset in project.assets.filter(item => !item.archived)" :key="asset.assetId" :value="asset.assetId">{{ asset.name }}</option></select></label><label>基于版本<select v-model="parentVersionId" aria-label="基于版本"><option value="">无父版本</option><option v-for="version in project.assetVersions.filter(item => item.assetId === assetId)" :key="version.versionId" :value="version.versionId">{{ version.description || new Date(version.createdAt).toLocaleString() }}</option></select></label></template>
           </template>
           <p v-if="resuming" role="status">正在继续原带入输入，保留原名称、类别和父版本。{{ path }}</p>

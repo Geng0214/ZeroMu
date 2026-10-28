@@ -79,7 +79,7 @@ export async function createTeamRunner(options: SubAgentModel & {
           const allowed = (path: string) => roots.some(root => path === root || path.startsWith(`${root}/`));
           const resourceTool: ToolDefinition = {
             name: "teamResources", label: "团队资料",
-            description: "按需读取或维护当前成员获准的私有资料。list 返回路径，read 读取正文，write 新建或完整修改文本。内容只属于此团队，不会注册到全局技能。修改成员指令在下一团队任务生效；新增经验应真实、通用且避免写入项目私密内容。",
+            description: "按需读取或维护当前成员获准的私有资料。list 返回路径，read 读取正文，write 新建或完整修改文本。内容只属于此团队，不会注册到全局技能。修改成员指令在下一团队任务生效；新增经验应真实、通用且避免写入工作空间私密内容。",
             promptSnippet: "使用 teamResources 按需读取本成员的私有 Skill、知识与参考资料。",
             promptGuidelines: [`本成员私有资源范围：${JSON.stringify(roots)}。首次处理任务先 list，按需 read 相关 SKILL.md 及 references，不能只看路径就声称使用技能。`],
             parameters: z.toJSONSchema(resourceSchema), executionMode: "sequential",

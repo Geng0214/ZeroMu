@@ -62,7 +62,7 @@ async function canvasSummary(directory: string) {
 async function projectInfo(directory: string, name?: string) {
   const record = await readProject(directory);
   const summary = await canvasSummary(directory);
-  if (!record && !summary.count) fail("所选文件夹中没有零幕项目或画布文件", 422);
+  if (!record && !summary.count) fail("所选文件夹里没有零幕画布或制作记录", 422);
   const layout = projectLayoutVersion(directory);
   return {
     directory,
@@ -95,7 +95,7 @@ function localProjectAccess() {
 }
 async function savedProjects() {
   const parsed = storedState();
-  if (!parsed.success) return { candidates: [] as z.infer<typeof storedProjectSchema>[], active: null, issues: ["原项目索引无法读取；选择项目文件夹可重新接入。"] };
+  if (!parsed.success) return { candidates: [] as z.infer<typeof storedProjectSchema>[], active: null, issues: ["原工作空间索引无法读取；重新选择文件夹可接入。"] };
   const candidates = [...(parsed.data.projectList ?? []), ...(parsed.data.legacyProjects ?? []), ...(parsed.data.project ? [parsed.data.project] : [])];
   return { candidates, active: parsed.data.project ?? null, issues: [] as string[] };
 }
@@ -132,7 +132,7 @@ export async function workspaceState(directory = conf.get("workspaceDirectory", 
       if (!localProjectAccess() && (!allowedRoot || !isWithin(allowedRoot, actual))) continue;
       const details = await projectInfo(actual, candidate.name);
       result.push({ ...details, lastOpenedAt: candidate.lastOpenedAt ?? 0 });
-    } catch (cause) { issues.push((candidate.name || candidate.directory) + "：" + (cause instanceof Error ? cause.message : "项目读取失败")); }
+    } catch (cause) { issues.push((candidate.name || candidate.directory) + "：" + (cause instanceof Error ? cause.message : "工作空间读取失败")); }
   }
   result.sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0) || a.name.localeCompare(b.name, "zh-CN", { numeric: true }));
   const current = active && result.find(item => directoryKey(item.directory) === directoryKey(active!.directory));
@@ -229,11 +229,11 @@ export async function newWorkspaceProject(directory = selectedWorkspace()) {
         manifestCreated = true;
         return await projectInfo(projectDirectory);
       } catch (cause) {
-        if (manifestCreated) await rm(manifestPath).catch(error => console.warn("项目初始化回滚失败", error));
-        if (layoutCreated) await rm(layoutPath).catch(error => console.warn("项目初始化回滚失败", error));
-        if (canvasCreated) await rm(canvasPath).catch(error => console.warn("项目初始化回滚失败", error));
-        if (dataCreated) await rmdir(dataDirectory).catch(error => console.warn("项目初始化回滚失败", error));
-        await rmdir(projectDirectory).catch(error => console.warn("项目初始化回滚失败", error));
+        if (manifestCreated) await rm(manifestPath).catch(error => console.warn("工作空间初始化回滚失败", error));
+        if (layoutCreated) await rm(layoutPath).catch(error => console.warn("工作空间初始化回滚失败", error));
+        if (canvasCreated) await rm(canvasPath).catch(error => console.warn("工作空间初始化回滚失败", error));
+        if (dataCreated) await rmdir(dataDirectory).catch(error => console.warn("工作空间初始化回滚失败", error));
+        await rmdir(projectDirectory).catch(error => console.warn("工作空间初始化回滚失败", error));
         throw cause;
       }
     }
@@ -281,7 +281,7 @@ export async function deleteWorkspaceProject(directory: string, projectId?: stri
     }
     // ACT: 移入工作空间内的回收目录，而不是递归删除；改名失败即报错，不降级为删除，避免误点造成不可恢复的原件丢失。
     const trashDirectory = join(root, workspaceTrashFolder);
-    if (isWithin(projectDirectory, trashDirectory)) fail("回收目录位于项目文件夹内部，请先检查工作空间结构", 409);
+    if (isWithin(projectDirectory, trashDirectory)) fail("回收目录位于工作空间文件夹内部，请先检查工作空间结构", 409);
     await ensureFolder(trashDirectory);
     await rename(projectDirectory, await nextTrashEntry(trashDirectory, basename(projectDirectory)));
   } finally { release(); }

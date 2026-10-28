@@ -81,7 +81,7 @@ export async function writeProjectRevision(directory: string, original: ProjectR
   const checked = projectSchema.safeParse(project);
   if (!checked.success) invalid(`制作关系校验失败：${checked.error.issues.map(issue => issue.message).slice(0, 4).join("；")}`);
   const content = JSON.stringify(checked.data, null, 2);
-  if (Buffer.byteLength(content) > 20 * 1024 * 1024) invalid("制作记录超过 20 MB 上限，请分拆为独立项目；原记录保持完整", 413);
+  if (Buffer.byteLength(content) > 20 * 1024 * 1024) invalid("制作记录超过 20 MB 上限，请把作品分到不同的工作空间；原记录保持完整", 413);
   await backupDirectory(directory);
   await writeAtomic(join(directory, projectPath(directory, "projectBackups"), `revision${original.revision}${crypto.randomUUID()}.json`), JSON.stringify(original, null, 2), { exclusive: true });
   await writeAtomic(join(directory, projectFileName), content);
@@ -181,7 +181,7 @@ export async function updateProject(directory: string, expectedRevision: number,
   const release = lockWorkspaceFiles([join(directory, projectFileName)]);
   try {
     const existing = await readProject(directory);
-    if (!existing) invalid("请先建立项目制作记录", 404);
+    if (!existing) invalid("请先建立制作记录", 404);
     let project: ProjectRecord = existing;
     if (operation.type === "importLibraryAsset") { const prior = await existingLibraryImport(directory, project, operation); if (prior) return { project, resultId: prior.versionId }; }
     if (operation.type === "restoreVersionFile" && await existingFileRecovery(directory, project, operation)) return { project, resultId: operation.versionId };
@@ -345,7 +345,7 @@ export async function updateProject(directory: string, expectedRevision: number,
         if (hasRunningBatch(directory) || (await listTasks(directory, undefined, 0, 100000)).tasks.some(task => task.source.kind === "batch" && ["queued", "submitting", "running", "downloading"].includes(task.status))) invalid("批次仍在编排或有已派发任务进行中，请等待任务结束后再恢复快照", 409);
         const snapshot = project.snapshots.find(item => item.snapshotId === operation.snapshotId); if (!snapshot) invalid("快照不存在", 404);
         const restored = projectSchema.parse(JSON.parse((await readProjectFile(directory, snapshot.path)).toString("utf8")));
-        if (restored.projectId !== project.projectId) invalid("快照属于其他项目", 409);
+        if (restored.projectId !== project.projectId) invalid("快照属于其他工作空间", 409);
         for (const version of restored.assetVersions) await verifyVersion(directory, version);
         project = mergeRestored(project, restored); break;
       }

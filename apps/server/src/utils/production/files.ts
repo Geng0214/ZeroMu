@@ -63,7 +63,7 @@ export async function existingFileRecovery(directory: string, project: ProjectRe
   return true;
 }
 export async function restoreVersionFile(directory: string, project: ProjectRecord, operation: FileRecoveryOperation) {
-  if ((project.fileRecoveries?.length ?? 0) >= 10000) fail("文件恢复记录达到当前上限，请保留项目备份后整理制作范围", 413);
+  if ((project.fileRecoveries?.length ?? 0) >= 10000) fail("文件恢复记录达到当前上限，请保留工作空间备份后整理制作范围", 413);
   const plan = await planRecovery(directory, project, operation);
   const target = (await resolveWorkspacePath(directory, plan.file.path, true)).path;
   await mkdir(dirname(target), { recursive: true });

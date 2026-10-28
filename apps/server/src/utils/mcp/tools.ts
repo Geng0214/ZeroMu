@@ -62,7 +62,7 @@ const uiSchemas = {
   openDocument: z.strictObject({ path: z.string().max(4096).optional(), canvasPath: z.string().max(4096).optional(), nodeId: z.string().max(256).optional(), handleId: z.string().max(256).optional() }),
   writeDocument: z.strictObject({ text: z.string().max(10_000_000), expectedText: z.string().max(10_000_000) }),
   getSettings: z.strictObject({}),
-  updateSettings: z.strictObject({ patch: z.record(z.string(), z.json()).refine(patch => !["mcp", "stores"].some(key => Object.hasOwn(patch, key)), "不能通过 MCP 修改连接凭证或项目列表") }),
+  updateSettings: z.strictObject({ patch: z.record(z.string(), z.json()).refine(patch => !["mcp", "stores"].some(key => Object.hasOwn(patch, key)), "不能通过 MCP 修改连接凭证或工作空间列表") }),
 };
 const uiDescriptions: Record<keyof typeof uiSchemas, string> = {
   openProject: "在目标零幕页面打开已有工作目录，并等待工作区就绪；操作前获取 getAppState 的 connectionId。",
@@ -98,7 +98,7 @@ export async function getMcpTools(): Promise<McpTool[]> {
   const authorizationSignal = authorizationController.signal;
   let pluginError: string | undefined;
   const tools: McpTool[] = [{
-    name: "getAppState", description: "列出连接的零幕页面及其 connectionId、工作目录、画布、项目列表和节点能力。多个页面时必须用 target.connectionId 明确操作对象；无页面连接时只有显式 target.directory 的服务端工具可用。",
+    name: "getAppState", description: "列出连接的零幕页面及其 connectionId、工作目录、画布、工作空间列表和节点能力。多个页面时必须用 target.connectionId 明确操作对象；无页面连接时只有显式 target.directory 的服务端工具可用。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     async execute() {
       const workspaceRoot = resolve(dirname(conf.path), "workspaces");

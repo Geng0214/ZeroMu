@@ -30,7 +30,7 @@ export function createAgentToolContext(cwd: string, config: Record<string, unkno
     if (!model) throw new Error("所选模型已改变或不可用，请重新查询模型列表");
     validateModelCapabilities(model, mediaType, request);
     const project = await readProject(cwd);
-    if (source?.projectId && source.projectId !== project?.projectId) throw new Error("生成所属项目已变化，请重新核对范围。");
+    if (source?.projectId && source.projectId !== project?.projectId) throw new Error("生成所属工作空间已变化，请重新核对范围。");
     const sourceCanvasId = canvas?.id ?? source?.canvasId;
     const shot = project?.shots.find(shot => !shot.archived && (source?.shotId ? shot.shotId === source.shotId : !!source?.nodeId && shot.canvasId === sourceCanvasId && shot.nodeId === source.nodeId));
     const shotReferenceVersions = shot && structuredClone(shot.references);
@@ -118,8 +118,8 @@ export async function createAgentTools(cwd: string, canvas?: CanvasContext, ques
   const plugins: Awaited<ReturnType<typeof loadTool>>["plugin"][] = [];
   const dispose = async () => { await Promise.allSettled(plugins.map(plugin => plugin.dispose())); };
   const tools: ToolDefinition[] = [{
-    name: "getProjectProduction", label: "读取项目制作记录",
-    description: "读取当前项目的制作单元、镜头、固定素材版本、候选和用户采用状态。没有制作记录时返回 null；不得把文字评价当作已采用或已检查状态。",
+    name: "getProjectProduction", label: "读取制作记录",
+    description: "读取当前工作空间的制作单元、镜头、固定素材版本、候选和用户采用状态。没有制作记录时返回 null；不得把文字评价当作已采用或已检查状态。",
     parameters: z.toJSONSchema(z.strictObject({})),
     async execute(_id, _params, signal) {
       signal?.throwIfAborted(); const project = await readProject(cwd);

@@ -373,7 +373,7 @@ function directorScope() { if (!project.value?.directory || !canvasId.value || !
 async function readDirectorCapture(captureId: string) {
   const scope = directorScope();
   const { data } = await axios.get<{ data: DirectorCapture }>("/api/production/director/capture", { params: { directory: scope.directory, captureId }, headers: directorHeaders });
-  if (scope.directory !== project.value?.directory) throw new Error("项目已切换，请重新打开导演参考");
+  if (scope.directory !== project.value?.directory) throw new Error("工作空间已切换，请重新打开导演参考");
   return data.data;
 }
 async function updateDirector(operation: Parameters<typeof production.update>[0]) { const scope = directorScope(); await flushCanvasSave(); await production.load(); await production.update(operation, scope.directory); }
@@ -438,7 +438,7 @@ async function applyProductionSelection(selection: ProductionSelection, director
   const tool = { image: "node:setImage", video: "node:setVideo", audio: "node:setAudio" }[mediaType];
   if (!tool || !node.data.handles?.some((handle: { type: string; id: string }) => handle.type === "source" && handle.id === mediaType)) throw new Error(`当前绑定节点不能显示${{ image: "图片", video: "视频", audio: "音频" }[mediaType] || '此类媒体'}，请重新绑定对应媒体节点`);
   await context.call({ name: "nodeTools", args: { nodeId: node.id, name: tool, args: { path: selection.file.path, mimeType: selection.file.mimeType } } });
-  if (directory !== project.value?.directory || flow.findNode(node.id) !== node || selection.canvasId !== canvasId.value) throw new Error("目标节点已变化，采用记录仍在原项目，请重新同步");
+  if (directory !== project.value?.directory || flow.findNode(node.id) !== node || selection.canvasId !== canvasId.value) throw new Error("目标节点已变化，采用记录仍在原工作空间，请重新同步");
   // 采用依据独立于可继续编辑的生成草稿，不改写节点的提示词或模型选择。
   node.data.productionSelection = JSON.parse(JSON.stringify(selection));
   await flushCanvasSave();

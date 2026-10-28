@@ -63,7 +63,7 @@ async function transfer() {
   try {
     if (!receipt.value) {
       const { data } = await axios.post<{ data: ProductionTransferReceipt }>("/api/production/transfer", { directory: path, source, target }, { headers: { "x-toonflow-workspace": "1" } });
-      if (path !== props.directory) throw new Error("保存目标已切换，结果保留在原项目，请重新打开");
+      if (path !== props.directory) throw new Error("保存目标已切换，结果保留在原工作空间，请重新打开");
       receipt.value = data.data;
     }
     await props.openTarget(receipt.value);

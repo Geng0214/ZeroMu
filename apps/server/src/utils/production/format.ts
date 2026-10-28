@@ -6,21 +6,21 @@ export const projectFileName = "zeromuProject.json";
 
 export async function readProject(directory: string) {
   const importInfo = await lstat(join(directory, "projectImportState.json")).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return null; throw error; });
-  if (importInfo && (!importInfo.isFile() || importInfo.isSymbolicLink() || importInfo.size > 65536)) throw Object.assign(new Error("导入状态文件无效，请保留目录并重新导入项目"), { status: 423 });
+  if (importInfo && (!importInfo.isFile() || importInfo.isSymbolicLink() || importInfo.size > 65536)) throw Object.assign(new Error("导入状态文件无效，请保留目录后重新导入"), { status: 423 });
   const importState = importInfo ? await readFile(join(directory, "projectImportState.json"), "utf8") : null;
   if (importState && JSON.parse(importState).importing) throw Object.assign(new Error("此目录仍在导入或导入中断，请重试导入或改用新的目标目录；现有文件保留供核对"), { status: 423 });
   const path = join(directory, projectFileName);
   const info = await lstat(path).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return null; throw cause; });
   if (!info) return null;
-  if (info.isSymbolicLink() || !info.isFile() || info.size > 20 * 1024 * 1024) throw Object.assign(new Error("项目制作记录须为不超过 20 MB 的普通文件"), { status: 422 });
+  if (info.isSymbolicLink() || !info.isFile() || info.size > 20 * 1024 * 1024) throw Object.assign(new Error("制作记录须为不超过 20 MB 的普通文件"), { status: 422 });
   let value: unknown;
   try { value = JSON.parse(await readFile(path, "utf8")); }
-  catch (cause) { if (!(cause instanceof SyntaxError)) throw cause; throw Object.assign(new Error("项目制作记录无法解析，请保留原件并从备份恢复"), { status: 422 }); }
+  catch (cause) { if (!(cause instanceof SyntaxError)) throw cause; throw Object.assign(new Error("制作记录无法解析，请保留原件并从备份恢复"), { status: 422 }); }
   if (value && typeof value === "object" && "zeromuProject" in value && value.zeromuProject === true && "schemaVersion" in value && typeof value.schemaVersion === "number" && value.schemaVersion > 1) {
-    throw Object.assign(new Error("此项目采用较新的制作格式，请更新零幕后再修改；当前版本不会覆盖项目"), { status: 409 });
+    throw Object.assign(new Error("此工作空间采用较新的制作格式，请更新零幕后再修改；当前版本不会覆盖工作空间"), { status: 409 });
   }
   const checked = projectSchema.safeParse(value);
-  if (!checked.success) throw Object.assign(new Error(`项目制作记录损坏或格式不受支持：${checked.error.issues.map(issue => issue.message).slice(0, 4).join("；")}。请保留原件并从备份恢复。`), { status: 422 });
+  if (!checked.success) throw Object.assign(new Error(`制作记录损坏或格式不受支持：${checked.error.issues.map(issue => issue.message).slice(0, 4).join("；")}。请保留原件并从备份恢复。`), { status: 422 });
   return checked.data;
 }
 

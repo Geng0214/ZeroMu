@@ -71,7 +71,7 @@ export async function importCanvasAssets(directory: string, data: CanvasDocument
       const name = parts.pop();
       try {
         if (!(await files.list(parts.join('/'))).entries.some(item => item.type === 'file' && item.name === name)) throw new Error('缺少素材');
-      } catch { throw new Error(`画布缺少素材 ${path}，请从原项目完整导出后重新导入`); }
+      } catch { throw new Error(`画布缺少素材 ${path}，请从原工作空间完整导出后重新导入`); }
     }
     const ids = new Map(canvas.nodes.map(node => [node.id, crypto.randomUUID()]));
     return files.writeJson(target, JSON.parse(JSON.stringify(canvas, (_key, value) => typeof value === 'string' ? ids.get(value) ?? value : value)), true);

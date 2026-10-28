@@ -92,7 +92,7 @@ export async function readClipboardNodes(command: string, directory: string) {
   const hasWorkspaceFile = nodes.some(node => Object.values(node.data.outputs ?? {}).some(output => isNodeOutput(output)
     && typeof output.value === "object" && !/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(output.value.url)));
   if (hasWorkspaceFile && entry.directory !== directory) {
-    throw new Error(entry.directory ? "此节点引用工作区文件，不能跨项目粘贴" : "节点剪贴数据缺少工作目录，请重新复制");
+    throw new Error(entry.directory ? "此节点引用工作区文件，不能跨工作空间粘贴" : "节点剪贴数据缺少工作目录，请重新复制");
   }
   return { nodes, edges };
 }

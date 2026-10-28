@@ -26,7 +26,7 @@ description: 通过零幕 MCP 操作工作区、实时画布、节点、文档�
 
    `args` 按该工具的 schema 填写。`getAppState` 本身使用 `{}`。`target` 及其字段可选；连接 ID 定位界面，目录约束工作区，`canvasId` 校验预期画布。画布修改前建议带齐这三个字段，防止用户手动切换后旧命令修改新画布。
 
-4. 用户需要打开其他项目时使用 `openProject`，完成后重新获取状态；不要复用旧项目的节点 ID。多个连接且目标不明确时，先依据目录定位，再向用户确认歧义。
+4. 用户需要换到另一个工作空间时使用 `openProject`，完成后重新获取状态；不要复用旧工作空间的节点 ID。多个连接且目标不明确时，先依据目录定位，再向用户确认歧义。
 5. 没有前端连接时，仅使用支持 `target.directory` 的服务端工具。Linux 部署只能操作 `data/workspaces` 内的工作区。Vue Flow 和节点函数需要打开的零幕界面；遇到未连接错误应说明需要打开工作区，不要直接改画布文件绕过。
 
 ## 操作画布和节点
@@ -40,7 +40,7 @@ description: 通过零幕 MCP 操作工作区、实时画布、节点、文档�
 - 连接前用 `getCanvasNodes` 的 `fields: ["ports"]` 确认真实的 `sourceHandle`、`targetHandle` 和兼容的数据类型。图片或视频引用由连线提供；提示词中的引用标记应与节点实际引用顺序一致，需要核对时用 `getCanvasEdges` 查询目标入边、`getCanvasNodes` 读取目标 `data.referenceOrder` 和源节点输出。
 - 批量操作优先使用支持数组的工具。只在用户需要整理整体布局时使用 `arrangeCanvas`，局部调整使用 `moveNodes`，查看内容使用 `fitCanvas`。
 - 整理、视口适配和删除的 ID 回执最多 100 项，另提供 `arrangedCount`、`nodeCount` 或 `removedEdgeCount`；`truncated` 不代表操作只完成了部分，不为获取完整回执而重执行。`nodeTools` 返回具体业务结果，不适用五个读取工具的 64 KiB 上限。
-- 断开、切换项目、切换画布或节点卸载后，重新发现状态，更新目标 ID，不向旧目标重试修改操作。
+- 断开、切换工作空间、切换画布或节点卸载后，重新发现状态，更新目标 ID，不向旧目标重试修改操作。
 
 ## 生成媒体
 

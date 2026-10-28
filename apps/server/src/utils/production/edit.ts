@@ -124,7 +124,7 @@ export async function startExport(directory: string, sequenceId: string, expecte
     const existing = project.exports.find(item => item.exportId === exportId);
     if (existing) { if (existing.edit.sequenceId !== sequenceId) invalid("导出标识属于另一个制作单元", 409); return existing; }
     if (project.revision !== expectedRevision) invalid("制作记录已更新，请刷新后重新导出", 409);
-    if ([...jobs.values()].some(item => item.directory === directory)) invalid("当前项目已有成片正在导出", 409);
+    if ([...jobs.values()].some(item => item.directory === directory)) invalid("当前工作空间已有成片正在导出", 409);
     const edit = project.edits.find(item => item.sequenceId === sequenceId); if (!edit) invalid("请先保存剪辑决定", 409);
     const compiled = await validateEdit(directory, project, edit);
     // 无法预先精确预测压缩率；按高码率视频和 PCM 工作量估算，并保留 256 MB 余量。

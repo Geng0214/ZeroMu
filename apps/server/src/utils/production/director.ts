@@ -146,7 +146,7 @@ export async function applyDirectorOperation(directory: string, project: Project
 }
 
 export async function directorTaskSource(directory: string, project: ProjectRecord | null, source: MediaTaskSource, request: MediaGenerationRequest) {
-  if (!project) { if (source.directorShotId) fail("导演参考需要有效制作项目"); return source; }
+  if (!project) { if (source.directorShotId) fail("导演参考需要有效制作记录"); return source; }
   let directorId = source.directorShotId;
   if (!directorId && source.kind !== "batch" && source.canvasId && source.nodeId && project.directorShots.length) {
     const canvas = JSON.parse((await readProjectFile(directory, source.canvasId)).toString("utf8"));

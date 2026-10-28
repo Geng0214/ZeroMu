@@ -29,7 +29,7 @@ export const useProductionStore = defineStore("production", () => {
   let reader: AbortController | undefined;
 
   function requireDirectory(path = directory.value) {
-    if (!path || path !== directory.value) throw new Error("项目已切换，请重新打开制作面板");
+    if (!path || path !== directory.value) throw new Error("工作空间已切换，请重新打开制作面板");
     return path;
   }
 

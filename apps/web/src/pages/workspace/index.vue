@@ -10,7 +10,7 @@
     <component :is="floatingAgent" v-if="floatingAgent" v-model="agentVisible" @resize="agentWidth = $event" />
     <settings v-model="settingsVisible" />
     <taskButton class="workspaceTasks" />
-    <nav class="productionButtons" aria-label="项目制作"><el-button type="primary" @click="production.open('edit')">剪辑</el-button></nav>
+    <nav class="productionButtons" aria-label="制作记录"><el-button type="primary" @click="production.open('edit')">剪辑</el-button></nav>
     <productionPanel />
   </main>
 </template>
@@ -163,11 +163,11 @@ onBeforeRouteLeave(async () => {
       ? error.response?.data?.message || error.message
       : error instanceof Error
       ? error.message
-      : "项目保存失败";
-    const leave = await ElMessageBox.confirm(`无法保存项目：${message}。文件或目录可能已被移动或删除。仍然退出将丢弃尚未保存的修改。`, "项目未保存", {
+      : "制作记录保存失败";
+    const leave = await ElMessageBox.confirm(`无法保存制作记录：${message}。文件或目录可能已被移动或删除。仍然退出将丢弃尚未保存的修改。`, "制作记录未保存", {
       type: "warning",
       confirmButtonText: "仍然退出",
-      cancelButtonText: "留在项目",
+      cancelButtonText: "继续编辑",
       closeOnClickModal: false,
     }).then(
       () => true,
