@@ -3,7 +3,7 @@ import { useWorkspaceStore } from "@/stores/workspace";
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
-    { path: "/projects", component: () => import("@/pages/projects/index.vue") },
+    { path: "/projects", redirect: "/home" },
     {
       path: "/",
       redirect: "/home",
@@ -37,7 +37,7 @@ router.beforeEach(async to => {
   const workspace = useWorkspaceStore();
   await workspace.initialize();
   const needsProject = to.path === "/workspace";
-  if (needsProject && !workspace.project) return { path: "/projects", query: { next: to.fullPath } };
+  if (needsProject && !workspace.project) return { path: "/home", query: { next: to.fullPath } };
   return true;
 });
 export default router;

@@ -113,25 +113,15 @@ export async function workspaceState(directory = conf.get("workspaceDirectory", 
       const record = await readWorkspace(directory);
       const root = await realpath(directory);
       workspace = { directory: root, name: record.name, workspaceId: record.workspaceId };
-      const legacyRoot = join(root, "projects");
-      if (!active && record.lastProject && !isAbsolute(record.lastProject) && !record.lastProject.split(/[\\/]/).includes("..")) {
-        const directDirectory = join(root, record.lastProject);
-        active = { directory: await info(directDirectory) ? directDirectory : join(legacyRoot, record.lastProject), name: basename(record.lastProject) };
-      }
-      for (const parent of [root, legacyRoot]) {
-        for (const entry of await readdir(parent, { withFileTypes: true }).catch((cause: NodeJS.ErrnoException) => { if (cause.code === "ENOENT") return []; throw cause; })) {
-          if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
-          const projectDirectory = join(parent, entry.name);
-          if (parent === root && !(await info(join(projectDirectory, projectFileName)))?.isFile()) continue;
-          candidates.push({ directory: projectDirectory, name: entry.name });
-        }
-      }
+      // 一级结构：工作空间根目录就是当前项目容器，不再把子目录当项目列出来。
+      await ensureRootProject(root);
+      candidates.push({ directory: root, name: record.name });
+      active = { directory: root, name: record.name };
     } catch (cause) { issues.push(cause instanceof Error ? cause.message : "旧工作空间读取失败"); }
   }
   const result: Awaited<ReturnType<typeof projectInfo>>[] = [];
   const seen = new Set<string>();
   const allowedRoot = await realpath(join(dirname(conf.path), "workspaces")).catch(() => "");
-  const legacyCanvasDirectory = directoryKey(join(dirname(conf.path), "workspaces", "canvases"));
   for (const candidate of candidates) {
     if (!isAbsolute(candidate.directory) || seen.has(directoryKey(candidate.directory))) continue;
     seen.add(directoryKey(candidate.directory));
@@ -140,24 +130,59 @@ export async function workspaceState(directory = conf.get("workspaceDirectory", 
       if (!value?.isDirectory() || value.isSymbolicLink()) continue;
       const actual = await realpath(candidate.directory);
       if (!localProjectAccess() && (!allowedRoot || !isWithin(allowedRoot, actual))) continue;
-      const legacyName = directoryKey(actual) === legacyCanvasDirectory ? "原有创作" : undefined;
-      const details = await projectInfo(actual, legacyName ?? candidate.name);
-      result.push({ ...details, ...(legacyName ? { name: legacyName } : {}), lastOpenedAt: candidate.lastOpenedAt ?? 0 });
+      const details = await projectInfo(actual, candidate.name);
+      result.push({ ...details, lastOpenedAt: candidate.lastOpenedAt ?? 0 });
     } catch (cause) { issues.push((candidate.name || candidate.directory) + "：" + (cause instanceof Error ? cause.message : "项目读取失败")); }
   }
   result.sort((a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0) || a.name.localeCompare(b.name, "zh-CN", { numeric: true }));
   const current = active && result.find(item => directoryKey(item.directory) === directoryKey(active!.directory));
   return { workspace, projects: result, project: current ?? null, recoverableProjects: [] as typeof result, issues };
 }
+// 一级工作空间：根目录本身就是画布与素材的容器，不再建 projects/项目名/ 子层。
+// 沿用 newWorkspaceProject 的 layout 2 结构，画布 JSON 平铺在根目录，草稿与历史仍收在 projectData/ 下。
+async function ensureRootProject(root: string) {
+  if (await info(join(root, projectFileName))) return;
+  const canvasPath = (await canvasSummary(root)).count ? "" : join(root, "无限画布1.json");
+  const dataDirectory = join(root, "projectData");
+  const layoutPath = join(dataDirectory, "layout.json");
+  const manifestPath = join(root, projectFileName);
+  const layoutExisted = await info(layoutPath);
+  const record = projectSchema.parse({
+    zeromuProject: true, schemaVersion: 1, projectId: crypto.randomUUID(), name: basename(root), revision: 0,
+    createdAt: Date.now(), updatedAt: Date.now(),
+    canvases: canvasPath ? [{ canvasId: basename(canvasPath), name: basename(canvasPath).replace(/\.json$/i, "") }] : [],
+    sequences: [], shots: [], assets: [], assetVersions: [], candidates: [], adoptionHistory: [], directorBindings: [],
+    directorShots: [], edits: [], exports: [], snapshots: [], storyboardDrafts: [],
+  });
+  let canvasCreated = false, layoutCreated = false, manifestCreated = false;
+  try {
+    await ensureFolder(dataDirectory);
+    if (canvasPath) {
+      await writeAtomic(canvasPath, JSON.stringify({ toonflowCanvas: true, nodes: [], edges: [], viewport: { x: 0, y: 0, zoom: 1 } }, null, 2), { exclusive: true });
+      canvasCreated = true;
+    }
+    if (!layoutExisted) {
+      await writeAtomic(layoutPath, JSON.stringify({ zeromuProjectLayout: 2 }, null, 2), { exclusive: true });
+      layoutCreated = true;
+    }
+    await writeAtomic(manifestPath, JSON.stringify(record, null, 2), { exclusive: true });
+    manifestCreated = true;
+  } catch (cause) {
+    if (manifestCreated) await rm(manifestPath).catch(error => console.warn("工作空间初始化回滚失败", error));
+    if (layoutCreated) await rm(layoutPath).catch(error => console.warn("工作空间初始化回滚失败", error));
+    if (canvasCreated) await rm(canvasPath).catch(error => console.warn("工作空间初始化回滚失败", error));
+    throw cause;
+  }
+}
 export async function selectWorkspace(directory: string) {
   return withFileAccess([join(directory, workspaceFile) + ".mutation"], "write", async () => {
     if (!await info(join(directory, workspaceFile))) {
-      if (await info(join(directory, projectFileName)) || directory === process.env.TOONFLOW_DATA_DIR) fail("请选择用于存放项目的独立工作空间文件夹");
       for (const name of ["library", "promptLibrary"]) await ensureFolder(join(directory, name));
       await writeAtomic(join(directory, workspaceFile), JSON.stringify({ zeromuWorkspace: true, schemaVersion: 1, workspaceId: crypto.randomUUID(), name: basename(directory), createdAt: Date.now() }, null, 2), { exclusive: true });
     }
     await readWorkspace(directory);
     for (const name of ["library", "promptLibrary"]) await ensureFolder(join(directory, name));
+    await ensureRootProject(await realpath(directory));
     conf.set("workspaceDirectory", directory);
     return workspaceState(directory);
   });

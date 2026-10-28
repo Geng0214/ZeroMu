@@ -122,7 +122,7 @@ onMounted(() => {
 watch(active, value => { if (value) timer = setTimeout(() => fail("节点界面加载超时"), 10_000); });
 watchEffect(() => {
   const current = props.currentScope();
-  if (connected && !sameNodeFrameScope(current, scope)) fail("节点所属项目或画布已切换");
+  if (connected && !sameNodeFrameScope(current, scope)) fail("节点所属工作空间或画布已切换");
 });
 watch(() => [props.state.node.selected, props.state.inputs, props.state.config, props.state.appearance], () => session?.update(props.state), { deep: true });
 onBeforeUnmount(() => {

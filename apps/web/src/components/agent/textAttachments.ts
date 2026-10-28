@@ -12,6 +12,6 @@ export function createPastedTextFile(text: string): File | undefined {
 
 export async function readTextAttachment(attachment: AgentAttachment, directory?: string) {
   if (attachment.file) return attachment.file.text();
-  if (!directory) throw new Error(translate("请先打开项目"));
+  if (!directory) throw new Error(translate("请先选择工作空间"));
   return useWorkspaceFiles(directory).readText(attachment.path);
 }

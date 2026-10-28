@@ -10,7 +10,7 @@
         <span>{{ item.label }}</span>
       </router-link>
     </nav>
-    <router-link v-if="compact" class="projectLocation" to="/projects" :title="workspace.project?.directory || '选择项目文件夹'"><icon-folders :size="15" /><span>{{ workspace.project?.name || '选择项目' }}</span></router-link>
+    <router-link v-if="compact" class="projectLocation" to="/home" :title="workspace.workspaceRoot?.directory || '选择工作空间'"><icon-folders :size="15" /><span>{{ workspace.workspaceRoot?.name || '选择工作空间' }}</span></router-link>
     <div class="headerActions">
       <taskButton />
       <button v-if="!compact" type="button" aria-label="模型配置" title="模型配置" @click="emit('settings', 'mediaChannel')"><icon-adjustments-horizontal :size="18" :strokeWidth="1.7" /></button>

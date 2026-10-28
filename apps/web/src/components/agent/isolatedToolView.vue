@@ -57,7 +57,7 @@ function assertScope() {
 function currentCanvas() {
   assertScope();
   const canvas = getCanvas?.();
-  if (!directory || workspace.project?.directory !== directory || !canvas) throw new Error("画布尚未就绪或项目已切换，请回到原项目后重试");
+  if (!directory || workspace.project?.directory !== directory || !canvas) throw new Error("画布尚未就绪或工作空间已切换，请回到原工作空间后重试");
   return canvas;
 }
 

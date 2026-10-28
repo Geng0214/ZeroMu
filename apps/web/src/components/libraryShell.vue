@@ -30,9 +30,8 @@ const navigation = [
   { number: "00", label: "创作首页", path: "/home" },
   { number: "01", label: "无限画布", path: "/canvas" },
   { number: "02", label: "创作中心", path: "/studio/image" },
-  { number: "03", label: "工作空间", path: "/projects" },
-  { number: "04", label: "提示词库", path: "/prompts" },
-  { number: "05", label: "我的素材", path: "/assets" },
+  { number: "03", label: "提示词库", path: "/prompts" },
+  { number: "04", label: "我的素材", path: "/assets" },
 ];
 function isCurrent(path: string) { return path.startsWith("/studio/") ? route.path.startsWith("/studio/") : route.path === path; }
 onMounted(() => document.documentElement.classList.add("indexInterface"));

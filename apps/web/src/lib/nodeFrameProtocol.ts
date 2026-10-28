@@ -86,7 +86,7 @@ export function createNodeFrameSession(
     if (closed) return;
     const message = event.data as NodeFrameRequest | NodeFrameEvent | NodeFrameInvokeResult | undefined;
     if (message?.type === "invoked") {
-      if (!sameNodeFrameScope(currentScope(), scope)) { fail("节点所属项目或画布已切换"); return; }
+      if (!sameNodeFrameScope(currentScope(), scope)) { fail("节点所属工作空间或画布已切换"); return; }
       const waiter = invokes.get(message.id);
       if (!waiter) return;
       try { if (requestBytes(message.data) > 1_000_000) throw new Error("节点复制结果过大"); }
@@ -97,11 +97,11 @@ export function createNodeFrameSession(
       return;
     }
     if (message?.type === "ready") {
-      if (!sameNodeFrameScope(currentScope(), scope)) { fail("节点所属项目或画布已切换"); return; }
+      if (!sameNodeFrameScope(currentScope(), scope)) { fail("节点所属工作空间或画布已切换"); return; }
       onReady?.(); return;
     }
     if (message?.type === "status") {
-      if (!sameNodeFrameScope(currentScope(), scope)) { fail("节点所属项目或画布已切换"); return; }
+      if (!sameNodeFrameScope(currentScope(), scope)) { fail("节点所属工作空间或画布已切换"); return; }
       if (typeof message.canUnload === "boolean") onStatus?.(message.canUnload);
       return;
     }
@@ -109,7 +109,7 @@ export function createNodeFrameSession(
     if (!message || message.type !== "request" || !Number.isSafeInteger(message.id) || message.id <= 0
       || typeof message.action !== "string" || !/^[a-z][a-zA-Z0-9.]{0,63}$/.test(message.action)
       || requests.has(message.id)) return;
-    if (!sameNodeFrameScope(currentScope(), scope)) { fail("节点所属项目或画布已切换"); return; }
+    if (!sameNodeFrameScope(currentScope(), scope)) { fail("节点所属工作空间或画布已切换"); return; }
     if (performance.now() - requestWindow > 1000) { requestWindow = performance.now(); requestCount = 0; }
     if (++requestCount > 60 || requests.size >= 16) { fail("节点界面请求过多"); return; }
     const content = (message.data as { content?: unknown } | null)?.content;

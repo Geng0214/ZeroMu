@@ -5,14 +5,14 @@
     <div v-if="error" ref="errorBox" role="alert" tabindex="-1" class="costError"><p>{{ error }}</p><a :href="`#${errorTarget}`" @click.prevent="focusErrorTarget">{{ errorTarget === 'costRefreshButton' ? '刷新费用配置' : '返回输入位置' }}</a></div>
     <p v-for="warning in warnings" :key="warning" class="costError" role="alert">{{ warning }}</p>
     <template v-if="summary">
-      <div class="costTable"><table><caption>{{ summary.budget ? '本预算周期的本机任务' : '当前项目的本机任务' }}</caption><thead><tr><th>币种</th><th>已登记实际</th><th>未结算预估</th><th>排队预留</th><th>预算占用</th></tr></thead><tbody><tr v-for="row in summary.currencies" :key="row.currency"><th>{{ row.currency }}</th><td>{{ row.actual }}</td><td>{{ row.estimated }}</td><td>{{ row.reserved }}</td><td>{{ row.exposure }}</td></tr></tbody></table></div>
+      <div class="costTable"><table><caption>{{ summary.budget ? '本预算周期的本机任务' : '当前工作空间的本机任务' }}</caption><thead><tr><th>币种</th><th>已登记实际</th><th>未结算预估</th><th>排队预留</th><th>预算占用</th></tr></thead><tbody><tr v-for="row in summary.currencies" :key="row.currency"><th>{{ row.currency }}</th><td>{{ row.actual }}</td><td>{{ row.estimated }}</td><td>{{ row.reserved }}</td><td>{{ row.exposure }}</td></tr></tbody></table></div>
       <p class="costHint">{{ summary.unknownCount }} 项未定价或币种待核对 · {{ summary.unsubmittedCount }} 项尚未提交。未完整结算的回执与预估可能重叠，占用按同币种较高金额计算；迁移历史不计入本机预算。</p>
       <p v-if="summary.budget" class="budgetBalance" :class="{ costError: summary.budget.remaining.startsWith('-') }">预算 {{ summary.budget.currency }} {{ summary.budget.limit }} · 剩余 {{ summary.budget.remaining }}<span v-if="summary.budget.unknownCount"> · 存在未定价或币种待核对任务，暂停新增提交</span></p>
     </template>
     <details class="costSection"><summary>项目预算</summary>
       <form @submit.prevent="saveBudget" @input="budgetDirty = true">
         <fieldset :disabled="saving" class="costFormFields">
-        <label class="checkField"><input v-model="budget.enabled" type="checkbox" :disabled="!directory || saving" />启用当前项目预算</label>
+        <label class="checkField"><input v-model="budget.enabled" type="checkbox" :disabled="!directory || saving" />启用当前工作空间预算</label>
         <div v-if="budget.enabled" class="costFields">
           <label>币种<input v-model="budget.currency" required pattern="[A-Z]{3}" maxlength="3" aria-label="预算币种" /></label>
           <label>上限<input id="costBudgetLimit" v-model="budget.limit" inputmode="decimal" required :pattern="decimalPattern" aria-label="预算上限" /></label>

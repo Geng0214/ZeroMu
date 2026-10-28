@@ -67,7 +67,7 @@ export function createNodeFrameFileOperations(
   const readGrants = readablePaths(state);
   const ensureCurrent = (signal: AbortSignal) => {
     signal.throwIfAborted();
-    if (!sameNodeFrameScope(currentScope(), scope)) throw new Error("节点所属项目或画布已切换");
+    if (!sameNodeFrameScope(currentScope(), scope)) throw new Error("节点所属工作空间或画布已切换");
   };
   const own = (path: unknown) => {
     const value = relativePath(path);

@@ -5,7 +5,7 @@
     <p v-if="error" class="batchError" role="alert">{{ error }}</p>
     <form v-if="editing" class="batchForm" @submit.prevent="prepare">
       <label>批次名称<input v-model="name" required maxlength="200" /></label>
-      <p class="batchHint">当前 {{ entries.length }} 项。已有参考只能选择项目内固定版本；上游结果可指定为下游参考。准备范围后再确认执行。</p>
+      <p class="batchHint">当前 {{ entries.length }} 项。已有参考只能选择工作空间内固定版本；上游结果可指定为下游参考。准备范围后再确认执行。</p>
       <ol class="entryList">
         <li v-for="(entry, index) in entries" :key="entry.itemId">
           <details :open="index === 0"><summary>{{ index + 1 }} · {{ shotTitle(entry.shotId) }} · {{ mediaLabels[entry.mediaType] }} · {{ entry.request.modelId || '未选择模型' }}<span v-if="entryIssue(entry)" class="batchError"> · 需调整</span></summary>

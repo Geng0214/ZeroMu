@@ -10,8 +10,8 @@
             <taskButton @click="menuVisible = false" />
           </div>
         </el-popover>
-        <router-link class="canvasProject" to="/projects" :title="'所属项目：' + workspace.project?.name + ' · ' + directory"><span>所属项目</span><strong>{{ workspace.project?.name }}</strong></router-link>
-        <router-link class="canvasManagement" to="/canvas" title="按所属项目管理画布" aria-label="画布管理"><icon-layout-grid :size="16" aria-hidden="true" /><span>画布管理</span></router-link>
+        <router-link class="canvasProject" to="/home" :title="workspace.workspaceRoot?.directory || '选择工作空间'"><span>工作空间</span><strong>{{ workspace.workspaceRoot?.name || workspace.project?.name }}</strong></router-link>
+        <router-link class="canvasManagement" to="/canvas" title="按工作空间管理画布" aria-label="画布管理"><icon-layout-grid :size="16" aria-hidden="true" /><span>画布管理</span></router-link>
         <el-popover v-model:visible="canvasListVisible" trigger="click" placement="bottom-start" :width="300" :showArrow="false" :disabled="!directory" popperClass="canvasPickerPopover"
           :popperOptions="{ strategy: 'fixed', modifiers: [{ name: 'preventOverflow', options: { rootBoundary: 'viewport', tether: false, altAxis: true, padding: 12 } }] }">
           <template #reference>

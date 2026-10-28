@@ -17,10 +17,14 @@
         </section>
         <footer class="homeFooter">
           <p class="footerSignature"><span>零幕 ZEROMU</span><small>从零开始，创造第一幕。</small></p>
-          <div class="footerLinks"><el-badge isDot :hidden="!hasDesktopUpdate"><button @click="openSettings('about')"><icon-info-circle :size="18" />关于零幕</button></el-badge></div>
+          <div class="footerLinks">
+            <button :disabled="creating || opening" :title="workspaceStore.workspaceRoot?.directory || '选择存放画布与素材的工作空间'" @click="chooseWorkspace"><icon-folder :size="18" />{{ workspaceStore.workspaceRoot?.name || "选择工作空间" }}</button>
+            <el-badge isDot :hidden="!hasDesktopUpdate"><button @click="openSettings('about')"><icon-info-circle :size="18" />关于零幕</button></el-badge>
+          </div>
         </footer>
       </div>
       <settings v-model="settingsVisible" :initialPanel="settingsPanel" />
+      <workspacePicker ref="workspaceDirectoryPicker" hideTrigger />
     </div>
   </libraryShell>
 </template>
@@ -32,13 +36,14 @@ import { useRoute, useRouter } from "vue-router";
 import { ElMessage, type InputInstance } from "element-plus";
 import {
   IconPhoto, IconVideo, IconMusic, IconArrowRight, IconChevronLeft, IconChevronRight,
-  IconArrowUp, IconLayoutGrid, IconInfoCircle,
+  IconArrowUp, IconLayoutGrid, IconInfoCircle, IconFolder,
 } from "@tabler/icons-vue";
 import modelPopover from "@/components/modelPopover.vue";
 import attachmentList from "@/components/agent/attachmentList.vue";
 import { createPastedTextFile, readTextAttachment } from "@/components/agent/textAttachments";
 import type { AgentAttachment } from "@/components/agent/types";
 import libraryShell from "@/components/libraryShell.vue";
+import workspacePicker from "./workspacePicker.vue";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { hasDesktopUpdate } from "@/stores/desktopUpdate";
 import { ensureCanvasDirectory } from "@/lib/canvasStorage";
@@ -59,6 +64,16 @@ const workspaceStore = useWorkspaceStore();
 const settingsPanel = ref("ui");
 const activeSlide = ref(0);
 const composerSection = ref<HTMLElement>();
+const workspaceDirectoryPicker = ref<InstanceType<typeof workspacePicker>>();
+// 一级工作空间：所选目录本身就是画布与素材的容器，不再有项目子层。
+async function chooseWorkspace() {
+  try {
+    const directory = await workspaceDirectoryPicker.value?.chooseDirectory();
+    if (directory) await workspaceStore.selectWorkspace(directory);
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "无法切换到该工作空间，请重试");
+  }
+}
 const modes = [
   { id: "home", label: "无限画布", icon: IconLayoutGrid, placeholder: "描述创作目标，让零幕陪你完成第一幕…" },
   { id: "director", label: "导演台", icon: IconVideo, placeholder: "描述故事、题材、目标受众或已有剧本，让导演助手规划创作方向…" },
@@ -123,7 +138,11 @@ async function restoreAttachment(index: number) {
 
 async function createCanvasFromPrompt() {
   if (creating.value || opening.value) return;
-  if (!workspaceStore.project) { await router.push({ path: "/projects", query: { next: "/home" } }); return; }
+  // 一级工作空间：没有工作空间时当场选一个，不再跳到独立的项目页。
+  if (!workspaceStore.project) {
+    await chooseWorkspace();
+    if (!workspaceStore.project) return;
+  }
   if ((prompt.value.trim() || promptAttachments.value.length) && !selectedModel.value) {
     openSettings("mediaChannel");
     return ElMessage.warning("请先添加一个文本模型，用于驱动创作助手");

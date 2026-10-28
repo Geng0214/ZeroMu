@@ -14,7 +14,7 @@ export async function ensureCanvasDirectory(): Promise<string> {
   await workspace.initialize();
   if (!workspace.project) {
     const { default: router } = await import('@/router');
-    await router.push({ path: '/projects', query: { next: '/canvas' } });
+    await router.push({ path: '/home' });
     throw new Error('请先打开工作空间');
   }
   return workspace.project.directory;

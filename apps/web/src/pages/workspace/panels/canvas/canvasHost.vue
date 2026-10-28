@@ -210,9 +210,9 @@ async function locateTask(id: string, nodeId?: string) {
   await context.call({ name: "fitCanvas", args: { nodeIds: [nodeId] } });
 }
 async function applyProductionSelection(shotId: string, directory: string) {
-  if (directory !== workspaceStore.project?.directory) throw new Error("项目已切换，请重新同步采用结果");
+  if (directory !== workspaceStore.project?.directory) throw new Error("工作空间已切换，请重新同步采用结果");
   const { data } = await axios.get<{ data: ProductionSelection }>("/api/production/selection", { params: { directory, shotId }, headers: { "x-toonflow-workspace": "1" }, signal: lifetime.signal });
-  if (directory !== workspaceStore.project?.directory) throw new Error("项目已切换，采用记录保留在原项目");
+  if (directory !== workspaceStore.project?.directory) throw new Error("工作空间已切换，采用记录保留在原工作空间");
   const selection = data.data;
   if (!selection.canvasId || !selection.nodeId) return selection;
   await activateCanvas(selection.canvasId, lifetime.signal);
@@ -223,9 +223,9 @@ async function applyProductionSelection(shotId: string, directory: string) {
 }
 async function openDirectorSource(captureId: string) {
   const directory = workspaceStore.project?.directory;
-  if (!directory) throw new Error("请先打开项目");
+  if (!directory) throw new Error("请先选择工作空间");
   const { data } = await axios.get<{ data: import("@toonflow/nodes-scaffold/directorProduction").DirectorCapture }>("/api/production/director/capture", { params: { directory, captureId }, headers: { "x-toonflow-workspace": "1" }, signal: lifetime.signal });
-  if (directory !== workspaceStore.project?.directory || !data.data.canvasId) throw new Error("机位所属项目已切换或缺少画布位置");
+  if (directory !== workspaceStore.project?.directory || !data.data.canvasId) throw new Error("机位所属工作空间已切换或缺少画布位置");
   await activateCanvas(data.data.canvasId, lifetime.signal);
   const panel = [...instances.values()].find(panel => panel.canvasId === data.data.canvasId);
   if (!panel) throw new Error("机位所属画布尚未打开，请重试");

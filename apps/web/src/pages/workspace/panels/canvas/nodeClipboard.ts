@@ -37,7 +37,7 @@ export function copyNodeToClipboard(node: Pick<Node, "type" | "data">, directory
 }
 
 export async function copyNodesToClipboard(nodes: Node[], edges: Edge[], directory: string) {
-  if (!directory) throw new Error("请先打开项目");
+  if (!directory) throw new Error("请先选择工作空间");
   if (!nodes.length || nodes.some(node => !node.type)) throw new Error("节点类型无效");
   const command = `toonflow:paste-node:${crypto.randomUUID()}`;
   const ids = new Set(nodes.map(node => node.id));

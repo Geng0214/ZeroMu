@@ -91,10 +91,8 @@
     "apps/web/src/lib/desktopProtocol.ts",
     "apps/web/src/lib/i18n.ts",
     "apps/web/src/pages/assets/materialCollection.vue",
-    "apps/web/src/pages/assets/projectCollection.vue",
     "apps/web/src/pages/canvasLibrary/index.vue",
     "apps/web/src/pages/home/workspacePicker.vue",
-    "apps/web/src/pages/projects/index.vue",
     "apps/web/src/pages/studio/index.vue",
     "apps/web/src/pages/studio/useStudio.ts",
     "apps/web/src/pages/workspace/components/filmPanel.vue",
@@ -186,7 +184,7 @@
   "存在无法读取的提及，请删除后重新选择": [
     "apps/web/src/components/agent/conversation.vue"
   ],
-  "请先打开项目": [
+  "请先选择工作空间": [
     "apps/web/src/components/agent/conversation.vue",
     "apps/web/src/components/agent/textAttachments.ts",
     "apps/web/src/pages/workspace/panels/canvas/canvasHost.vue",
@@ -274,7 +272,7 @@
   "工具界面上下文已结束": [
     "apps/web/src/components/agent/isolatedToolView.vue"
   ],
-  "画布尚未就绪或项目已切换，请回到原项目后重试": [
+  "画布尚未就绪或工作空间已切换，请回到原工作空间后重试": [
     "apps/web/src/components/agent/isolatedToolView.vue"
   ],
   "工具界面记录过大，请查看文本结果": [
@@ -339,7 +337,6 @@
     "apps/web/src/components/settings/panels/languageModel/addProviderDialog.vue",
     "apps/web/src/components/settings/panels/personalization.vue",
     "apps/web/src/main.ts",
-    "apps/web/src/pages/projects/index.vue",
     "apps/web/src/pages/studio/index.vue"
   ],
   "不支持": [
@@ -450,7 +447,6 @@
     "apps/web/src/components/agent/mentionMenu.vue",
     "apps/web/src/components/taskCenter.vue",
     "apps/web/src/pages/canvasLibrary/index.vue",
-    "apps/web/src/pages/projects/index.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue",
     "apps/server/src/utils/production/schema.ts"
   ],
@@ -611,10 +607,8 @@
   "保存": [
     "apps/web/src/components/agent/menu.vue",
     "apps/web/src/components/settings/panels/personalization.vue",
-    "apps/web/src/pages/assets/projectCollection.vue",
     "apps/web/src/pages/canvasLibrary/index.vue",
     "apps/web/src/pages/home/workspacePicker.vue",
-    "apps/web/src/pages/projects/index.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetLibrary.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue"
   ],
@@ -742,15 +736,13 @@
     "apps/web/src/components/appHeader.vue",
     "apps/web/src/components/libraryShell.vue"
   ],
-  "选择项目文件夹": [
-    "apps/web/src/components/appHeader.vue"
-  ],
-  "选择项目": [
+  "选择工作空间": [
     "apps/web/src/components/appHeader.vue",
-    "apps/web/src/components/taskCenter.vue",
     "apps/web/src/pages/canvasLibrary/index.vue",
+    "apps/web/src/pages/home/index.vue",
     "apps/web/src/pages/studio/index.vue",
-    "apps/web/src/pages/workspace/components/productionPanel.vue"
+    "apps/web/src/pages/workspace/components/productionPanel.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
   "模型配置": [
     "apps/web/src/components/appHeader.vue",
@@ -827,7 +819,7 @@
   "带入后保存为项目独立的固定版本，已有镜头继续使用原版本。": [
     "apps/web/src/components/libraryImportDialog.vue"
   ],
-  "目标项目": [
+  "目标工作空间": [
     "apps/web/src/components/libraryImportDialog.vue"
   ],
   "请选择目标项目目录": [
@@ -862,9 +854,6 @@
     "apps/web/src/components/libraryImportDialog.vue"
   ],
   "目标素材": [
-    "apps/web/src/components/libraryImportDialog.vue"
-  ],
-  "选择项目素材": [
     "apps/web/src/components/libraryImportDialog.vue"
   ],
   "基于版本": [
@@ -915,7 +904,7 @@
   "已保存为项目独立固定版本。全局原件后续改动不会改变这个版本。": [
     "apps/web/src/components/libraryImportDialog.vue"
   ],
-  "打开项目素材": [
+  "打开我的素材": [
     "apps/web/src/components/libraryImportDialog.vue"
   ],
   "角色": [
@@ -949,7 +938,7 @@
   "本预算周期的本机任务": [
     "apps/web/src/components/mediaCostPanel.vue"
   ],
-  "当前项目的本机任务": [
+  "当前工作空间的本机任务": [
     "apps/web/src/components/mediaCostPanel.vue"
   ],
   "币种": [
@@ -980,7 +969,7 @@
   "项目预算": [
     "apps/web/src/components/mediaCostPanel.vue"
   ],
-  "启用当前项目预算": [
+  "启用当前工作空间预算": [
     "apps/web/src/components/mediaCostPanel.vue"
   ],
   "预算币种": [
@@ -2348,10 +2337,16 @@
   "任务中心": [
     "apps/web/src/components/taskCenter.vue"
   ],
-  "项目": [
+  "尚未选择工作空间": [
+    "apps/web/src/components/taskCenter.vue"
+  ],
+  "工作空间": [
     "apps/web/src/components/taskCenter.vue",
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
+    "apps/web/src/pages/canvasLibrary/index.vue",
+    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
+  ],
+  "未选择": [
+    "apps/web/src/components/taskCenter.vue"
   ],
   "媒体": [
     "apps/web/src/components/taskCenter.vue"
@@ -2514,7 +2509,7 @@
   "原项目尚未保存，请先完成保存再定位任务": [
     "apps/web/src/components/taskCenter.vue"
   ],
-  "项目已切换，请重新定位任务": [
+  "工作空间已切换，请重新定位任务": [
     "apps/web/src/components/taskCenter.vue"
   ],
   "页面跳转未完成，请先处理当前页面的保存状态": [
@@ -2899,7 +2894,7 @@
   "节点 ID 无效": [
     "apps/web/src/lib/nodeFrameFiles.ts"
   ],
-  "节点所属项目或画布已切换": [
+  "节点所属工作空间或画布已切换": [
     "apps/web/src/lib/nodeFrameFiles.ts"
   ],
   "节点文件操作超出自身目录": [
@@ -3076,7 +3071,6 @@
   ],
   "全部": [
     "apps/web/src/pages/assets/materialCollection.vue",
-    "apps/web/src/pages/canvasLibrary/index.vue",
     "apps/web/src/pages/prompts/index.vue",
     "apps/web/src/pages/studio/index.vue"
   ],
@@ -3286,119 +3280,6 @@
   "已导入 {0} 个素材": [
     "apps/web/src/pages/assets/materialCollection.vue"
   ],
-  "画布与创作文件，按项目整理。": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "搜索项目": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "导入": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/prompts/index.vue"
-  ],
-  "新建项目": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "按时间降序": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "按时间升序": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "切换列表视图": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "切换网格视图": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "没有找到匹配的项目": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "你的第一部作品，从这里开始": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "试试其他名称或文件夹路径。": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "新建画布，或导入已有项目。你的文件保存在本地。": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "创建第一个项目": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "打开项目 {0}": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "最近打开 {0}": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "重命名项目 {0}": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "删除项目 {0}": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "移入工作空间的 zeromuTrash 目录，可在项目页的回收目录还原": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "项目“{0}”的文件夹不存在，是否重新选择文件夹？": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "工作目录不存在": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "重新选择": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "无法打开项目，请重试": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "请输入项目名称": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "重命名项目": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "项目名称不能为空": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "重命名失败": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "确定删除项目“{0}”？整个项目文件夹会移入工作空间的 zeromuTrash 目录，画布、素材和备份一并保留，可在「项目」页的回收目录还原，也可按目录名从磁盘取回：\n{1}": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "删除项目": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "移入回收目录": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "保留项目": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "项目文件夹已移入工作空间的 zeromuTrash 目录": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "删除项目失败": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
-  "请先选择工作空间": [
-    "apps/web/src/pages/assets/projectCollection.vue",
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "创建项目失败，请重试": [
-    "apps/web/src/pages/assets/projectCollection.vue"
-  ],
   "不是有效的零幕画布文件": [
     "apps/web/src/pages/canvasLibrary/canvasTransfer.ts"
   ],
@@ -3420,21 +3301,10 @@
   "画布缺少素材 {0}，请重新完整导出后导入": [
     "apps/web/src/pages/canvasLibrary/canvasTransfer.ts"
   ],
-  "所属项目": [
-    "apps/web/src/pages/canvasLibrary/index.vue",
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "工作空间": [
-    "apps/web/src/pages/canvasLibrary/index.vue",
-    "apps/web/src/pages/projects/index.vue"
-  ],
   "{0} 个画布": [
     "apps/web/src/pages/canvasLibrary/index.vue"
   ],
   "管理": [
-    "apps/web/src/pages/canvasLibrary/index.vue"
-  ],
-  "打开项目": [
     "apps/web/src/pages/canvasLibrary/index.vue"
   ],
   "导入画布": [
@@ -3449,12 +3319,6 @@
     "apps/web/src/pages/canvasLibrary/index.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/canvasControls.vue"
   ],
-  "按所属项目筛选画布": [
-    "apps/web/src/pages/canvasLibrary/index.vue"
-  ],
-  "刷新画布": [
-    "apps/web/src/pages/canvasLibrary/index.vue"
-  ],
   "搜索画布": [
     "apps/web/src/pages/canvasLibrary/index.vue"
   ],
@@ -3468,6 +3332,9 @@
     "apps/web/src/pages/canvasLibrary/index.vue"
   ],
   "名称顺序": [
+    "apps/web/src/pages/canvasLibrary/index.vue"
+  ],
+  "刷新画布": [
     "apps/web/src/pages/canvasLibrary/index.vue"
   ],
   "批量管理画布": [
@@ -3500,8 +3367,7 @@
   ],
   "操作": [
     "apps/web/src/pages/canvasLibrary/index.vue",
-    "apps/web/src/pages/home/workspacePicker.vue",
-    "apps/web/src/pages/projects/index.vue"
+    "apps/web/src/pages/home/workspacePicker.vue"
   ],
   "正在读取画布…": [
     "apps/web/src/pages/canvasLibrary/index.vue"
@@ -3515,7 +3381,7 @@
   "没有找到“{0}”": [
     "apps/web/src/pages/canvasLibrary/index.vue"
   ],
-  "当前项目下还没有画布": [
+  "工作空间里还没有画布": [
     "apps/web/src/pages/canvasLibrary/index.vue"
   ],
   "显示全部画布": [
@@ -3534,10 +3400,7 @@
   "回车保存 · Esc 取消": [
     "apps/web/src/pages/canvasLibrary/index.vue"
   ],
-  "打开画布 {0}，所属项目 {1}": [
-    "apps/web/src/pages/canvasLibrary/index.vue"
-  ],
-  "所属项目 {0}": [
+  "打开画布 {0}": [
     "apps/web/src/pages/canvasLibrary/index.vue"
   ],
   "更新于 {0}": [
@@ -3582,7 +3445,6 @@
   "重命名": [
     "apps/web/src/pages/canvasLibrary/index.vue",
     "apps/web/src/pages/home/workspacePicker.vue",
-    "apps/web/src/pages/projects/index.vue",
     "apps/web/src/pages/workspace/panels/canvas/components/assetMenu.vue"
   ],
   "删除画布 {0}": [
@@ -3682,6 +3544,12 @@
   "零幕 ZEROMU": [
     "apps/web/src/pages/home/index.vue"
   ],
+  "选择存放画布与素材的工作空间": [
+    "apps/web/src/pages/home/index.vue"
+  ],
+  "无法切换到该工作空间，请重试": [
+    "apps/web/src/pages/home/index.vue"
+  ],
   "描述创作目标，让零幕陪你完成第一幕…": [
     "apps/web/src/pages/home/index.vue"
   ],
@@ -3776,122 +3644,13 @@
   "操作失败，请重试": [
     "apps/web/src/pages/home/workspacePicker.vue"
   ],
-  "每个项目保存在自己的文件夹中，画布和素材都跟随项目保存。": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "添加已有项目": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "读取中…": [
-    "apps/web/src/pages/projects/index.vue",
-    "apps/web/src/pages/studio/index.vue"
-  ],
-  "搜索项目或文件夹路径": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "清空搜索": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "刷新项目": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "正在读取项目": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "项目文件夹": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "最近更新": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "当前项目": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "张画布": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "没有找到相关项目": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "从你的第一个项目开始": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "选择工作空间创建项目，或添加已有项目文件夹。": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "回收目录": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "删除的项目先移到这里，可随时还原；回收目录不会自动清理，彻底删除后无法恢复。": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "清空回收目录": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "收起": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "查看": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "还原项目 {0}": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "还原": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "彻底删除 {0}": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "彻底删除": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "输入新的项目名称": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "请输入 1–100 字的项目名称": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "项目已重命名": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "确定删除项目“{0}”？整个项目文件夹会移入工作空间的 zeromuTrash 目录，画布、素材和备份一并保留，可按目录名从磁盘取回：\n{1}": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "项目已添加": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "项目“{0}”已还原到工作空间": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "彻底删除回收条目“{0}”？该文件夹会从磁盘移除，无法恢复：\n{1}": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "彻底删除回收条目": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "保留": [
-    "apps/web/src/pages/projects/index.vue",
-    "apps/web/src/pages/prompts/index.vue",
-    "apps/web/src/pages/studio/index.vue"
-  ],
-  "回收条目已彻底删除": [
-    "apps/web/src/pages/projects/index.vue",
-    "apps/server/src/routes/workspace/removeTrash.ts"
-  ],
-  "彻底删除回收目录里全部 {0} 个条目？搜索筛选只影响列表显示，清空会连同未显示的条目一起从磁盘移除，无法恢复。": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "全部彻底删除": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
-  "已彻底删除 {0} 个回收条目": [
-    "apps/web/src/pages/projects/index.vue"
-  ],
   "创作模板库": [
     "apps/web/src/pages/prompts/index.vue"
   ],
   "新增提示词": [
+    "apps/web/src/pages/prompts/index.vue"
+  ],
+  "导入": [
     "apps/web/src/pages/prompts/index.vue"
   ],
   "刷新提示词库": [
@@ -4021,6 +3780,10 @@
   "归档「{0}」": [
     "apps/web/src/pages/prompts/index.vue"
   ],
+  "保留": [
+    "apps/web/src/pages/prompts/index.vue",
+    "apps/web/src/pages/studio/index.vue"
+  ],
   "提示词文件不能超过 2 MB": [
     "apps/web/src/pages/prompts/index.vue"
   ],
@@ -4130,6 +3893,9 @@
   "生成模型": [
     "apps/web/src/pages/studio/index.vue",
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
+  ],
+  "读取中…": [
+    "apps/web/src/pages/studio/index.vue"
   ],
   "尚未配置模型": [
     "apps/web/src/pages/studio/index.vue"
@@ -4259,7 +4025,7 @@
   "保存到": [
     "apps/web/src/pages/studio/index.vue"
   ],
-  "草稿和参考文件保存在当前项目": [
+  "草稿和参考文件保存在当前工作空间": [
     "apps/web/src/pages/studio/index.vue"
   ],
   "未选保存位置的草稿保存在应用数据中": [
@@ -4337,7 +4103,7 @@
   "重试读取": [
     "apps/web/src/pages/studio/index.vue"
   ],
-  "结果返回后会自动保存在当前项目": [
+  "结果返回后会自动保存在当前工作空间": [
     "apps/web/src/pages/studio/index.vue"
   ],
   "正在读取项目结果…": [
@@ -4445,7 +4211,7 @@
   "追加到当前画布": [
     "apps/web/src/pages/studio/transferDialog.vue"
   ],
-  "当前项目暂无打开的画布": [
+  "当前工作空间暂无打开的画布": [
     "apps/web/src/pages/studio/transferDialog.vue"
   ],
   "选择已有画布": [
@@ -5020,7 +4786,7 @@
   "批次名称": [
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
-  "当前 {0} 项。已有参考只能选择项目内固定版本；上游结果可指定为下游参考。准备范围后再确认执行。": [
+  "当前 {0} 项。已有参考只能选择工作空间内固定版本；上游结果可指定为下游参考。准备范围后再确认执行。": [
     "apps/web/src/pages/workspace/components/shotBatchPanel.vue"
   ],
   "未选择模型": [
@@ -5284,16 +5050,16 @@
   "画布仍未加载完成，请重新定位": [
     "apps/web/src/pages/workspace/panels/canvas/canvasHost.vue"
   ],
-  "项目已切换，请重新同步采用结果": [
+  "工作空间已切换，请重新同步采用结果": [
     "apps/web/src/pages/workspace/panels/canvas/canvasHost.vue"
   ],
-  "项目已切换，采用记录保留在原项目": [
+  "工作空间已切换，采用记录保留在原工作空间": [
     "apps/web/src/pages/workspace/panels/canvas/canvasHost.vue"
   ],
   "绑定画布暂无法打开，请重新同步": [
     "apps/web/src/pages/workspace/panels/canvas/canvasHost.vue"
   ],
-  "机位所属项目已切换或缺少画布位置": [
+  "机位所属工作空间已切换或缺少画布位置": [
     "apps/web/src/pages/workspace/panels/canvas/canvasHost.vue"
   ],
   "机位所属画布尚未打开，请重试": [
@@ -5566,10 +5332,7 @@
   "画布管理": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
-  "所属项目：{0} · {1}": [
-    "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
-  ],
-  "按所属项目管理画布": [
+  "按工作空间管理画布": [
     "apps/web/src/pages/workspace/panels/canvas/components/canvasMenu.vue"
   ],
   "画布项目": [
@@ -6996,6 +6759,9 @@
   "回收目录已清空": [
     "apps/server/src/routes/workspace/clearTrash.ts"
   ],
+  "回收条目已彻底删除": [
+    "apps/server/src/routes/workspace/removeTrash.ts"
+  ],
   "项目已从回收目录还原": [
     "apps/server/src/routes/workspace/restoreTrash.ts"
   ],
@@ -7306,7 +7072,7 @@
   "重载 MCP 失败：": [
     "apps/server/src/utils/mcp/runtime.ts"
   ],
-  "请在 target.directory 指定绝对工作目录，或先打开项目": [
+  "请在 target.directory 指定绝对工作目录，或先选择工作空间": [
     "apps/server/src/utils/mcp/tools.ts"
   ],
   "工作目录不是文件夹": [
@@ -9817,22 +9583,19 @@
   "旧工作空间读取失败": [
     "apps/server/src/utils/workspace/projects.ts"
   ],
-  "原有创作": [
-    "apps/server/src/utils/workspace/projects.ts"
-  ],
   "项目读取失败": [
     "apps/server/src/utils/workspace/projects.ts"
   ],
-  "请选择用于存放项目的独立工作空间文件夹": [
+  "无限画布1.json": [
+    "apps/server/src/utils/workspace/projects.ts"
+  ],
+  "工作空间初始化回滚失败": [
     "apps/server/src/utils/workspace/projects.ts"
   ],
   "项目编号已超出范围": [
     "apps/server/src/utils/workspace/projects.ts"
   ],
   "我的项目": [
-    "apps/server/src/utils/workspace/projects.ts"
-  ],
-  "无限画布1.json": [
     "apps/server/src/utils/workspace/projects.ts"
   ],
   "无限画布1": [

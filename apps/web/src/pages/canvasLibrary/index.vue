@@ -2,23 +2,17 @@
   <libraryShell>
     <section class="canvasLibrary" aria-labelledby="canvasLibraryTitle">
       <div class="projectContext">
-        <router-link to="/projects" class="projectIdentity" :title="selectedProject?.directory || workspace.workspaceRoot?.directory"><icon-folder-open :size="17" aria-hidden="true" /><span>{{ selectedProject ? '所属项目' : '工作空间' }}</span><strong>{{ selectedProject?.name || workspace.workspaceRoot?.name || '选择项目' }}</strong></router-link>
-        <span v-if="selectedProject || workspace.workspaceRoot" class="projectPath" :title="selectedProject?.directory || workspace.workspaceRoot?.directory">{{ selectedProject?.directory || workspace.workspaceRoot?.directory }}</span>
+        <router-link to="/home" class="projectIdentity" :title="workspace.workspaceRoot?.directory || '选择工作空间'"><icon-folder-open :size="17" aria-hidden="true" /><span>工作空间</span><strong>{{ workspace.workspaceRoot?.name || '选择工作空间' }}</strong></router-link>
+        <span v-if="workspace.workspaceRoot" class="projectPath" :title="workspace.workspaceRoot.directory">{{ workspace.workspaceRoot.directory }}</span>
       </div>
       <header class="canvasLibraryHeader">
         <div class="headingCopy"><h1 id="canvasLibraryTitle">画布</h1><span v-if="!loading">{{ canvases.length }} 个画布</span></div>
-        <div class="libraryActions"><button :disabled="busy || loading || !!editingCanvas" :aria-pressed="managementMode" @click="toggleManagement"><icon-adjustments :size="16" aria-hidden="true" />{{ managementMode ? '完成管理' : '管理' }}</button><button :disabled="busy || loading" @click="openProject"><icon-folder-open :size="16" />打开项目</button><button :disabled="busy || loading" @click="beginImport"><icon-file-import :size="16" />导入画布</button><button class="primaryAction" :disabled="busy || loading" @click="createCanvas"><icon-plus :size="17" />新建画布</button><div class="viewSwitch" role="group" aria-label="画布视图"><button :aria-pressed="view === 'grid'" aria-label="网格视图" title="网格视图" @click="view = 'grid'"><icon-layout-grid :size="18" /></button><button :aria-pressed="view === 'list'" aria-label="列表视图" title="列表视图" @click="view = 'list'"><icon-list :size="18" /></button></div></div>
+        <div class="libraryActions"><button :disabled="busy || loading || !!editingCanvas" :aria-pressed="managementMode" @click="toggleManagement"><icon-adjustments :size="16" aria-hidden="true" />{{ managementMode ? '完成管理' : '管理' }}</button><button :disabled="busy || loading" @click="beginImport"><icon-file-import :size="16" />导入画布</button><button class="primaryAction" :disabled="busy || loading" @click="createCanvas"><icon-plus :size="17" />新建画布</button><div class="viewSwitch" role="group" aria-label="画布视图"><button :aria-pressed="view === 'grid'" aria-label="网格视图" title="网格视图" @click="view = 'grid'"><icon-layout-grid :size="18" /></button><button :aria-pressed="view === 'list'" aria-label="列表视图" title="列表视图" @click="view = 'list'"><icon-list :size="18" /></button></div></div>
       </header>
-      <div v-if="projects.length" class="projectToolbar">
-        <div class="projectTabs" role="group" aria-label="按所属项目筛选画布">
-          <button :aria-pressed="activeProject === 'all'" :disabled="busy || loading || !!editingCanvas" @click="selectProject('all')">全部 <span>{{ canvases.length }}</span></button>
-          <button v-for="project in projects" :key="project.directory" :aria-pressed="activeProject === project.directory" :disabled="busy || loading || !!editingCanvas" @click="selectProject(project.directory)">{{ project.name }} <span>{{ projectCounts[project.directory] || 0 }}</span></button>
-        </div>
-        <button :disabled="busy || loading || !!editingCanvas" aria-label="刷新画布" title="刷新画布" @click="loadCanvases"><icon-refresh :size="16" aria-hidden="true" /></button>
-      </div>
       <div class="libraryToolbar">
         <el-input v-model="query" aria-label="搜索画布" placeholder="查找画布" :prefixIcon="IconSearch" clearable />
         <select v-model="sortOrder" aria-label="画布排序"><option value="modified">最近修改</option><option value="name">名称顺序</option></select>
+        <button :disabled="busy || loading || !!editingCanvas" aria-label="刷新画布" title="刷新画布" @click="loadCanvases"><icon-refresh :size="16" aria-hidden="true" /></button>
       </div>
       <div v-if="managementMode" class="managementToolbar" aria-label="批量管理画布">
         <span role="status">已选择 {{ selectedItems.length }} 张画布</span>
@@ -29,7 +23,7 @@
       <p v-if="loading" class="libraryStatus" role="status">正在读取画布…</p>
       <div v-if="loadError" class="libraryStatus" role="alert"><p>{{ loadError }}</p><button @click="loadCanvases">重新读取</button></div>
       <div v-if="!loading && !loadError && !canvases.length" class="emptyLibrary"><icon-layout-grid :size="32" :strokeWidth="1.5" /><h2>创建你的第一张画布</h2><p>在画布里组织想法、素材和创作流程。</p><button :disabled="busy" @click="createCanvas"><icon-plus :size="16" />新建画布</button></div>
-      <div v-if="!loading && canvases.length && !visibleCanvases.length" class="libraryStatus" role="status"><p>{{ query ? '没有找到“' + query + '”' : '当前项目下还没有画布' }}</p><button @click="query = ''; selectProject('all')">显示全部画布</button></div>
+      <div v-if="!loading && canvases.length && !visibleCanvases.length" class="libraryStatus" role="status"><p>{{ query ? '没有找到“' + query + '”' : '工作空间里还没有画布' }}</p><button @click="query = ''">显示全部画布</button></div>
       <div v-if="visibleCanvases.length" class="canvasGrid" :class="{ cardView: view === 'grid' }">
         <article v-for="item in visibleCanvases" :key="item.key" class="canvasCard" :class="{ selected: selected.includes(item.key) }">
           <input v-model="selected" class="cardCheckbox" type="checkbox" :value="item.key" :aria-label="`选择画布 ${item.name}`" :disabled="busy" @change="managementMode = true" />
@@ -38,7 +32,7 @@
             <p>{{ item.nodes }} 个节点 · {{ item.edges }} 条连线</p>
             <p id="canvasRenameFeedback" class="renameFeedback" :class="{ renameInvalid: renameError }" :role="renameError ? 'alert' : 'status'">{{ renameError || (busy ? '正在保存…' : '回车保存 · Esc 取消') }}</p>
           </div>
-          <button v-else class="canvasEntry" :aria-label="`打开画布 ${item.name}，所属项目 ${item.projectName}`" :disabled="busy" @click="openCanvas(item)"><h2 :title="item.name">{{ item.name }}</h2><p>{{ item.nodes }} 个节点 · {{ item.edges }} 条连线</p><span class="projectBadge" :title="item.directory">所属项目 {{ item.projectName }}</span></button>
+          <button v-else class="canvasEntry" :aria-label="`打开画布 ${item.name}`" :disabled="busy" @click="openCanvas(item)"><h2 :title="item.name">{{ item.name }}</h2><p>{{ item.nodes }} 个节点 · {{ item.edges }} 条连线</p></button>
           <div class="cardFooter"><time v-if="item.modifiedAt" :datetime="item.modifiedAt" :title="new Date(item.modifiedAt).toLocaleString()">更新于 {{ formatTime(item.modifiedAt) }}</time><span v-else>已保存</span><div class="cardActions">
             <template v-if="editingCanvas?.key === item.key">
               <button :disabled="busy" aria-label="保存画布名称" title="保存名称" @pointerdown.prevent @click="saveRename"><icon-check :size="17" /></button>
@@ -95,20 +89,9 @@ const renameError = ref('');
 const renameInputs = ref<HTMLInputElement[]>([]);
 const renameButtons = ref<HTMLButtonElement[]>([]);
 const managementMode = ref(false);
-const activeProject = ref('all');
-const projects = computed(canvasProjects);
-const selectedProject = computed(() => projects.value.find(project => project.directory === activeProject.value));
 const selectedItems = computed(() => canvases.value.filter(item => selected.value.includes(item.key)));
-const projectCounts = computed(() => {
-  const counts: Record<string, number> = {};
-  for (const item of canvases.value) {
-    counts[item.directory] = (counts[item.directory] ?? 0) + 1;
-  }
-  return counts;
-});
 const visibleCanvases = computed(() => canvases.value.filter(item => item.key === editingCanvas.value?.key
-  || (activeProject.value === 'all' || item.directory === activeProject.value)
-    && (item.name + ' ' + item.projectName).toLocaleLowerCase().includes(query.value.trim().toLocaleLowerCase())).sort((a, b) => (sortOrder.value === 'modified' ? (Date.parse(b.modifiedAt ?? '') || 0) - (Date.parse(a.modifiedAt ?? '') || 0) : 0) || a.name.localeCompare(b.name, 'zh-CN', { numeric: true })));
+  || (item.name + ' ' + item.projectName).toLocaleLowerCase().includes(query.value.trim().toLocaleLowerCase())).sort((a, b) => (sortOrder.value === 'modified' ? (Date.parse(b.modifiedAt ?? '') || 0) - (Date.parse(a.modifiedAt ?? '') || 0) : 0) || a.name.localeCompare(b.name, 'zh-CN', { numeric: true })));
 const allVisibleSelected = computed(() => visibleCanvases.value.length > 0 && visibleCanvases.value.every(item => selected.value.includes(item.key)));
 function toggleSelection() {
   managementMode.value = true;
@@ -163,8 +146,9 @@ async function loadCanvases() {
   } catch (error) { if (version === loadVersion) loadError.value = errorText(error); }
   finally { if (version === loadVersion) loading.value = false; }
 }
-watch(() => projects.value.map(project => [project.directory, project.name]), () => {
-  if (activeProject.value !== 'all' && !projects.value.some(project => project.directory === activeProject.value)) activeProject.value = 'all';
+// 一级工作空间后只剩一个容器，这里仍按容器集合变化触发重读。
+const projects = computed(canvasProjects);
+watch(() => projects.value.map(project => project.directory), () => {
   managementMode.value = false;
   editingCanvas.value = null;
   void loadCanvases();
@@ -174,13 +158,8 @@ function toggleManagement() {
   managementMode.value = !managementMode.value;
   if (!managementMode.value) selected.value = [];
 }
-function selectProject(path: string) {
-  if (busy.value || editingCanvas.value) return;
-  activeProject.value = path;
-  selected.value = [];
-}
-async function ensureDirectory() { directory.value = selectedProject.value?.directory ?? await ensureCanvasDirectory(); return directory.value; }
-async function openProject() { await router.push({ path: '/projects', query: { next: '/canvas' } }); }
+async function ensureDirectory() { directory.value = await ensureCanvasDirectory(); return directory.value; }
+async function pickWorkspace() { await router.push({ path: '/home' }); }
 async function openCanvas(item: CanvasItem) {
   if (busy.value) return;
   const path = item.directory;
@@ -194,7 +173,7 @@ async function requestName(title: string, name: string) {
 }
 async function createCanvas() {
   if (busy.value) return;
-  if (!selectedProject.value && !workspace.project) return openProject();
+  if (!workspace.project) return pickWorkspace();
   busy.value = true;
   try {
     const path = await ensureDirectory();
@@ -315,7 +294,7 @@ async function copyCanvas(item: CanvasItem) {
 }
 async function beginImport() {
   if (busy.value) return;
-  if (!selectedProject.value && !workspace.project) return openProject();
+  if (!workspace.project) return pickWorkspace();
   busy.value = true;
   try { await ensureDirectory(); importInput.value?.click(); }
   catch (error) { ElMessage.error(errorText(error)); }

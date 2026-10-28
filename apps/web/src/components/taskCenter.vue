@@ -1,7 +1,7 @@
 <template>
   <el-drawer v-model="center.visible" title="任务中心" size="min(660px, 100vw)" :modal="false" :lockScroll="false" appendToBody class="taskCenter">
     <div class="taskFilters">
-      <label>项目<select v-model="directory" :disabled="!!resuming"><option value="">选择项目</option><option v-for="item in projects" :key="item.directory" :value="item.directory">{{ item.name }}</option></select></label>
+      <label class="taskScope" :title="directory || '尚未选择工作空间'">工作空间<span>{{ workspace.workspaceRoot?.name || "未选择" }}</span></label>
       <label>媒体<select v-model="mediaType"><option value="">全部媒体</option><option value="image">图片</option><option value="video">视频</option><option value="audio">音频</option></select></label>
       <el-button :loading="loading" :disabled="!directory" @click="loadTasks">刷新</el-button>
       <el-button :aria-expanded="costOpen" @click="costOpen = !costOpen">费用与预算</el-button>
@@ -68,11 +68,6 @@ const costOpen = computed({ get: () => center.costVisible, set: value => { cente
 const costPanel = ref<InstanceType<typeof mediaCostPanel>>();
 function refreshCosts() { void loadTasks(); if (costOpen.value) void costPanel.value?.load(); }
 const currentDirectory = computed(() => route.path.startsWith("/studio/") ? center.studioDirectory || workspace.project?.directory : workspace.project?.directory || center.studioDirectory);
-const projects = computed(() => {
-  const projects = [...workspace.projectList];
-  for (const directory of [center.studioDirectory, center.focusTask?.directory]) if (directory && !projects.some(item => item.directory === directory)) projects.push({ directory, name: directory.split(/[\\/]/).filter(Boolean).at(-1) || directory, lastOpenedAt: 0 });
-  return projects;
-});
 const tasks = ref<MediaTaskRecord[]>([]);
 const total = ref(0);
 const page = ref(1);
@@ -162,11 +157,11 @@ async function locate(task: MediaTaskRecord) {
       if (failure && route.path !== "/canvas") throw new Error("原项目尚未保存，请先完成保存再定位任务");
       await workspace.openProject(task.directory);
     }
-    if (workspace.project?.directory !== task.directory) throw new Error("项目已切换，请重新定位任务");
+    if (workspace.project?.directory !== task.directory) throw new Error("工作空间已切换，请重新定位任务");
     const target = task.source.canvasId ? { path: "/workspace", query: { canvas: task.source.canvasId } } : { path: task.source.shotId ? "/workspace" : `/studio/${task.mediaType}` };
     const failure = await router.push(target);
     if (failure && route.path !== target.path) throw new Error("页面跳转未完成，请先处理当前页面的保存状态");
-    if (workspace.project?.directory !== task.directory) throw new Error("项目已切换，请重新定位任务");
+    if (workspace.project?.directory !== task.directory) throw new Error("工作空间已切换，请重新定位任务");
     if (task.source.canvasId) center.location = { directory: task.directory, canvasId: task.source.canvasId, nodeId: task.source.nodeId, token: crypto.randomUUID() };
     center.visible = false;
   } catch (cause) { error.value = message(cause); }

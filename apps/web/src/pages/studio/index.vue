@@ -93,7 +93,7 @@
           </div>
           <p v-if="kind === 'video' && videoMode && !videoMode.startsWith('[') && videoMode !== '&quot;text&quot;'" class="referenceHint">{{ videoMode === '&quot;singleImage&quot;' ? '单图模式需要一张图片参考。' : videoMode === '&quot;startFrameOptional&quot;' ? '仅一张图片时用作尾帧；两张图片按顺序用作首帧、尾帧。' : '图片按顺序用作首帧、尾帧；请按所选模式添加参考。' }}</p>
         </fieldset>
-        <div class="workspaceRow"><span>保存到</span><button type="button" :title="directory || '选择项目'" :disabled="directoryLocked" @click="selectProject">{{ workspace.project?.name || '选择项目' }}</button><p class="draftStatus" :class="{ draftFailed: draftError }" :role="draftError ? 'alert' : 'status'" :title="directory ? '草稿和参考文件保存在当前项目' : '未选保存位置的草稿保存在应用数据中'">{{ restoringDraft ? '恢复草稿中…' : draftError || (draftDirty ? '保存草稿中…' : '草稿已保存') }}<button v-if="draftError" @click="retryDraft().catch(() => {})">重试</button></p></div>
+        <div class="workspaceRow"><span>保存到</span><button type="button" :title="directory || '选择工作空间'" :disabled="directoryLocked" @click="selectProject">{{ workspace.workspaceRoot?.name || '选择工作空间' }}</button><p class="draftStatus" :class="{ draftFailed: draftError }" :role="draftError ? 'alert' : 'status'" :title="directory ? '草稿和参考文件保存在当前工作空间' : '未选保存位置的草稿保存在应用数据中'">{{ restoringDraft ? '恢复草稿中…' : draftError || (draftDirty ? '保存草稿中…' : '草稿已保存') }}<button v-if="draftError" @click="retryDraft().catch(() => {})">重试</button></p></div>
         </div>
         <div class="composerFooter">
           <p v-if="inputError" class="generationIssue" role="alert">{{ inputError }}</p>
@@ -117,7 +117,7 @@
           <button v-if="task.canResume && !isActiveTask(task)" :disabled="locked" @click="resumeTask(task)">{{ task.canCancel ? '继续排队' : task.results.length ? '仅重试未完成结果' : '继续查询／下载' }}</button>
         </div>
         <div v-if="historyError" class="statusMessage errorMessage" role="alert">{{ historyError }}<button :disabled="loadingHistory" @click="loadHistory">重试读取</button></div>
-        <div v-if="busy" class="statusMessage" role="status"><span class="loadingDot"></span>{{ progress }}<span>结果返回后会自动保存在当前项目</span></div>
+        <div v-if="busy" class="statusMessage" role="status"><span class="loadingDot"></span>{{ progress }}<span>结果返回后会自动保存在当前工作空间</span></div>
         <div v-if="loadingHistory" class="emptyResults" role="status"><icon-refresh :size="32" /><p>正在读取项目结果…</p></div>
         <div v-else-if="!results.length && !busy" class="emptyResults"><component :is="kind === 'image' ? IconPhotoPlus : kind === 'video' ? IconVideo : IconMusic" :size="26" :strokeWidth="1.5" /><p>生成结果会保存在这里</p></div>
         <div v-else class="resultScroll">
@@ -178,7 +178,7 @@ const referenceMenuVisible = ref(false);
 const extraFieldsVisible = ref(false);
 const hasExtraFields = computed(() => kind.value === "image" ? !!model.value?.imageSizeRange : kind.value === "video" && model.value?.audio === "optional");
 watch(imagePreset, value => { if (value === "custom") extraFieldsVisible.value = true; });
-const primaryActionLabel = computed(() => tasks.value.some(task => ["queued", "submitting", "running", "downloading"].includes(task.status)) ? "任务生成中…" : loadingModels.value ? "读取模型中…" : !directory.value ? "选择项目" : !availableModels.value.length ? "配置 API" : !model.value ? "请选择模型" : `生成${mediaLabel.value}`);
+const primaryActionLabel = computed(() => tasks.value.some(task => ["queued", "submitting", "running", "downloading"].includes(task.status)) ? "任务生成中…" : loadingModels.value ? "读取模型中…" : !directory.value ? "选择工作空间" : !availableModels.value.length ? "配置 API" : !model.value ? "请选择模型" : `生成${mediaLabel.value}`);
 const primaryActionDisabled = computed(() => tasks.value.some(task => ["queued", "submitting", "running", "downloading"].includes(task.status)) || !!taskError.value || locked.value || loadingModels.value || (!!directory.value && !!availableModels.value.length && !model.value) || (!!model.value && !!directory.value && (!prompt.value.trim() || !!historyError.value || !!inputError.value)));
 function runPrimaryAction() {
   if (!directory.value) void selectProject();
@@ -192,7 +192,7 @@ async function selectProject() {
     delete query.prompt; delete query.fromUnbound;
     if (!directory.value) query.fromUnbound = "1";
     const next = router.resolve({ path: route.path, query }).fullPath;
-    await router.push({ path: "/projects", query: { next } });
+    await router.push({ path: "/home", query: { next } });
   } catch { /* 草稿保存反馈保留在原页面，避免离页丢失输入。 */ }
 }
 const workspace = useWorkspaceStore();

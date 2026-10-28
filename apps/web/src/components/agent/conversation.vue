@@ -488,7 +488,7 @@ async function sendMessage(source?: AgentMessage) {
   const resendFrom = source ? source.entryId ?? messages.value.slice(resendIndex + 1).find(item => item.role === "user" && item.entryId)?.entryId : undefined;
   if (locked.value || !instance || (!prompt && !attachments.length)) return;
   const model = selectedModelChoice.value;
-  if (!directory) return ElMessage.warning("请先打开项目");
+  if (!directory) return ElMessage.warning("请先选择工作空间");
   if (!model) return ElMessage.warning("请先选择模型");
 
   const requestController = new AbortController();
